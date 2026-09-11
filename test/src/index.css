@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+  --color-alret-gold: #f2a93a;
+  --color-active-blue: #0062ff;
+  --color-deactive-btn-gray: #121010;
+  --color-succ-btn: #eaf7ef;
+  --color-succ-txt: #16a34a;
+  --color-border: #e2e8f0;
+  --color-err-text: #db5e5e;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-deactive-btn-gray);
+    color: oklch(0.97 0.005 286);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* منوی باز‌شونده سلکت‌ها تیره باشد تا متن‌ها خوانا بمانند */
+  select {
+    background-color: #1c1a1a;
+    color: #f4f4f5;
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: #1c1a1a;
+    color: #f4f4f5;
+  }
+
+  /* تقویم باز شونده input[type=date] هم تیره شود */
+  input[type="date"] {
+    color-scheme: dark;
+  }
+}
