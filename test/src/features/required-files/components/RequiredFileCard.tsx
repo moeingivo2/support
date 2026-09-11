@@ -8,6 +8,8 @@ import {
   File,
   FileArchive,
   FileText,
+  Pencil,
+  Trash2,
   UserRound,
 } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
@@ -17,9 +19,11 @@ import type { Resource } from '../types/resource'
 
 type RequiredFileCardProps = {
   resource: Resource
+  onEdit: (resource: Resource) => void
+  onDelete: (resource: Resource) => void
 }
 
-export function RequiredFileCard({ resource }: RequiredFileCardProps) {
+export function RequiredFileCard({ resource, onEdit, onDelete }: RequiredFileCardProps) {
   const [copied, setCopied] = useState(false)
 
   async function copyLink() {
@@ -38,11 +42,31 @@ export function RequiredFileCard({ resource }: RequiredFileCardProps) {
         <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-active-blue/10 text-active-blue ring-1 ring-active-blue/20">
           <FileKindIcon fileUrl={resource.file_url} />
         </span>
-        {resource.category ? (
-          <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-zinc-300">
-            {resource.category}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-1">
+          {resource.category ? (
+            <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-zinc-300">
+              {resource.category}
+            </span>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            aria-label="ویرایش فایل"
+            onClick={() => onEdit(resource)}
+          >
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9 text-err-text hover:text-err-text"
+            aria-label="حذف فایل"
+            onClick={() => onDelete(resource)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">

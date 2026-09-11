@@ -21,12 +21,14 @@ import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { StatusPill } from '@/shared/ui/status-pill'
+import { useToast } from '@/shared/ui/toast'
 import { cn } from '@/shared/lib/utils'
 
 export default function RegisterSupportPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const toast = useToast()
   const supportsQuery = useQuery({ queryKey: adminKeys.supports, queryFn: getSupports })
 
   const {
@@ -50,6 +52,7 @@ export default function RegisterSupportPage() {
     try {
       const response = await createSupport(values)
       setSuccessMessage(`${response.message} — ${values.name}`)
+      toast.success(`${values.name} ثبت شد.`)
       reset()
       await queryClient.invalidateQueries({ queryKey: adminKeys.supports })
     } catch (error) {

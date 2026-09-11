@@ -1,4 +1,4 @@
-import { getJson } from '@/shared/api/http'
+import { deleteJson, getJson, postJson, putJson } from '@/shared/api/http'
 import type { LaravelPagination, Resource } from '../types/resource'
 
 export type RequiredFilesFilters = {
@@ -12,6 +12,13 @@ export type RequiredFilesPagination = Omit<LaravelPagination<Resource>, 'data'>
 export type RequiredFilesPage = {
   items: Resource[]
   pagination: RequiredFilesPagination
+}
+
+export type ResourcePayload = {
+  title: string
+  description: string
+  file_url: string
+  category: string
 }
 
 export const requiredFileKeys = {
@@ -56,4 +63,27 @@ function getPagination(response: LaravelPagination<Resource>): RequiredFilesPagi
     to: response.to,
     total: response.total,
   }
+}
+
+export async function createRequiredFile(
+  payload: ResourcePayload,
+): Promise<{ message: string; resource: Resource }> {
+  return postJson<ResourcePayload & { type: string }, { message: string; resource: Resource }>(
+    '/api/resources',
+    { ...payload, type: 'required_file' },
+  )
+}
+
+export async function updateRequiredFile(
+  id: number,
+  payload: ResourcePayload,
+): Promise<{ message: string; resource: Resource }> {
+  return putJson<ResourcePayload, { message: string; resource: Resource }>(
+    `/api/resources/${id}`,
+    payload,
+  )
+}
+
+export async function deleteRequiredFile(id: number): Promise<{ message: string }> {
+  return deleteJson<{ message: string }>(`/api/resources/${id}`)
 }

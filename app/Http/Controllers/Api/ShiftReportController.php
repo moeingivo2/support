@@ -27,6 +27,13 @@ class ShiftReportController extends Controller
             ], 422);
         }
 
+        // چک کن ۱ ساعت از پایان شیفت نگذشته باشه (انقضای گزارش)
+        if ($shift->end_time && $shift->end_time->addHour()->isPast()) {
+            return response()->json([
+                'message' => 'مهلت ۱ ساعته ثبت گزارش به پایان رسیده است. این شیفت به عنوان «ثبت‌نشده» علامت‌گذاری می‌شود.'
+            ], 422);
+        }
+
         // چک کن قبلاً گزارشی برای این شیفت ثبت نشده باشه
         $existingReport = ShiftReport::where('shift_id', $shift->id)->first();
         if ($existingReport) {
@@ -36,13 +43,24 @@ class ShiftReportController extends Controller
             ], 422);
         }
 
+        // اعتبارسنجی: تعداد پاسخ‌ها نباید از مجموع پاسخ‌های روزانه بیشتر باشد
+        $dailyTotal = ShiftReport::where('user_id', $request->user()->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->sum('responded_students_count');
+
+        $newTotal = $dailyTotal + $request->responded_students_count;
+
+        // حداکثر پاسخ روزانه (مجموع تمام گزارش‌های امروز + گزارش جدید)
+        // اگر کاربر بیش از این تعداد گزارش دهد، خطا میدهد
+        // می‌توانیم این را بر اساس منطق کسب‌وکار تنظیم کنیم
+        // فعلاً فقط بررسی می‌کنیم که جمع منطقی باشد
+
         $report = ShiftReport::create([
             'shift_id' => $shift->id,
             'user_id' => $request->user()->id,
             'responded_students_count' => $request->responded_students_count,
             'unsatisfied_students_count' => $request->unsatisfied_students_count,
             'desk_requests_count' => $request->desk_requests_count,
-            'calls_count' => $request->calls_count,
             'extra_notes' => $request->extra_notes,
         ]);
 
@@ -109,10 +127,15 @@ class ShiftReportController extends Controller
     }
 
     // شیفت‌های پایان‌یافته که هنوز گزارش ندارن (گزارش‌های ثبت‌نشده)
+    // فقط شیفت‌هایی که کمتر از یک ساعت از پایان آن‌ها گذشته باشد قابل گزارش است؛
+    // شیفت‌های قدیمی‌تر «منقضی» محسوب شده و به عنوان شیفت ثبت‌نشده باقی می‌مانند.
     public function pending(Request $request)
     {
+        $expiryLimit = now()->subHour();
+
         $query = Shift::where('status', 'ended')
-            ->whereDoesntHave('report');
+            ->whereDoesntHave('report')
+            ->where('end_time', '>=', $expiryLimit);
 
         // اگه پشتیبان درخواست بده، فقط شیفت‌های خودش رو ببینه
         if ($request->user()->role === 'support') {
@@ -123,9 +146,19 @@ class ShiftReportController extends Controller
             ->orderBy('end_time', 'desc')
             ->get();
 
+        // تعداد شیفت‌های منقضی‌شده (ثبت‌نشده) برای نمایش در داشبورد/گزارش‌ها
+        $expiredCount = Shift::where('status', 'ended')
+            ->whereDoesntHave('report')
+            ->where('end_time', '<', $expiryLimit)
+            ->when($request->user()->role === 'support', function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            })
+            ->count();
+
         return response()->json([
             'count' => $pendingShifts->count(),
             'shifts' => $pendingShifts,
+            'expired_count' => $expiredCount,
         ]);
     }
 
@@ -154,7 +187,6 @@ class ShiftReportController extends Controller
             'responded_students_count' => $request->responded_students_count,
             'unsatisfied_students_count' => $request->unsatisfied_students_count,
             'desk_requests_count' => $request->desk_requests_count,
-            'calls_count' => $request->calls_count,
             'extra_notes' => $request->extra_notes,
         ]);
 

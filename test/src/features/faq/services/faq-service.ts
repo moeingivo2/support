@@ -1,4 +1,4 @@
-import { getJson } from '@/shared/api/http'
+import { deleteJson, getJson, postJson, putJson } from '@/shared/api/http'
 import type { Faq } from '../types/faq'
 
 export const faqKeys = {
@@ -12,6 +12,27 @@ export function getFaqs(params: { category?: string; search?: string } = {}): Pr
     category: params.category || undefined,
     search: params.search || undefined,
   })
+}
+
+export type FaqPayload = {
+  question: string
+  answer: string
+  category: string | null
+}
+
+export async function createFaq(payload: FaqPayload): Promise<{ message: string; faq: Faq }> {
+  return postJson<FaqPayload, { message: string; faq: Faq }>('/api/faqs', payload)
+}
+
+export async function updateFaq(
+  id: number,
+  payload: FaqPayload,
+): Promise<{ message: string; faq: Faq }> {
+  return putJson<FaqPayload, { message: string; faq: Faq }>(`/api/faqs/${id}`, payload)
+}
+
+export async function deleteFaq(id: number): Promise<{ message: string }> {
+  return deleteJson<{ message: string }>(`/api/faqs/${id}`)
 }
 
 export const FAQ_CATEGORIES: Array<{ value: string; label: string }> = [

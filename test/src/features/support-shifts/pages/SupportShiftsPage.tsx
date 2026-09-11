@@ -1,61 +1,41 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, CalendarClock, Play, RefreshCw, Square } from 'lucide-react'
 import { endShift, shiftServiceKeys, startShift } from '../services/shift-service'
 import { useMyShifts } from '../hooks/useMyShifts'
-import { startShiftSchema, type StartShiftFormValues } from '../schemas/startShiftSchema'
+import { useAuth } from '@/shared/services/auth-context'
 import { Alert } from '@/shared/ui/alert'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
-import { Label } from '@/shared/ui/label'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { StatusPill } from '@/shared/ui/status-pill'
-import { HttpApiError } from '@/shared/api/http'
 import { formatShiftDateTime } from '../utils/formatShiftDateTime'
 import { formatShiftDuration } from '../utils/formatShiftDuration'
 import { getPages, PageButton } from '@/shared/ui/pagination'
-
-const CHANNEL_OPTIONS = [
-  { value: 'web', label: 'وب' },
-  { value: 'ai', label: 'هوش مصنوعی' },
-  { value: 'phone', label: 'تلفنی' },
-] as const
+import { useToast } from '@/shared/ui/toast'
 
 export default function SupportShiftsPage() {
   const [page, setPage] = useState(1)
   const [serverError, setServerError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const toast = useToast()
+  const { user } = useAuth()
   const shiftsQuery = useMyShifts(page)
 
-  const {
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-    setError,
-  } = useForm<StartShiftFormValues>({
-    defaultValues: { channel: 'web' },
-    resolver: zodResolver(startShiftSchema),
-  })
-
   const startMutation = useMutation({
-    mutationFn: (payload: StartShiftFormValues) => startShift(payload),
+    mutationFn: () => startShift({ channel: user?.support_type ?? 'web' }),
     onSuccess: async (data) => {
       setSuccessMessage(data.message ?? 'شیفت با موفقیت شروع شد.')
       setServerError(null)
+      toast.success(data.message ?? 'شیفت با موفقیت شروع شد.')
       await queryClient.invalidateQueries({ queryKey: shiftServiceKeys.all })
       await queryClient.invalidateQueries({ queryKey: ['current-shift'] })
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
     onError: (error) => {
       setSuccessMessage(null)
-      if (error instanceof HttpApiError && error.fieldErrors?.channel) {
-        setError('channel', { type: 'server', message: error.fieldErrors.channel[0] })
-      } else {
-        setServerError(error instanceof Error ? error.message : 'شروع شیفت ناموفق بود.')
-      }
+      setServerError(error instanceof Error ? error.message : 'شروع شیفت ناموفق بود.')
     },
   })
 
@@ -64,6 +44,7 @@ export default function SupportShiftsPage() {
     onSuccess: async (data) => {
       setSuccessMessage(data.message ?? 'شیفت با موفقیت پایان یافت.')
       setServerError(null)
+      toast.success(data.message ?? 'شیفت با موفقیت پایان یافت.')
       await queryClient.invalidateQueries({ queryKey: shiftServiceKeys.all })
       await queryClient.invalidateQueries({ queryKey: ['current-shift'] })
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -78,9 +59,9 @@ export default function SupportShiftsPage() {
   const activeShift = shifts.find((shift) => shift.status === 'active')
   const pagination = shiftsQuery.data
 
-  const onSubmit = async (values: StartShiftFormValues) => {
+  const handleStartShift = () => {
     setSuccessMessage(null)
-    await startMutation.mutateAsync(values)
+    startMutation.mutate()
   }
 
   return (
@@ -136,29 +117,18 @@ export default function SupportShiftsPage() {
             <h2 className="text-xl font-bold text-white">شروع شیفت جدید</h2>
           </div>
 
-          <form className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="channel">کانال پاسخگویی</Label>
-              <select
-                id="channel"
-                className="h-11 w-full rounded-2xl border border-border/15 bg-white/5 px-4 text-sm text-zinc-100 outline-none transition focus-visible:border-active-blue/50 focus-visible:ring-2 focus-visible:ring-active-blue/30 disabled:cursor-not-allowed disabled:opacity-50"
-                {...register('channel')}
-              >
-                {CHANNEL_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {errors.channel ? (
-                <p className="text-xs font-medium text-err-text">{errors.channel.message}</p>
-              ) : null}
+          <div className="mt-6 flex flex-col items-start gap-4 rounded-3xl border border-border/10 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs text-zinc-500">کانال شیفت (تعیین‌شده توسط ادمین)</p>
+              <StatusPill tone={user?.support_type === 'ai' ? 'warning' : 'info'}>
+                {user?.support_type === 'ai' ? 'هوش مصنوعی' : 'وب'}
+              </StatusPill>
             </div>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button onClick={handleStartShift} disabled={startMutation.isPending}>
               <Play />
-              {isSubmitting ? 'در حال شروع...' : 'شروع شیفت'}
+              {startMutation.isPending ? 'در حال شروع...' : 'شروع شیفت'}
             </Button>
-          </form>
+          </div>
         </Card>
       )}
 

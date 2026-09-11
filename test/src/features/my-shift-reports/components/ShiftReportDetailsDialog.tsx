@@ -78,7 +78,6 @@ export function ShiftReportDetailsDialog({ report, onClose }: ShiftReportDetails
               label="درخواست‌های میز"
               value={report.desk_requests_count.toLocaleString('fa-IR')}
             />
-            <DetailField label="تماس‌ها" value={report.calls_count.toLocaleString('fa-IR')} />
           </div>
 
           <div className="space-y-2 rounded-3xl border border-border/10 bg-white/5 p-4">

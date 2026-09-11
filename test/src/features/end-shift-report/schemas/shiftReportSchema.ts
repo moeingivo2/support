@@ -7,7 +7,6 @@ export const shiftReportSchema = z.object({
   responded_students_count: nonNegativeCount('تعداد دانشجویان پاسخ‌داده‌شده'),
   unsatisfied_students_count: nonNegativeCount('تعداد دانشجویان ناراضی'),
   desk_requests_count: nonNegativeCount('تعداد درخواست‌های میز'),
-  calls_count: nonNegativeCount('تعداد تماس‌ها'),
   extra_notes: z
     .string()
     .trim()

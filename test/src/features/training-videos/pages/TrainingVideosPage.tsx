@@ -1,21 +1,92 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue'
 import { useVideos } from '../hooks/useVideos'
+import {
+  createVideo,
+  deleteVideo,
+  updateVideo,
+  videoKeys,
+  type VideoPayload,
+} from '../services/video-service'
+import { VideoFormDialog } from '../components/VideoFormDialog'
+import type { EducationalVideo } from '../types/video'
+import { HttpApiError } from '@/shared/api/http'
 import { Alert } from '@/shared/ui/alert'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { Input } from '@/shared/ui/input'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { StatusPill } from '@/shared/ui/status-pill'
-import { Check, Copy, PlayCircle, RefreshCw, Search } from 'lucide-react'
+import { useToast } from '@/shared/ui/toast'
+import { Check, Copy, Pencil, PlayCircle, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 
 export default function TrainingVideosPage() {
   const [searchInput, setSearchInput] = useState('')
   const search = useDebouncedValue(searchInput, 400)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingVideo, setEditingVideo] = useState<EducationalVideo | null>(null)
+  const [deletingVideo, setDeletingVideo] = useState<EducationalVideo | null>(null)
+  const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string[]> | undefined>()
+  const queryClient = useQueryClient()
+  const toast = useToast()
   const videosQuery = useVideos('', search)
 
   const videos = videosQuery.data ?? []
+
+  const saveMutation = useMutation({
+    mutationFn: (input: { id?: number; payload: VideoPayload }) =>
+      input.id ? updateVideo(input.id, input.payload) : createVideo(input.payload),
+    onSuccess: async (data) => {
+      setFormOpen(false)
+      setEditingVideo(null)
+      setFormFieldErrors(undefined)
+      toast.success(data.message)
+      await queryClient.invalidateQueries({ queryKey: videoKeys.all })
+    },
+    onError: (error) => {
+      if (error instanceof HttpApiError) {
+        setFormFieldErrors(error.fieldErrors)
+        if (!error.fieldErrors) {
+          toast.error(error.message)
+        }
+      } else {
+        toast.error('ذخیره ویدیو ناموفق بود.')
+      }
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteVideo(id),
+    onSuccess: async (data) => {
+      setDeletingVideo(null)
+      toast.success(data.message)
+      await queryClient.invalidateQueries({ queryKey: videoKeys.all })
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'حذف ویدیو ناموفق بود.')
+    },
+  })
+
+  const openCreate = () => {
+    setEditingVideo(null)
+    setFormFieldErrors(undefined)
+    setFormOpen(true)
+  }
+
+  const openEdit = (video: EducationalVideo) => {
+    setEditingVideo(video)
+    setFormFieldErrors(undefined)
+    setFormOpen(true)
+  }
+
+  const handleSave = (values: VideoPayload) => {
+    saveMutation.mutate(
+      editingVideo ? { id: editingVideo.id, payload: values } : { payload: values },
+    )
+  }
 
   async function copyLink(video: { id: number; video_url: string }) {
     try {
@@ -29,11 +100,17 @@ export default function TrainingVideosPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <Card className="p-6 md:p-7">
-        <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">ویدیوهای آموزشی</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-          ویدیوهای پایه آموزشی — لینک هر ویدیو را می‌توانید مستقیماً برای دانشجو ارسال کنید.
-        </p>
+      <Card className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-7">
+        <div>
+          <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">ویدیوهای آموزشی</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
+            ویدیوهای پایه آموزشی — لینک هر ویدیو را می‌توانید مستقیماً برای دانشجو ارسال کنید.
+          </p>
+        </div>
+        <Button onClick={openCreate} className="shrink-0">
+          <Plus />
+          افزودن ویدیو
+        </Button>
       </Card>
 
       <div className="relative max-w-xl">
@@ -79,9 +156,29 @@ export default function TrainingVideosPage() {
                 <span className="grid size-11 place-items-center rounded-2xl bg-active-blue/10 text-active-blue ring-1 ring-active-blue/20">
                   <PlayCircle className="size-5" />
                 </span>
-                {video.category ? (
-                  <StatusPill tone="info">{video.category}</StatusPill>
-                ) : null}
+                <div className="flex items-center gap-1">
+                  {video.category ? (
+                    <StatusPill tone="info">{video.category}</StatusPill>
+                  ) : null}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-9"
+                    aria-label="ویرایش ویدیو"
+                    onClick={() => openEdit(video)}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 text-err-text hover:text-err-text"
+                    aria-label="حذف ویدیو"
+                    onClick={() => setDeletingVideo(video)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <h3 className="text-lg font-bold text-white">{video.title}</h3>
@@ -105,6 +202,33 @@ export default function TrainingVideosPage() {
           ))}
         </div>
       )}
+
+      <VideoFormDialog
+        open={formOpen}
+        video={editingVideo}
+        isSubmitting={saveMutation.isPending}
+        fieldErrors={formFieldErrors}
+        onSubmit={handleSave}
+        onClose={() => {
+          if (!saveMutation.isPending) {
+            setFormOpen(false)
+            setEditingVideo(null)
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={deletingVideo !== null}
+        title="حذف ویدیو"
+        description={`«${deletingVideo?.title ?? ''}» برای همیشه حذف می‌شود. این عمل قابل بازگشت نیست.`}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deletingVideo && deleteMutation.mutate(deletingVideo.id)}
+        onClose={() => {
+          if (!deleteMutation.isPending) {
+            setDeletingVideo(null)
+          }
+        }}
+      />
     </div>
   )
 }

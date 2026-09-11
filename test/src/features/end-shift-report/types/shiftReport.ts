@@ -18,7 +18,6 @@ export interface CreateShiftReportPayload {
   responded_students_count: number
   unsatisfied_students_count: number
   desk_requests_count: number
-  calls_count: number
   extra_notes: string | null
 }
 

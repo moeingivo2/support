@@ -14,6 +14,7 @@ import MyShiftReportsRoute from '@/features/my-shift-reports/routes'
 import EndShiftReportRoute from '@/features/end-shift-report/routes'
 import { AllReportsRoute, RegisterSupportRoute } from '@/features/admin/routes'
 import { AuthProvider, useAuth } from '@/shared/services/auth-context'
+import { ToastProvider } from '@/shared/ui/toast'
 
 const supportOnlyPaths = new Set(['/support-shifts', '/end-shift-report', '/reports'])
 const adminOnlyPaths = new Set(['/all-reports', '/register-support'])
@@ -85,9 +86,11 @@ function PageFallback() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

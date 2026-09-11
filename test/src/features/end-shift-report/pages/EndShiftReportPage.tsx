@@ -13,16 +13,21 @@ import { Alert } from '@/shared/ui/alert'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { useToast } from '@/shared/ui/toast'
 
 export default function EndShiftReportPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [serverMessage, setServerMessage] = useState<string | null>(null)
   const [endingShift, setEndingShift] = useState(false)
   const currentShiftQuery = useCurrentShift()
   const createReportMutation = useCreateShiftReport({
-    onSuccess: () => setIsSubmitted(true),
+    onSuccess: () => {
+      toast.success('گزارش پایان شیفت با موفقیت ثبت شد.')
+      setIsSubmitted(true)
+    },
   })
   const reportableShift = currentShiftQuery.data ?? null
   const shiftUnavailable =
@@ -40,6 +45,7 @@ export default function EndShiftReportPage() {
       await endShift(activeRunningShift.id)
       await queryClient.invalidateQueries({ queryKey: shiftServiceKeys.all })
       await currentShiftQuery.refetch()
+      toast.success('شیفت با موفقیت پایان یافت.')
     } catch (error) {
       setServerMessage(error instanceof Error ? error.message : 'پایان شیفت ناموفق بود.')
     } finally {
@@ -69,7 +75,6 @@ export default function EndShiftReportPage() {
       responded_students_count: values.responded_students_count,
       unsatisfied_students_count: values.unsatisfied_students_count,
       desk_requests_count: values.desk_requests_count,
-      calls_count: values.calls_count,
       extra_notes: values.extra_notes?.trim() ? values.extra_notes.trim() : null,
     }
 

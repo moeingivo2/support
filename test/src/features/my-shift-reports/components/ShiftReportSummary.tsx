@@ -1,4 +1,4 @@
-import { Headphones, MessageSquareWarning, Sparkles, Users } from 'lucide-react'
+import { MessageSquareWarning, Sparkles, Users } from 'lucide-react'
 import { Card } from '@/shared/ui/card'
 import type { ShiftReportSummary as SummaryData } from '../services/shiftReportService'
 
@@ -27,16 +27,10 @@ export function ShiftReportSummary({ summary, status }: ShiftReportSummaryProps)
       icon: Sparkles,
       tone: 'text-alret-gold bg-alret-gold/10 ring-alret-gold/20',
     },
-    {
-      field: 'calls' as const,
-      label: 'تماس‌ها (این صفحه)',
-      icon: Headphones,
-      tone: 'text-succ-txt bg-succ-btn ring-succ-txt/20',
-    },
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {summaryCards.map((card) => (
         <Card key={card.field} className="p-6">
           <div className="flex items-start justify-between gap-4">

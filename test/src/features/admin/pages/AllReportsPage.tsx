@@ -160,7 +160,6 @@ export default function AllReportsPage() {
                   <MetricPill label="پاسخ‌داده" value={report.responded_students_count} tone="text-active-blue" />
                   <MetricPill label="ناراضی" value={report.unsatisfied_students_count} tone="text-err-text" />
                   <MetricPill label="Desk" value={report.desk_requests_count} tone="text-alret-gold" />
-                  <MetricPill label="تماس" value={report.calls_count} tone="text-succ-txt" />
                 </div>
               </div>
               {report.extra_notes ? (

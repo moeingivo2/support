@@ -13,7 +13,6 @@ export type ShiftReportSummary = {
   respondedStudents: number
   unsatisfiedStudents: number
   deskRequests: number
-  calls: number
 }
 
 export const shiftReportKeys = {
@@ -43,7 +42,6 @@ function buildSummary(reports: ShiftReport[]): ShiftReportSummary {
       0,
     ),
     deskRequests: reports.reduce((total, report) => total + report.desk_requests_count, 0),
-    calls: reports.reduce((total, report) => total + report.calls_count, 0),
   }
 }
 

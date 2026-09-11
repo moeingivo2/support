@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, ChevronDown, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { getNavigation } from '@/shared/navigation'
 import { useAuth } from '@/shared/services/auth-context'
@@ -84,10 +84,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </Dialog.Content>
               </Dialog.Portal>
             </Dialog.Root>
-            <Button variant="ghost" size="icon" className="relative" aria-label="اعلان‌ها">
-              <Bell />
-              <span className="absolute left-2.5 top-2.5 size-2 rounded-full bg-err-text" />
-            </Button>
             <div className="mr-auto flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-full bg-active-blue/15 text-sm font-bold text-active-blue">
                 {getUserInitial(user?.name)}

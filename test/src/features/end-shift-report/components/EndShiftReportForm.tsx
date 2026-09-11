@@ -18,7 +18,6 @@ const formFields = [
   'responded_students_count',
   'unsatisfied_students_count',
   'desk_requests_count',
-  'calls_count',
   'extra_notes',
 ] as const
 
@@ -28,7 +27,6 @@ const serverFieldMessages: Record<FormField, string> = {
   responded_students_count: 'تعداد دانشجویان پاسخ‌داده‌شده باید صفر یا بیشتر باشد.',
   unsatisfied_students_count: 'تعداد دانشجویان ناراضی باید صفر یا بیشتر باشد.',
   desk_requests_count: 'تعداد درخواست‌های میز باید صفر یا بیشتر باشد.',
-  calls_count: 'تعداد تماس‌ها باید صفر یا بیشتر باشد.',
   extra_notes: 'یادداشت‌های اضافی را بررسی کنید.',
 }
 
@@ -55,7 +53,6 @@ export function EndShiftReportForm({
       responded_students_count: '',
       unsatisfied_students_count: '',
       desk_requests_count: '',
-      calls_count: '',
       extra_notes: '',
     },
     mode: 'onSubmit',
@@ -113,13 +110,6 @@ export function EndShiftReportForm({
             placeholder="درخواست‌های ثبت‌شده"
             {...register('desk_requests_count')}
           />
-          <CountField
-            disabled={fieldsDisabled}
-            error={errors.calls_count?.message}
-            label="تعداد تماس‌ها"
-            placeholder="تماس‌های پاسخ‌داده‌شده"
-            {...register('calls_count')}
-          />
 
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="extra_notes">یادداشت‌های اضافی</Label>
@@ -159,7 +149,7 @@ type CountFieldProps = {
   disabled: boolean
   error?: string
   label: string
-  name: 'responded_students_count' | 'unsatisfied_students_count' | 'desk_requests_count' | 'calls_count'
+  name: 'responded_students_count' | 'unsatisfied_students_count' | 'desk_requests_count'
   placeholder: string
 } & Pick<UseFormRegisterReturn, 'onChange' | 'onBlur' | 'name' | 'ref'>
 

@@ -4,7 +4,6 @@ import {
   Eye,
   MessageSquareWarning,
   MonitorSmartphone,
-  Phone,
   Users,
 } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
@@ -33,7 +32,7 @@ export function ShiftReportCard({ report, onOpenDetails }: ShiftReportCardProps)
         <StatusPill tone={getShiftStatusTone(report.shift.status)}>{status}</StatusPill>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ReportMetric
           label="دانشجویان پاسخ‌داده‌شده"
           value={report.responded_students_count}
@@ -52,7 +51,6 @@ export function ShiftReportCard({ report, onOpenDetails }: ShiftReportCardProps)
           icon={MonitorSmartphone}
           tone="text-alret-gold"
         />
-        <ReportMetric label="تماس‌ها" value={report.calls_count} icon={Phone} tone="text-succ-txt" />
       </div>
 
       <div className="space-y-3 rounded-3xl bg-white/5 p-4">

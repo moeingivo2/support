@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Check, Copy, Download, UserRound } from 'lucide-react'
+import { CalendarDays, Check, Copy, Download, Pencil, Trash2, UserRound } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
 import { formatResourceDate } from '../services/resourceService'
@@ -7,9 +7,11 @@ import type { Resource } from '../types/resource'
 
 type SessionSourceCardProps = {
   resource: Resource
+  onEdit: (resource: Resource) => void
+  onDelete: (resource: Resource) => void
 }
 
-export function SessionSourceCard({ resource }: SessionSourceCardProps) {
+export function SessionSourceCard({ resource, onEdit, onDelete }: SessionSourceCardProps) {
   const [copied, setCopied] = useState(false)
 
   async function copyLink() {
@@ -30,6 +32,26 @@ export function SessionSourceCard({ resource }: SessionSourceCardProps) {
             {resource.category}
           </span>
         ) : null}
+        <span className="mr-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            aria-label="ویرایش سورس"
+            onClick={() => onEdit(resource)}
+          >
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9 text-err-text hover:text-err-text"
+            aria-label="حذف سورس"
+            onClick={() => onDelete(resource)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </span>
       </div>
 
       <div className="space-y-2">
