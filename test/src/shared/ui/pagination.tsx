@@ -20,10 +20,10 @@ export function PageButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'grid size-10 place-items-center rounded-2xl text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40',
+        'grid size-10 place-items-center rounded-full border text-sm font-semibold transition-all duration-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40',
         active
-          ? 'bg-active-blue text-white'
-          : 'bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white',
+          ? 'border-active-blue bg-active-blue text-white shadow-[0_8px_20px_-10px_rgba(0,98,255,.9)]'
+          : 'border-white/10 bg-white/[.035] text-zinc-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[.1] hover:text-white',
       )}
       {...props}
     >

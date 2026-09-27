@@ -4,24 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminRegisterSupportRequest;
+use App\Http\Requests\StoreAdminRequest;
+use App\Http\Requests\UpdateAdminRequest;
+use App\Http\Requests\UpdateSupportRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
-    /**
-     * ثبت پشتیبان جدید — فقط ادمین. نوع پشتیبانی (وب/هوش مصنوعی) در همین ثبت تعیین
-     * و برای همیشه روی کاربر می‌ماند.
-     */
-    public function storeSupport(AdminRegisterSupportRequest $request)
+    public function storeSupport(AdminRegisterSupportRequest $request): JsonResponse
     {
         $user = User::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
+            'name' => $request->string('name')->toString(),
+            'phone' => $request->string('phone')->toString(),
+            'password' => Hash::make($request->string('password')->toString()),
             'role' => 'support',
-            'support_type' => $request->support_type,
+            'support_type' => $request->string('support_type')->toString(),
         ]);
 
         return response()->json([
@@ -30,19 +30,129 @@ class AdminController extends Controller
         ], 201);
     }
 
-    /**
-     * لیست پشتیبان‌ها — فقط ادمین.
-     */
-    public function supports(Request $request)
+    public function supports(Request $request): JsonResponse
     {
-        $supports = User::where('role', 'support')
-            ->when($request->filled('support_type'), function ($query) use ($request) {
-                $query->where('support_type', $request->support_type);
+        $supports = User::query()
+            ->where('role', 'support')
+            ->when($request->filled('support_type'), function ($query) use ($request): void {
+                $query->where('support_type', $request->input('support_type'));
             })
-            ->select('id', 'name', 'phone', 'support_type', 'created_at')
+            ->select(['id', 'name', 'phone', 'support_type', 'created_at'])
             ->orderBy('name')
             ->get();
 
         return response()->json(['data' => $supports]);
+    }
+
+    public function updateSupport(UpdateSupportRequest $request, User $support): JsonResponse
+    {
+        abort_unless($support->isSupport(), 404);
+
+        $data = $request->safe()->only(['name', 'phone']);
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->string('password')->toString());
+        }
+
+        $support->update($data);
+
+        if ($request->filled('password')) {
+            $support->tokens()->delete();
+        }
+
+        return response()->json([
+            'message' => 'مشخصات پشتیبان با موفقیت ویرایش شد.',
+            'user' => $support->fresh(),
+        ]);
+    }
+
+    public function destroySupport(User $support): JsonResponse
+    {
+        abort_unless($support->isSupport(), 404);
+
+        if ($support->shifts()->where('status', 'active')->exists()) {
+            return response()->json([
+                'message' => 'پشتیبان شیفت فعال دارد؛ ابتدا شیفت او را ببندید.',
+            ], 422);
+        }
+
+        $support->tokens()->delete();
+        $support->delete();
+
+        return response()->json([
+            'message' => 'پشتیبان با موفقیت حذف شد.',
+        ]);
+    }
+
+    public function admins(): JsonResponse
+    {
+        $admins = User::query()
+            ->where('role', 'admin')
+            ->select(['id', 'name', 'email', 'phone', 'role', 'created_at', 'updated_at'])
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['data' => $admins]);
+    }
+
+    public function storeAdmin(StoreAdminRequest $request): JsonResponse
+    {
+        $admin = User::create([
+            ...$request->safe()->only(['name', 'email', 'phone']),
+            'password' => Hash::make($request->string('password')->toString()),
+            'role' => 'admin',
+            'support_type' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'سوپر ادمین با موفقیت ایجاد شد.',
+            'user' => $admin,
+        ], 201);
+    }
+
+    public function updateAdmin(UpdateAdminRequest $request, User $admin): JsonResponse
+    {
+        abort_unless($admin->isAdmin(), 404);
+
+        $data = $request->safe()->only(['name', 'email', 'phone']);
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->string('password')->toString());
+        }
+
+        $admin->update($data);
+
+        if ($request->filled('password')) {
+            $admin->tokens()->delete();
+        }
+
+        return response()->json([
+            'message' => 'مشخصات سوپر ادمین با موفقیت ویرایش شد.',
+            'user' => $admin->fresh(),
+        ]);
+    }
+
+    public function destroyAdmin(Request $request, User $admin): JsonResponse
+    {
+        abort_unless($admin->isAdmin(), 404);
+
+        if ($admin->id === $request->user()->id) {
+            return response()->json([
+                'message' => 'امکان حذف حساب سوپر ادمین فعلی وجود ندارد.',
+            ], 422);
+        }
+
+        if (User::query()->where('role', 'admin')->count() <= 1) {
+            return response()->json([
+                'message' => 'حداقل یک سوپر ادمین باید در سیستم باقی بماند.',
+            ], 422);
+        }
+
+        $admin->tokens()->delete();
+        $admin->delete();
+
+        return response()->json([
+            'message' => 'سوپر ادمین با موفقیت حذف شد.',
+        ]);
     }
 }

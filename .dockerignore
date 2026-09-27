@@ -8,6 +8,9 @@ __MACOSX/
 database/database.sqlite
 test/
 tests/
+# پوشه public/storage در ریپو یک دایرکتوری خالی است؛ برای اینکه symlink مربوط به
+# فایل‌های public (پیوست گفتگو و فایل‌های پنل) داخل کانتینر ساخته شود حذف می‌شود.
+public/storage
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*

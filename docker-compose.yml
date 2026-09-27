@@ -21,10 +21,14 @@ services:
       QUEUE_CONNECTION: database
     ports:
       - "${API_PORT:-8000}:8000"
+    volumes:
+      # پیوست‌های گفتگو و فایل‌های پنل روی دیسک public ذخیره می‌شوند و باید بین
+      # بازسازی‌های کانتینر باقی بمانند.
+      - storage-data:/var/www/storage/app/public
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    command: sh -c "php artisan storage:link --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
 
   web:
     build:
@@ -55,3 +59,4 @@ services:
 
 volumes:
   db-data:
+  storage-data:

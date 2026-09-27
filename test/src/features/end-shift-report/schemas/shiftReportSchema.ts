@@ -6,7 +6,7 @@ const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩'
 export const shiftReportSchema = z.object({
   responded_students_count: nonNegativeCount('تعداد دانشجویان پاسخ‌داده‌شده'),
   unsatisfied_students_count: nonNegativeCount('تعداد دانشجویان ناراضی'),
-  desk_requests_count: nonNegativeCount('تعداد درخواست‌های میز'),
+  desk_requests_count: nonNegativeCount('تعداد درخواست‌های دسک'),
   extra_notes: z
     .string()
     .trim()

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { BarChart3, Clock, Play, UserRound, UserPlus, Users } from 'lucide-react'
+import { BarChart3, Clock, FileSpreadsheet, Play, UserCog, UserRound, UserPlus, Users } from 'lucide-react'
 import { getDashboardData } from '../api/dashboard-api'
 import { DashboardMetricsSection } from '../components/dashboard-metrics'
 import { QuickActionsSection } from '../components/quick-actions'
@@ -69,7 +69,7 @@ function AdminDashboard({ dashboard, userName }: { dashboard: DashboardQuery; us
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <Card className="p-6 md:p-7">
-        <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">پنل مدیریت</h1>
+        <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">پنل سوپر ادمین</h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
           وقت بخیر {userName || '…'} — نظارت بر عملکرد تیم پشتیبانی
         </p>
@@ -131,7 +131,7 @@ function AdminDashboard({ dashboard, userName }: { dashboard: DashboardQuery; us
 
       <section className="space-y-4" aria-labelledby="admin-quick-links">
         <h2 id="admin-quick-links" className="text-xl font-bold text-white">
-          دسترسی سریع مدیریتی
+          دسترسی سریع سوپر ادمین
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Card className="p-0">
@@ -145,6 +145,36 @@ function AdminDashboard({ dashboard, userName }: { dashboard: DashboardQuery; us
                 </span>
                 <span className="block text-xs text-zinc-500">
                   مشاهده و فیلتر گزارش‌های کل تیم
+                </span>
+              </span>
+            </Link>
+          </Card>
+          <Card className="p-0">
+            <Link to="/activity-report" className="flex items-center gap-4 rounded-xl p-5 transition hover:bg-white/5">
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-alret-gold/12 text-alret-gold ring-1 ring-alret-gold/20">
+                <FileSpreadsheet />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-zinc-100">
+                  گزارش فعالیت پشتیبان
+                </span>
+                <span className="block text-xs text-zinc-500">
+                  دریافت خروجی Excel در بازه دلخواه
+                </span>
+              </span>
+            </Link>
+          </Card>
+          <Card className="p-0">
+            <Link to="/manage-admins" className="flex items-center gap-4 rounded-xl p-5 transition hover:bg-white/5">
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-active-blue/12 text-active-blue ring-1 ring-active-blue/20">
+                <UserCog />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-zinc-100">
+                  مدیریت سوپر ادمین‌ها
+                </span>
+                <span className="block text-xs text-zinc-500">
+                  ایجاد، ویرایش و حذف حساب‌های مدیریتی
                 </span>
               </span>
             </Link>

@@ -32,7 +32,7 @@ class StoreShiftReportRequest extends FormRequest
             if ($unsatisfied + $deskRequests > $responded) {
                 $validator->errors()->add(
                     'unsatisfied_students_count',
-                    'مجموع دانشجویان ناراضی و درخواست‌های میز نمی‌تواند از تعداد دانشجویان پاسخ‌داده‌شده بیشتر باشد.'
+                    'مجموع دانشجویان ناراضی و درخواست‌های دسک نمی‌تواند از تعداد دانشجویان پاسخ‌داده‌شده بیشتر باشد.'
                 );
             }
         });
@@ -45,7 +45,7 @@ class StoreShiftReportRequest extends FormRequest
             'shift_id.exists' => 'شیفت مورد نظر یافت نشد',
             'responded_students_count.required' => 'تعداد دانشجویان پاسخ‌داده‌شده الزامی است',
             'unsatisfied_students_count.required' => 'تعداد دانشجویان ناراضی الزامی است',
-            'desk_requests_count.required' => 'تعداد درخواست‌های میز الزامی است',
+            'desk_requests_count.required' => 'تعداد درخواست‌های دسک الزامی است',
         ];
     }
 }

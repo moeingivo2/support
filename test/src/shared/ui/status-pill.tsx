@@ -17,7 +17,7 @@ export function StatusPill({ className, tone = 'neutral', ...props }: StatusPill
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1',
+        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] transition-transform duration-200 hover:scale-[1.03]',
         toneStyles[tone],
         className,
       )}

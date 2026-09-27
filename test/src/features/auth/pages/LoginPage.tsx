@@ -101,7 +101,7 @@ export default function LoginPage() {
             <ShieldCheck className="size-4" />
             <span>اطلاعات ورود شما به‌صورت امن منتقل می‌شود.</span>
           </span>
-          <span>ثبت پشتیبان جدید فقط توسط مدیر سیستم انجام می‌شود.</span>
+          <span>ثبت پشتیبان جدید فقط توسط سوپر ادمین انجام می‌شود.</span>
         </div>
       </div>
     </div>

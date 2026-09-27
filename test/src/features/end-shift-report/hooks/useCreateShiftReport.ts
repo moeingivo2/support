@@ -14,6 +14,7 @@ export function useCreateShiftReport({ onSuccess }: UseCreateShiftReportOptions)
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: shiftReportQueryKeys.currentShift }),
+        queryClient.invalidateQueries({ queryKey: shiftReportQueryKeys.reportableShift }),
         queryClient.invalidateQueries({ queryKey: shiftReportQueryKeys.myReports }),
         queryClient.invalidateQueries({ queryKey: shiftReportQueryKeys.dashboard }),
       ])

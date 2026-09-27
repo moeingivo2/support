@@ -1,20 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Send, X } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { createComplaint } from '../services/complaint-service'
+import { createComplaint, PRIORITY_OPTIONS } from '../services/complaint-service'
+import { HttpApiError } from '@/shared/api/http'
+import { Alert } from '@/shared/ui/alert'
 import { complaintSchema, type ComplaintFormInput, type ComplaintFormValues } from '../schemas/complaintSchema'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { Textarea } from '@/shared/ui/textarea'
-
-const PRIORITY_OPTIONS = [
-  { value: 'high', label: 'بالا' },
-  { value: 'normal', label: 'متوسط' },
-  { value: 'low', label: 'پایین' },
-] as const
 
 type ComplaintFormProps = {
   open: boolean
@@ -24,6 +20,7 @@ type ComplaintFormProps = {
 }
 
 export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: ComplaintFormProps) {
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -44,24 +41,37 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
   })
 
   useEffect(() => {
+    setSubmitError(null)
     if (!open) {
       reset()
     }
   }, [open, reset])
 
   const onSubmit = async (values: ComplaintFormValues) => {
-    const response = await createComplaint({
-      student_name: values.student_name,
-      student_code: values.student_code || null,
-      student_phone: values.student_phone || null,
-      mentor_name: values.mentor_name,
-      mentor_phone: values.mentor_phone || null,
-      description: values.description,
-      priority: values.priority,
-      shift_id: activeShiftId,
-    })
-    onCreated(response.message ?? 'نارضایتی با موفقیت ثبت شد.')
-    onClose()
+    setSubmitError(null)
+    try {
+      const response = await createComplaint({
+        student_name: values.student_name,
+        student_code: values.student_code || null,
+        student_phone: values.student_phone || null,
+        mentor_name: values.mentor_name,
+        mentor_phone: values.mentor_phone || null,
+        description: values.description,
+        priority: values.priority,
+        shift_id: activeShiftId,
+      })
+      onCreated(response.message ?? 'نارضایتی با موفقیت ثبت شد.')
+      onClose()
+    } catch (error) {
+      if (error instanceof HttpApiError) {
+        const firstFieldMessage = error.fieldErrors
+          ? Object.values(error.fieldErrors).flat()[0]
+          : undefined
+        setSubmitError(firstFieldMessage ?? error.message)
+      } else {
+        setSubmitError(error instanceof Error ? error.message : 'ثبت نارضایتی ناموفق بود.')
+      }
+    }
   }
 
   return (
@@ -72,20 +82,22 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
           <div className="flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="text-xl font-bold text-white">
-                ثبت نارضایتی دانشجو
+                ثبت نارضایتی جدید دانشجو
               </Dialog.Title>
               <Dialog.Description className="mt-2 text-sm leading-6 text-zinc-400">
-                مشکل یا نارضایتی دانشجو نسبت به منتور را ثبت کنید تا پیگیری شود.
+                نارضایتی یا مشکل دانشجو نسبت به منتور را ثبت کنید تا توسط پشتیبان پیگیری شود.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <Button variant="ghost" size="icon" aria-label="بستن فرم">
+              <Button variant="ghost" size="icon" aria-label="بستن فرم ثبت نارضایتی">
                 <X />
               </Button>
             </Dialog.Close>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+            {submitError ? <Alert tone="danger">{submitError}</Alert> : null}
+
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
               <Field label="نام دانشجو" error={errors.student_name?.message} htmlFor="student_name" required>
@@ -104,7 +116,7 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
                   {...register('student_code')}
                 />
               </Field>
-              <Field label="تلفن دانشجو (اختیاری)" error={errors.student_phone?.message} htmlFor="student_phone">
+              <Field label="شماره موبایل دانشجو (اختیاری)" error={errors.student_phone?.message} htmlFor="student_phone">
                 <Input id="student_phone" dir="ltr" placeholder="09123456789" {...register('student_phone')} />
               </Field>
               <Field label="نام منتور" error={errors.mentor_name?.message} htmlFor="mentor_name" required>
@@ -115,10 +127,10 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
                   {...register('mentor_name')}
                 />
               </Field>
-              <Field label="تلفن منتور (اختیاری)" error={errors.mentor_phone?.message} htmlFor="mentor_phone">
+              <Field label="شماره موبایل منتور (اختیاری)" error={errors.mentor_phone?.message} htmlFor="mentor_phone">
                 <Input id="mentor_phone" dir="ltr" placeholder="09123456789" {...register('mentor_phone')} />
               </Field>
-              <Field label="اولویت" error={errors.priority?.message} htmlFor="priority" required>
+              <Field label="اولویت پیگیری" error={errors.priority?.message} htmlFor="priority" required>
                 <select
                   id="priority"
                   className="h-11 w-full rounded-2xl border border-border/15 bg-white/5 px-4 text-sm text-zinc-100 outline-none transition focus-visible:border-active-blue/50 focus-visible:ring-2 focus-visible:ring-active-blue/30"
@@ -137,7 +149,7 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
               <Label htmlFor="description">توضیحات</Label>
               <Textarea
                 id="description"
-                placeholder="شرح مشکل دانشجو حداقل ۱۰ کاراکتر..."
+                 placeholder="شرح نارضایتی را با حداقل ۱۰ کاراکتر بنویسید..."
                 aria-invalid={Boolean(errors.description)}
                 {...register('description')}
               />
@@ -149,7 +161,7 @@ export function ComplaintForm({ open, onClose, onCreated, activeShiftId }: Compl
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
-                {isSubmitting ? 'در حال ثبت...' : 'ثبت نارضایتی'}
+                {isSubmitting ? 'در حال ثبت نارضایتی...' : 'ثبت نارضایتی'}
               </Button>
               <Button
                 type="button"

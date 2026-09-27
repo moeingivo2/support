@@ -23,7 +23,7 @@ export function ShiftReportSummary({ summary, status }: ShiftReportSummaryProps)
     },
     {
       field: 'deskRequests' as const,
-      label: 'درخواست‌های میز (این صفحه)',
+       label: 'درخواست‌های دسک (این صفحه)',
       icon: Sparkles,
       tone: 'text-alret-gold bg-alret-gold/10 ring-alret-gold/20',
     },

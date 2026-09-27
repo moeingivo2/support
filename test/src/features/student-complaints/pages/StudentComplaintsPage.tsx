@@ -6,6 +6,7 @@ import { ComplaintForm } from '../components/ComplaintForm'
 import {
   PRIORITY_LABELS,
   STATUS_LABELS,
+  STATUS_OPTIONS,
   complaintKeys,
   updateComplaintStatus,
   type ComplaintStatus,
@@ -19,7 +20,7 @@ import { Card } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { StatusPill } from '@/shared/ui/status-pill'
 import { getPages, PageButton } from '@/shared/ui/pagination'
-import { formatShiftDateTime } from '../utils/formatComplaintDate'
+import { formatComplaintDateTime } from '../utils/formatComplaintDate'
 import { cn } from '@/shared/lib/utils'
 
 export default function StudentComplaintsPage() {
@@ -54,12 +55,12 @@ export default function StudentComplaintsPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">
-              نارضایتی دانشجویان
+               مدیریت نارضایتی‌های دانشجویان
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
               {isSupport
-                ? 'ثبت و پیگیری نارضایتی یا مشکل دانشجو نسبت به منتور.'
-                : 'همه نارضایتی‌های ثبت‌شده تیم به‌همراه منتور مرتبط و پشتیبان ثبت‌کننده.'}
+                 ? 'نارضایتی‌ها و مشکلات دانشجویان نسبت به منتور را ثبت و پیگیری کنید.'
+                 : 'مشاهده و پیگیری همه نارضایتی‌های ثبت‌شده تیم، به‌همراه اطلاعات دانشجو، منتور و پشتیبان ثبت‌کننده.'}
             </p>
           </div>
           {isSupport ? (
@@ -77,7 +78,7 @@ export default function StudentComplaintsPage() {
       ) : null}
       {complaintsQuery.isError ? (
         <Alert tone="danger" className="flex items-center justify-between gap-3">
-          <span>دریافت نارضایتی‌ها ناموفق بود.</span>
+          <span>دریافت فهرست نارضایتی‌ها ناموفق بود.</span>
           <Button variant="danger" onClick={() => complaintsQuery.refetch()}>
             <RefreshCw />
             تلاش مجدد
@@ -86,12 +87,12 @@ export default function StudentComplaintsPage() {
       ) : null}
 
       {isSupport ? (
-        <div className="flex gap-2" role="tablist" aria-label="نوع نارضایتی‌ها">
+        <div className="flex gap-2" role="tablist" aria-label="نمایش نارضایتی‌ها">
           <TabButton active={tab === 'all'} onClick={() => { setTab('all'); setPage(1) }}>
-            همه موارد من
+            همه نارضایتی‌ها
           </TabButton>
           <TabButton active={tab === 'mine'} onClick={() => { setTab('mine'); setPage(1) }}>
-            ثبت‌شده توسط من
+            نارضایتی‌های من
           </TabButton>
         </div>
       ) : null}
@@ -109,9 +110,9 @@ export default function StudentComplaintsPage() {
       ) : complaints.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 p-12 text-center">
           <MessageSquareWarning className="size-10 text-zinc-600" />
-          <p className="text-base font-bold text-white">موردی ثبت نشده است.</p>
+          <p className="text-base font-bold text-white">هنوز نارضایتی‌ای ثبت نشده است.</p>
           <p className="text-sm text-zinc-400">
-            با دکمه «ثبت نارضایتی جدید» اولین مورد را ثبت کنید.
+            برای ثبت اولین نارضایتی، دکمه «ثبت نارضایتی جدید» را انتخاب کنید.
           </p>
         </Card>
       ) : (
@@ -198,16 +199,16 @@ function ComplaintRow({
         className="flex w-full flex-wrap items-center justify-between gap-3 text-right"
         aria-expanded={expanded}
       >
-        <div className="space-y-1">
-          <p className="text-sm font-bold text-zinc-100">
-            {complaint.student.name}
-            <span className="mr-2 text-xs font-normal text-zinc-500">
-              منتور: {complaint.mentor.name}
-            </span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="break-words text-sm font-bold leading-6 text-zinc-100">
+            دانشجو: {complaint.student.name}
           </p>
-          <p className="text-xs text-zinc-500">{formatShiftDateTime(complaint.created_at)}</p>
+          <p className="break-words text-xs leading-5 text-zinc-500">
+            منتور: {complaint.mentor.name}
+          </p>
+          <p className="text-xs text-zinc-500">تاریخ ثبت: {formatComplaintDateTime(complaint.created_at)}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <StatusPill tone={complaint.priority === 'high' ? 'danger' : complaint.priority === 'normal' ? 'warning' : 'neutral'}>
             اولویت: {PRIORITY_LABELS[complaint.priority] ?? complaint.priority}
           </StatusPill>
@@ -224,16 +225,18 @@ function ComplaintRow({
         <div className="mt-4 space-y-4 border-t border-border/10 pt-4">
           <p className="text-sm leading-7 text-zinc-300">{complaint.description}</p>
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-xs text-zinc-500">تغییر وضعیت:</label>
+             <label className="text-xs text-zinc-500">تغییر وضعیت پیگیری:</label>
             <select
               className="h-9 rounded-xl border border-border/15 bg-white/5 px-3 text-xs text-zinc-100 outline-none"
               value={complaint.status}
               disabled={statusChanging}
               onChange={(event) => onStatusChange(event.target.value as ComplaintStatus)}
             >
-              <option value="open">باز</option>
-              <option value="in_progress">در حال بررسی</option>
-              <option value="resolved">حل‌شده</option>
+               {STATUS_OPTIONS.map((option) => (
+                 <option key={option.value} value={option.value}>
+                   {option.label}
+                 </option>
+               ))}
             </select>
             {complaint.support ? (
               <span className="text-xs text-zinc-600">

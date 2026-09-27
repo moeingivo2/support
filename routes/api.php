@@ -1,19 +1,31 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ActivityReportController;
 // routes/api.php
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ShiftController;
-use App\Http\Controllers\Api\ComplaintController;
-use App\Http\Controllers\Api\ResourceController;
-use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\Api\VideoController;
-use App\Http\Controllers\Api\ShiftReportController;
-use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ComplaintController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\PasswordResetRequestController;
+use App\Http\Controllers\Api\ResourceController;
+use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\ShiftReportController;
+use App\Http\Controllers\Api\StudentAuthController;
+use App\Http\Controllers\Api\StudentProfileController;
+use App\Http\Controllers\Api\SupportChatController;
+use App\Http\Controllers\Api\VideoController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+
+// ثبت‌نام دانشجو — عمومی، همراه با انتخاب دوره، رشته و جلسات
+Route::post('/register/student', [StudentAuthController::class, 'register'])->middleware('throttle:auth');
+
+// درخواست بازیابی رمز عبور — عمومی
+Route::post('/password/forgot', [PasswordResetRequestController::class, 'store'])
+    ->middleware('throttle:auth');
 
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -24,6 +36,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::post('/supports', [AdminController::class, 'storeSupport']);
         Route::get('/supports', [AdminController::class, 'supports']);
+        Route::put('/supports/{support}', [AdminController::class, 'updateSupport']);
+        Route::delete('/supports/{support}', [AdminController::class, 'destroySupport']);
+        Route::get('/activity-report/export', [ActivityReportController::class, 'export']);
+        Route::get('/admins', [AdminController::class, 'admins']);
+        Route::post('/admins', [AdminController::class, 'storeAdmin']);
+        Route::put('/admins/{admin}', [AdminController::class, 'updateAdmin']);
+        Route::delete('/admins/{admin}', [AdminController::class, 'destroyAdmin']);
     });
 
     // شیفت — مخصوص پشتیبان‌ها (ادمین شیفت ندارد)
@@ -81,5 +100,27 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/pending', [ShiftReportController::class, 'pending']);
         Route::get('/{id}', [ShiftReportController::class, 'show']);
         Route::put('/{id}', [ShiftReportController::class, 'update']);
+    });
+
+    // حساب دانشجو — دوره، جلسات، منتور و سهمیه چت
+    Route::middleware('role:student')->prefix('student')->group(function () {
+        Route::get('/profile', [StudentProfileController::class, 'show']);
+        Route::post('/upgrade', [StudentProfileController::class, 'upgrade']);
+    });
+
+    // گفتگوی دانشجو با پشتیبان
+    Route::middleware('role:student')->prefix('conversations')->group(function () {
+        Route::get('/', [ConversationController::class, 'index']);
+        Route::post('/', [ConversationController::class, 'store']);
+        Route::get('/{conversation}', [ConversationController::class, 'show']);
+        Route::post('/{conversation}/messages', [ConversationController::class, 'storeMessage']);
+    });
+
+    // صندوق ورودی مشترک پشتیبان‌ها — همه گفتگوهای همه دانشجویان
+    Route::middleware('role:support,admin')->prefix('support/conversations')->group(function () {
+        Route::get('/', [SupportChatController::class, 'index']);
+        Route::get('/notifications', [SupportChatController::class, 'notifications']);
+        Route::get('/{conversation}', [SupportChatController::class, 'show']);
+        Route::post('/{conversation}/messages', [SupportChatController::class, 'storeMessage']);
     });
 });

@@ -33,21 +33,45 @@ export async function request<TResponse>(url: string, options: RequestOptions = 
     body = JSON.stringify(payload)
   }
 
-  let fullUrl = url
-  if (query) {
-    const params = new URLSearchParams()
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== '') {
-        params.append(key, String(value))
-      }
-    }
-    const qs = params.toString()
-    if (qs) fullUrl += `?${qs}`
+  return sendRequest<TResponse>(url, { method, headers, body, query })
+}
+
+/**
+ * ارسال درخواست با فرمت multipart/form-data برای آپلود فایل و پیوست.
+ */
+export async function postMultipart<TResponse>(
+  url: string,
+  formData: FormData,
+): Promise<TResponse> {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const token = getToken()
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
+
+  return sendRequest<TResponse>(url, { method: 'POST', headers, body: formData })
+}
+
+type SendOptions = {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  headers: Record<string, string>
+  body: BodyInit | undefined
+  query?: Record<string, string | number | undefined>
+}
+
+async function sendRequest<TResponse>(
+  url: string,
+  options: SendOptions,
+): Promise<TResponse> {
+  const fullUrl = appendQuery(url, options.query)
 
   let response: Response
   try {
-    response = await fetch(fullUrl, { method, headers, body })
+    response = await fetch(fullUrl, {
+      method: options.method,
+      headers: options.headers,
+      body: options.body,
+    })
   } catch {
     throw new HttpApiError('اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.', 0)
   }
@@ -87,6 +111,76 @@ export function putJson<TRequest, TResponse>(url: string, payload: TRequest): Pr
 
 export function deleteJson<TResponse>(url: string): Promise<TResponse> {
   return request<TResponse>(url, { method: 'DELETE' })
+}
+
+export type DownloadedFile = {
+  blob: Blob
+  filename: string
+}
+
+export async function downloadFile(
+  url: string,
+  query?: Record<string, string | number | undefined>,
+  fallbackFilename = 'download.xls',
+): Promise<DownloadedFile> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.ms-excel, application/octet-stream, application/json',
+  }
+  const token = getToken()
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const fullUrl = appendQuery(url, query)
+  let response: Response
+  try {
+    response = await fetch(fullUrl, { headers })
+  } catch {
+    throw new HttpApiError('اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.', 0)
+  }
+
+  if (response.status === 401) {
+    clearAuth()
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+  }
+
+  if (!response.ok) {
+    const responseBody = await readJsonBody(response)
+    throw new HttpApiError(
+      getServerMessage(responseBody) ?? `درگاه ارتباطی با کد ${response.status} پاسخ داد.`,
+      response.status,
+      getFieldErrors(responseBody),
+    )
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: getDownloadFilename(response.headers.get('Content-Disposition'), fallbackFilename),
+  }
+}
+
+function appendQuery(
+  url: string,
+  query?: Record<string, string | number | undefined>,
+): string {
+  if (!query) return url
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') {
+      params.append(key, String(value))
+    }
+  }
+  const queryString = params.toString()
+  return queryString ? `${url}?${queryString}` : url
+}
+
+function getDownloadFilename(
+  contentDisposition: string | null,
+  fallbackFilename: string,
+): string {
+  if (!contentDisposition) return fallbackFilename
+  const match = /filename="?([^";]+)"?/i.exec(contentDisposition)
+  return match?.[1] ?? fallbackFilename
 }
 
 async function readJsonBody(response: Response): Promise<unknown> {

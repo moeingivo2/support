@@ -46,7 +46,7 @@ export function ShiftReportCard({ report, onOpenDetails }: ShiftReportCardProps)
           tone="text-err-text"
         />
         <ReportMetric
-          label="درخواست‌های میز"
+           label="درخواست‌های دسک"
           value={report.desk_requests_count}
           icon={MonitorSmartphone}
           tone="text-alret-gold"

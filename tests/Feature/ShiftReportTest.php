@@ -30,7 +30,6 @@ class ShiftReportTest extends TestCase
                 'responded_students_count' => 10,
                 'unsatisfied_students_count' => 2,
                 'desk_requests_count' => 3,
-                'calls_count' => 4,
                 'extra_notes' => 'تست',
             ]);
 
@@ -56,7 +55,6 @@ class ShiftReportTest extends TestCase
                 'responded_students_count' => 10,
                 'unsatisfied_students_count' => 0,
                 'desk_requests_count' => 0,
-                'calls_count' => 0,
             ])->assertStatus(422);
     }
 
@@ -72,7 +70,6 @@ class ShiftReportTest extends TestCase
                 'responded_students_count' => 1,
                 'unsatisfied_students_count' => 0,
                 'desk_requests_count' => 0,
-                'calls_count' => 0,
             ])->assertStatus(403);
     }
 
@@ -86,7 +83,6 @@ class ShiftReportTest extends TestCase
             'responded_students_count' => 1,
             'unsatisfied_students_count' => 0,
             'desk_requests_count' => 0,
-            'calls_count' => 0,
         ]);
 
         $this->actingAs($support, 'sanctum')
@@ -95,7 +91,6 @@ class ShiftReportTest extends TestCase
                 'responded_students_count' => 5,
                 'unsatisfied_students_count' => 0,
                 'desk_requests_count' => 0,
-                'calls_count' => 0,
             ])->assertStatus(422);
     }
 
@@ -110,7 +105,6 @@ class ShiftReportTest extends TestCase
                 'responded_students_count' => -1,
                 'unsatisfied_students_count' => 0,
                 'desk_requests_count' => 0,
-                'calls_count' => 0,
             ])->assertStatus(422)
             ->assertJsonValidationErrors(['responded_students_count']);
     }
@@ -125,12 +119,12 @@ class ShiftReportTest extends TestCase
         ShiftReport::create([
             'shift_id' => $ownerShift->id, 'user_id' => $owner->id,
             'responded_students_count' => 1, 'unsatisfied_students_count' => 0,
-            'desk_requests_count' => 0, 'calls_count' => 0,
+            'desk_requests_count' => 0,
         ]);
         ShiftReport::create([
             'shift_id' => $otherShift->id, 'user_id' => $other->id,
             'responded_students_count' => 2, 'unsatisfied_students_count' => 0,
-            'desk_requests_count' => 0, 'calls_count' => 0,
+            'desk_requests_count' => 0,
         ]);
 
         $response = $this->actingAs($owner, 'sanctum')->getJson('/api/shift-reports');
@@ -152,12 +146,12 @@ class ShiftReportTest extends TestCase
         ShiftReport::create([
             'shift_id' => $webShift->id, 'user_id' => $webSupport->id,
             'responded_students_count' => 5, 'unsatisfied_students_count' => 0,
-            'desk_requests_count' => 0, 'calls_count' => 0,
+            'desk_requests_count' => 0,
         ]);
         ShiftReport::create([
             'shift_id' => $aiShift->id, 'user_id' => $aiSupport->id,
             'responded_students_count' => 7, 'unsatisfied_students_count' => 0,
-            'desk_requests_count' => 0, 'calls_count' => 0,
+            'desk_requests_count' => 0,
         ]);
 
         // فیلتر پشتیبان
@@ -174,7 +168,8 @@ class ShiftReportTest extends TestCase
         // فیلتر روز
         $byDate = $this->actingAs($admin, 'sanctum')
             ->getJson('/api/shift-reports?date='.now()->toDateString());
-        $byDate->assertStatus(200)->assertSame(2, $byDate->json('total'));
+        $byDate->assertStatus(200);
+        $this->assertSame(2, $byDate->json('total'));
     }
 
     public function test_pending_endpoint_shifts_without_report(): void

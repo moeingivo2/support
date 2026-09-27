@@ -3,12 +3,15 @@ import {
   BookOpen,
   CalendarClock,
   ClipboardList,
+  FileSpreadsheet,
   FileWarning,
   FolderOpen,
   LayoutDashboard,
   MessageSquareWarning,
+  MessagesSquare,
   PlayCircle,
   SquareChartGantt,
+  UserCog,
   UserPlus,
 } from 'lucide-react'
 import type { PanelUser } from '@/shared/lib/auth-storage'
@@ -22,7 +25,10 @@ type NavItem = {
 // منوی پنل ادمین — فقط نظارت؛ بدون شیفت و ثبت گزارش
 const adminNavigation: NavItem[] = [
   { label: 'داشبورد', path: '/', icon: LayoutDashboard },
+  { label: 'گفتگوی دانشجویان', path: '/inbox', icon: MessagesSquare },
   { label: 'گزارش شیفت پشتیبان‌ها', path: '/all-reports', icon: BarChart3 },
+  { label: 'گزارش فعالیت پشتیبان', path: '/activity-report', icon: FileSpreadsheet },
+  { label: 'مدیریت سوپر ادمین‌ها', path: '/manage-admins', icon: UserCog },
   { label: 'نارضایتی دانشجویان', path: '/student-complaints', icon: MessageSquareWarning },
   { label: 'ثبت پشتیبان جدید', path: '/register-support', icon: UserPlus },
   { label: 'سورس جلسات', path: '/sessions', icon: BookOpen },
@@ -34,6 +40,7 @@ const adminNavigation: NavItem[] = [
 // منوی پنل ساپورت — عملیات روزمره
 const supportNavigation: NavItem[] = [
   { label: 'داشبورد', path: '/', icon: LayoutDashboard },
+  { label: 'گفتگوی دانشجویان', path: '/inbox', icon: MessagesSquare },
   { label: 'شیفت من', path: '/support-shifts', icon: CalendarClock },
   { label: 'نارضایتی دانشجویان', path: '/student-complaints', icon: MessageSquareWarning },
   { label: 'سورس جلسات', path: '/sessions', icon: BookOpen },

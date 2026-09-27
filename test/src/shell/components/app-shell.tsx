@@ -22,15 +22,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_100%_-20%,rgba(0,98,255,0.16),transparent_28%),radial-gradient(circle_at_0%_100%,rgba(242,169,58,0.08),transparent_30%)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_100%_-20%,rgba(0,98,255,0.2),transparent_28%),radial-gradient(circle_at_0%_100%,rgba(242,169,58,0.1),transparent_30%)] before:fixed before:inset-0 before:-z-10 before:bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] before:bg-[size:42px_42px] before:[mask-image:radial-gradient(ellipse_at_center,black,transparent_76%)]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-screen w-[276px] shrink-0 flex-col border-l border-border/10 bg-deactive-btn-gray/70 px-5 py-6 backdrop-blur lg:flex">
+        <aside className="sticky top-0 hidden h-screen w-[276px] shrink-0 flex-col border-l border-white/[.09] bg-[#121010]/75 px-5 py-6 shadow-[-18px_0_45px_-35px_rgba(0,0,0,.9)] backdrop-blur-xl lg:flex">
           <div className="flex w-full flex-1 flex-col">
             <Link to="/" className="mb-2 flex items-center gap-3 px-2">
               <Logo size={44} />
               <span>
                 <span className="block text-sm font-bold text-white">
-                  {user?.role === 'admin' ? 'پنل مدیریت' : 'پنل پشتیبانی'}
+                  {user?.role === 'admin' ? 'پنل سوپر ادمین' : 'پنل پشتیبانی'}
                 </span>
                 <span className="block text-xs text-zinc-500">AIO Support</span>
               </span>
@@ -44,21 +44,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
               )}
             >
               {user?.role === 'admin'
-                ? 'دسترسی مدیریتی'
+                ? 'دسترسی سوپر ادمین'
                 : user?.support_type === 'ai'
                   ? 'پشتیبان هوش مصنوعی'
                   : 'پشتیبان وب'}
             </span>
             <DesktopNavigation navigation={navigation} activePath={activePath} />
-            <div className="rounded-3xl border border-alret-gold/20 bg-alret-gold/10 p-4 text-xs leading-5 text-alret-gold">
-              {user?.role === 'admin'
-                ? 'همه گزارش‌ها و نارضایتی‌های تیم از این پنل قابل پیگیری است.'
-                : 'اطلاعات مرتبط با شیفت فعال هر ساعت به‌روزرسانی می‌شود.'}
-            </div>
           </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-border/10 bg-deactive-btn-gray/85 px-4 backdrop-blur-xl md:px-7">
+          <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-white/[.08] bg-[#121010]/75 px-4 backdrop-blur-xl md:px-7">
             <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <Dialog.Trigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden" aria-label="منو">
@@ -85,7 +80,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               </Dialog.Portal>
             </Dialog.Root>
             <div className="mr-auto flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-full bg-active-blue/15 text-sm font-bold text-active-blue">
+                <span className="grid size-10 place-items-center rounded-full border border-active-blue/25 bg-active-blue/15 text-sm font-bold text-active-blue shadow-[0_0_20px_-8px_rgba(0,98,255,.9)]">
                 {getUserInitial(user?.name)}
               </span>
               <span className="hidden text-right md:block">
@@ -164,10 +159,10 @@ function NavigationLink({
       to={item.path}
       onClick={onNavigate}
       className={cn(
-        'flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-medium transition',
+        'group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-transparent px-4 py-2.5 text-sm font-medium transition-all duration-300 before:absolute before:right-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-active-blue before:opacity-0 before:shadow-[0_0_14px_rgba(0,98,255,.95)] before:transition-opacity',
         active
-          ? 'bg-active-blue/12 text-active-blue ring-1 ring-active-blue/25'
-          : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100',
+          ? 'border-active-blue/20 bg-active-blue/10 text-active-blue shadow-[0_10px_25px_-22px_rgba(0,98,255,.9)] before:opacity-100'
+          : 'text-zinc-400 hover:border-white/[.08] hover:bg-white/[.045] hover:text-zinc-100',
       )}
       aria-current={active ? 'page' : undefined}
     >
@@ -183,6 +178,6 @@ function getUserInitial(name: string | undefined): string {
 
 function formatRoleLabel(user: { role: string; support_type?: string | null } | null): string {
   if (!user) return 'کاربر'
-  if (user.role === 'admin') return 'مدیر سیستم'
+  if (user.role === 'admin') return 'سوپر ادمین'
   return user.support_type === 'ai' ? 'پشتیبان هوش مصنوعی' : 'پشتیبان وب'
 }

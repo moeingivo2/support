@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreResourceRequest;
 use App\Models\Resource;
+use App\Support\AttachmentStorage;
+use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ResourceController extends Controller
 {
+    public function __construct(private readonly AttachmentStorage $attachments) {}
+
     // دریافت لیست فایل‌ها و سورس‌ها
     public function index(Request $request)
     {
@@ -27,7 +31,7 @@ class ResourceController extends Controller
 
         // جستجو بر اساس عنوان
         if ($request->has('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $query->where('title', 'like', '%'.$request->search.'%');
         }
 
         $resources = $query->orderBy('created_at', 'desc')->paginate(min($request->input('per_page', 20), 100));
@@ -35,12 +39,7 @@ class ResourceController extends Controller
         return response()->json($resources);
     }
 
-    // پسوندهای خطرناک که نباید روی سرور ذخیره شوند (RCE/WebShell)
-    private const BLOCKED_EXTENSIONS = [
-        'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
-        'pht', 'phps', 'cgi', 'pl', 'py', 'sh', 'bat', 'exe',
-        'jsp', 'asp', 'aspx', 'htaccess',
-    ];
+    // پسوندهای خطرناک و آپلود فایل در App\Support\AttachmentStorage مدیریت می‌شود
 
     // ثبت فایل یا سورس جدید
     public function store(StoreResourceRequest $request)
@@ -49,23 +48,14 @@ class ResourceController extends Controller
 
         // اگر فایل آپلود شده بود، روی سرور ذخیره کن
         if ($request->hasFile('file')) {
-            $file = $request->file('file');
-
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (in_array($extension, self::BLOCKED_EXTENSIONS, true)) {
+            try {
+                $fileUrl = url(Storage::url($this->attachments->store($request->file('file'), 'resources')));
+            } catch (UnsupportedAttachmentException $exception) {
                 return response()->json([
-                    'message' => 'این نوع فایل مجاز به آپلود نیست',
-                    'errors' => ['file' => ['این نوع فایل مجاز به آپلود نیست']],
+                    'message' => $exception->getMessage(),
+                    'errors' => ['file' => [$exception->getMessage()]],
                 ], 422);
             }
-
-            // هش تصادفی در نام فایل تا مسیر قابل حدس نباشد
-            $path = $file->storeAs(
-                'resources',
-                now()->timestamp.'-'.bin2hex(random_bytes(8)).'.'.$extension,
-                'public'
-            );
-            $fileUrl = url(Storage::url($path));
         }
 
         $resource = Resource::create([
@@ -87,6 +77,7 @@ class ResourceController extends Controller
     public function show($id)
     {
         $resource = Resource::with('creator')->findOrFail($id);
+
         return response()->json($resource);
     }
 
@@ -104,24 +95,19 @@ class ResourceController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (in_array($extension, self::BLOCKED_EXTENSIONS, true)) {
+            try {
+                $path = $this->attachments->store($request->file('file'), 'resources');
+            } catch (UnsupportedAttachmentException $exception) {
                 return response()->json([
-                    'message' => 'این نوع فایل مجاز به آپلود نیست',
-                    'errors' => ['file' => ['این نوع فایل مجاز به آپلود نیست']],
+                    'message' => $exception->getMessage(),
+                    'errors' => ['file' => [$exception->getMessage()]],
                 ], 422);
             }
-            $path = $file->storeAs(
-                'resources',
-                now()->timestamp.'-'.bin2hex(random_bytes(8)).'.'.$extension,
-                'public'
-            );
             $request->merge(['file_url' => url(Storage::url($path))]);
         }
 
         $resource->update($request->only([
-            'title', 'description', 'type', 'file_url', 'category'
+            'title', 'description', 'type', 'file_url', 'category',
         ]));
 
         return response()->json([

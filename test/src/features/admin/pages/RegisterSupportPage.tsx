@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, Globe, Loader2, Send, Sparkles, UserPlus } from 'lucide-react'
+import { CheckCircle2, Globe, Loader2, Pencil, Send, Sparkles, Trash2, UserPlus } from 'lucide-react'
 import {
   adminKeys,
   createSupport,
+  deleteSupport,
   getSupports,
+  type SupportListItem,
 } from '../services/admin-service'
 import {
   createSupportSchema,
@@ -17,6 +19,8 @@ import { HttpApiError } from '@/shared/api/http'
 import { Alert } from '@/shared/ui/alert'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
+import { EditSupportDialog } from '../components/EditSupportDialog'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -27,6 +31,9 @@ import { cn } from '@/shared/lib/utils'
 export default function RegisterSupportPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [editingSupport, setEditingSupport] = useState<SupportListItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SupportListItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
   const supportsQuery = useQuery({ queryKey: adminKeys.supports, queryFn: getSupports })
@@ -67,6 +74,23 @@ export default function RegisterSupportPage() {
       } else {
         setServerError(error instanceof Error ? error.message : 'ثبت پشتیبان ناموفق بود.')
       }
+    }
+  }
+
+  async function handleDeleteSupport(): Promise<void> {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    setServerError(null)
+    try {
+      const response = await deleteSupport(deleteTarget.id)
+      toast.success(response.message)
+      setDeleteTarget(null)
+      await queryClient.invalidateQueries({ queryKey: adminKeys.supports })
+    } catch (error) {
+      setDeleteTarget(null)
+      setServerError(error instanceof Error ? error.message : 'حذف پشتیبان ناموفق بود.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -189,28 +213,63 @@ export default function RegisterSupportPage() {
               (supportsQuery.data?.data ?? []).map((support) => (
                 <div
                   key={support.id}
-                  className="flex items-center justify-between gap-3 rounded-3xl border border-border/10 bg-white/5 p-4"
+                  className="space-y-4 rounded-3xl border border-border/10 bg-white/5 p-4"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-zinc-100">{support.name}</p>
-                    <p dir="ltr" className="text-right text-xs text-zinc-500">
-                      {support.phone}
-                    </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-zinc-100">{support.name}</p>
+                      <p dir="ltr" className="mt-1 text-right text-xs text-zinc-500">
+                        {support.phone}
+                      </p>
+                    </div>
+                    <StatusPill tone={support.support_type === 'ai' ? 'warning' : 'info'}>
+                      {support.support_type === 'ai' ? (
+                        <Sparkles className="size-3" />
+                      ) : (
+                        <Globe className="size-3" />
+                      )}
+                      {support.support_type === 'ai' ? 'هوش مصنوعی' : 'وب'}
+                    </StatusPill>
                   </div>
-                  <StatusPill tone={support.support_type === 'ai' ? 'warning' : 'info'}>
-                    {support.support_type === 'ai' ? (
-                      <Sparkles className="size-3" />
-                    ) : (
-                      <Globe className="size-3" />
-                    )}
-                    {support.support_type === 'ai' ? 'هوش مصنوعی' : 'وب'}
-                  </StatusPill>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setEditingSupport(support)}>
+                      <Pencil />
+                      ویرایش
+                    </Button>
+                    <Button variant="danger" onClick={() => setDeleteTarget(support)}>
+                      <Trash2 />
+                      حذف
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </Card>
       </div>
+
+      <EditSupportDialog
+        support={editingSupport}
+        onClose={() => setEditingSupport(null)}
+        onSaved={(message) => {
+          setSuccessMessage(message)
+          toast.success(message)
+          void queryClient.invalidateQueries({ queryKey: adminKeys.supports })
+        }}
+      />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="حذف پشتیبان"
+        description={
+          deleteTarget
+            ? `آیا از حذف پشتیبان «${deleteTarget.name}» مطمئن هستید؟ سوابق شیفت و گزارش‌های او نیز حذف می‌شود.`
+            : ''
+        }
+        confirmLabel="حذف پشتیبان"
+        isPending={isDeleting}
+        onConfirm={() => void handleDeleteSupport()}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

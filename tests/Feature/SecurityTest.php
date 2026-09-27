@@ -64,7 +64,6 @@ class SecurityTest extends TestCase
             'responded_students_count' => 1,
             'unsatisfied_students_count' => 0,
             'desk_requests_count' => 0,
-            'calls_count' => 0,
         ]);
 
         // ساپورت دیگر اجازه خواندن ندارد
@@ -85,7 +84,6 @@ class SecurityTest extends TestCase
                 'responded_students_count' => 999,
                 'unsatisfied_students_count' => 0,
                 'desk_requests_count' => 0,
-                'calls_count' => 0,
             ])->assertStatus(403);
     }
 

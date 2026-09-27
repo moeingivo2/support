@@ -6,6 +6,7 @@ import { EndShiftReportForm } from '../components/EndShiftReportForm'
 import { ShiftSummaryCard } from '../components/ShiftSummaryCard'
 import { useCreateShiftReport } from '../hooks/useCreateShiftReport'
 import { useCurrentShift } from '../hooks/useCurrentShift'
+import { useReportableShift } from '../hooks/useReportableShift'
 import { endShift, shiftServiceKeys } from '@/features/support-shifts/services/shift-service'
 import { HttpApiError } from '@/shared/api/http'
 import type { ShiftReportFormValues } from '../schemas/shiftReportSchema'
@@ -23,19 +24,21 @@ export default function EndShiftReportPage() {
   const [serverMessage, setServerMessage] = useState<string | null>(null)
   const [endingShift, setEndingShift] = useState(false)
   const currentShiftQuery = useCurrentShift()
+  const reportableShiftQuery = useReportableShift()
   const createReportMutation = useCreateShiftReport({
     onSuccess: () => {
       toast.success('گزارش پایان شیفت با موفقیت ثبت شد.')
       setIsSubmitted(true)
     },
   })
-  const reportableShift = currentShiftQuery.data ?? null
-  const shiftUnavailable =
-    currentShiftQuery.isError || (!currentShiftQuery.isPending && !reportableShift)
-
-  // اگر شیفت فعال دارد، اول باید شیفت پایان یابد تا بک‌اند گزارش را بپذیرد (422 در غیر این صورت)
+  const reportableShift = reportableShiftQuery.data ?? null
   const activeRunningShift =
-    reportableShift && reportableShift.status === 'active' ? reportableShift : null
+    currentShiftQuery.data?.status === 'active' ? currentShiftQuery.data : null
+  const isShiftLoading = currentShiftQuery.isPending || reportableShiftQuery.isPending
+  const shiftUnavailable =
+    currentShiftQuery.isError ||
+    reportableShiftQuery.isError ||
+    (!isShiftLoading && !activeRunningShift && !reportableShift)
 
   async function endRunningShift() {
     if (!activeRunningShift) return
@@ -44,7 +47,7 @@ export default function EndShiftReportPage() {
     try {
       await endShift(activeRunningShift.id)
       await queryClient.invalidateQueries({ queryKey: shiftServiceKeys.all })
-      await currentShiftQuery.refetch()
+      await Promise.all([currentShiftQuery.refetch(), reportableShiftQuery.refetch()])
       toast.success('شیفت با موفقیت پایان یافت.')
     } catch (error) {
       setServerMessage(error instanceof Error ? error.message : 'پایان شیفت ناموفق بود.')
@@ -98,7 +101,7 @@ export default function EndShiftReportPage() {
         </p>
       </Card>
 
-      {currentShiftQuery.isPending ? (
+      {isShiftLoading ? (
         <ShiftSummarySkeleton />
       ) : activeRunningShift ? (
         <Card className="flex flex-col items-start gap-4 p-6 md:flex-row md:items-center md:justify-between">
@@ -157,7 +160,10 @@ export default function EndShiftReportPage() {
           <p className="text-sm leading-6 text-zinc-400">
             همه شیفت‌های پایان‌یافته شما گزارش دارند. پس از پایان شیفت بعدی، فرم اینجا فعال می‌شود.
           </p>
-          <Button variant="ghost" onClick={() => currentShiftQuery.refetch()}>
+           <Button
+             variant="ghost"
+             onClick={() => Promise.all([currentShiftQuery.refetch(), reportableShiftQuery.refetch()])}
+           >
             <RefreshCw />
             تلاش مجدد
           </Button>

@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -81,7 +79,7 @@ class AuthTest extends TestCase
 
         $this->withToken($token)->postJson('/api/logout')->assertStatus(200);
 
-        $this->getJson('/api/me')->assertStatus(401);
+        $this->assertSame(0, $user->tokens()->count());
     }
 
     public function test_public_registration_endpoint_is_disabled(): void

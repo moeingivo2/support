@@ -49,7 +49,7 @@ class ComplaintController extends Controller
         $complaint->load(['student', 'mentor', 'support']);
 
         return response()->json([
-            'message' => 'نارضایتی با موفقیت ثبت شد',
+            'message' => 'نارضایتی با موفقیت ثبت شد.',
             'complaint' => $complaint,
         ], 201);
     }
@@ -60,7 +60,7 @@ class ComplaintController extends Controller
         $query = Complaint::with(['student', 'mentor', 'support']);
 
         // ساپورت فقط نارضایتی‌هایی که خودش ثبت کرده
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             $query->where('support_id', $request->user()->id);
         }
 
@@ -126,7 +126,7 @@ class ComplaintController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'وضعیت با موفقیت به‌روزرسانی شد',
+            'message' => 'وضعیت نارضایتی با موفقیت به‌روزرسانی شد.',
             'complaint' => $complaint,
         ]);
     }

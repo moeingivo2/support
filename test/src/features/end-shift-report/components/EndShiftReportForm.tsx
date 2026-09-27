@@ -26,7 +26,7 @@ type FormField = (typeof formFields)[number]
 const serverFieldMessages: Record<FormField, string> = {
   responded_students_count: 'تعداد دانشجویان پاسخ‌داده‌شده باید صفر یا بیشتر باشد.',
   unsatisfied_students_count: 'تعداد دانشجویان ناراضی باید صفر یا بیشتر باشد.',
-  desk_requests_count: 'تعداد درخواست‌های میز باید صفر یا بیشتر باشد.',
+  desk_requests_count: 'تعداد درخواست‌های دسک باید صفر یا بیشتر باشد.',
   extra_notes: 'یادداشت‌های اضافی را بررسی کنید.',
 }
 
@@ -106,8 +106,8 @@ export function EndShiftReportForm({
           <CountField
             disabled={fieldsDisabled}
             error={errors.desk_requests_count?.message}
-            label="تعداد درخواست‌های میز"
-            placeholder="درخواست‌های ثبت‌شده"
+             label="تعداد درخواست‌های دسک"
+             placeholder="درخواست‌های ثبت‌شده"
             {...register('desk_requests_count')}
           />
 

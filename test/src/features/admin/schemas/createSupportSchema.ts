@@ -13,5 +13,17 @@ export const createSupportSchema = z.object({
   }),
 })
 
+export const updateSupportSchema = z.object({
+  name: z.string().trim().min(3, 'نام و نام خانوادگی الزامی است.').max(255),
+  phone: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))))
+    .refine((value) => /^09\d{9}$/.test(value), 'شماره موبایل معتبر وارد کنید (مثلاً 09123456789).'),
+  password: z.string().max(190).optional(),
+})
+
 export type CreateSupportFormValues = z.output<typeof createSupportSchema>
 export type CreateSupportFormInput = z.input<typeof createSupportSchema>
+export type UpdateSupportFormValues = z.output<typeof updateSupportSchema>
+export type UpdateSupportFormInput = z.input<typeof updateSupportSchema>

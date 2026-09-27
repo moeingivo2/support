@@ -14,6 +14,30 @@ export const complaintKeys = {
   mine: (page: number) => [...complaintKeys.all, 'mine', page] as const,
 }
 
+export const PRIORITY_OPTIONS = [
+  { value: 'high', label: 'زیاد' },
+  { value: 'normal', label: 'متوسط' },
+  { value: 'low', label: 'کم' },
+] as const
+
+export const STATUS_OPTIONS = [
+  { value: 'open', label: 'در انتظار بررسی' },
+  { value: 'in_progress', label: 'در حال پیگیری' },
+  { value: 'resolved', label: 'رسیدگی‌شده' },
+] as const
+
+export const PRIORITY_LABELS: Record<ComplaintPriority | string, string> = {
+  high: 'زیاد',
+  normal: 'متوسط',
+  low: 'کم',
+}
+
+export const STATUS_LABELS: Record<ComplaintStatus | string, string> = {
+  open: 'در انتظار بررسی',
+  in_progress: 'در حال پیگیری',
+  resolved: 'رسیدگی‌شده',
+}
+
 export function getComplaints(page: number): Promise<LaravelPagination<Complaint>> {
   return getJson<LaravelPagination<Complaint>>('/api/complaints', { page })
 }
@@ -36,18 +60,6 @@ export function updateComplaintStatus(
     `/api/complaints/${id}`,
     { status },
   )
-}
-
-export const PRIORITY_LABELS: Record<ComplaintPriority | string, string> = {
-  high: 'بالا',
-  normal: 'متوسط',
-  low: 'پایین',
-}
-
-export const STATUS_LABELS: Record<ComplaintStatus | string, string> = {
-  open: 'باز',
-  in_progress: 'در حال بررسی',
-  resolved: 'حل‌شده',
 }
 
 export type { ComplaintStatus } from '../types/complaint'

@@ -17,6 +17,10 @@ class Shift extends Model
         'status',
     ];
 
+    protected $attributes = [
+        'status' => 'active',
+    ];
+
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
@@ -38,6 +42,7 @@ class Shift extends Model
     public function getDurationInMinutesAttribute()
     {
         $end = $this->end_time ?? now();
+
         return $this->start_time->diffInMinutes($end);
     }
 }

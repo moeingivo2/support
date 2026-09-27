@@ -10,6 +10,7 @@ export const CREATE_SHIFT_REPORT_ENDPOINT = '/api/shift-reports'
 
 export const shiftReportQueryKeys = {
   currentShift: ['current-shift'] as const,
+  reportableShift: ['reportable-shift'] as const,
   myReports: ['my-shift-reports'] as const,
   dashboard: ['dashboard'] as const,
 }

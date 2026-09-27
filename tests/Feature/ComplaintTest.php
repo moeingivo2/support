@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Complaint;
 use App\Models\Mentor;
 use App\Models\Student;
-use App\Models\User;
 use Tests\TestCase;
 
 class ComplaintTest extends TestCase
@@ -117,11 +116,13 @@ class ComplaintTest extends TestCase
         }
 
         $all = $this->actingAs($admin, 'sanctum')->getJson('/api/complaints');
-        $all->assertStatus(200)->assertSame(2, $all->json('total'));
+        $all->assertStatus(200);
+        $this->assertSame(2, $all->json('total'));
 
         $filtered = $this->actingAs($admin, 'sanctum')
             ->getJson("/api/complaints?support_id={$second->id}");
-        $filtered->assertStatus(200)->assertSame(1, $filtered->json('total'));
+        $filtered->assertStatus(200);
+        $this->assertSame(1, $filtered->json('total'));
     }
 
     public function test_status_can_be_updated(): void

@@ -87,7 +87,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={toast.id}
               className={cn(
-                'pointer-events-auto flex items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold backdrop-blur-xl',
+                'pointer-events-auto flex animate-[toast-in_.35s_cubic-bezier(.16,1,.3,1)] items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold shadow-[0_16px_36px_-22px_rgba(0,0,0,.9)] backdrop-blur-xl',
                 style.container,
               )}
             >

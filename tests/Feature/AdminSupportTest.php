@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminSupportTest extends TestCase
@@ -113,6 +114,57 @@ class AdminSupportTest extends TestCase
 
         $user = User::where('phone', '09127778899')->first();
         $this->assertNotSame('plain-password-123', $user->password);
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('plain-password-123', $user->password));
+        $this->assertTrue(Hash::check('plain-password-123', $user->password));
+    }
+
+    public function test_admin_can_update_support_without_changing_support_type(): void
+    {
+        $admin = $this->makeAdmin();
+        $support = $this->makeSupport([
+            'name' => 'نام قبلی',
+            'support_type' => 'ai',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/admin/supports/{$support->id}", [
+                'name' => 'نام ویرایش‌شده',
+                'phone' => $support->phone,
+                'support_type' => 'web',
+                'password' => 'new-password-123',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('user.name', 'نام ویرایش‌شده')
+            ->assertJsonPath('user.support_type', 'ai');
+        $this->assertTrue(Hash::check('new-password-123', $support->fresh()->password));
+    }
+
+    public function test_admin_can_delete_support_without_active_shift(): void
+    {
+        $admin = $this->makeAdmin();
+        $support = $this->makeSupport();
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/admin/supports/{$support->id}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('users', ['id' => $support->id]);
+    }
+
+    public function test_admin_cannot_delete_support_with_active_shift(): void
+    {
+        $admin = $this->makeAdmin();
+        $support = $this->makeSupport();
+        $support->shifts()->create([
+            'channel' => 'web',
+            'start_time' => now(),
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/admin/supports/{$support->id}")
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('users', ['id' => $support->id]);
     }
 }

@@ -60,8 +60,8 @@ export function ResourceFormDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/75" />
-        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 space-y-6 overflow-y-auto rounded-4xl border border-border/10 bg-deactive-btn-gray p-6 md:p-7">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 space-y-6 overflow-y-auto rounded-4xl border border-white/[.12] bg-[linear-gradient(145deg,rgba(35,32,32,.98),rgba(18,16,16,.98))] p-6 shadow-[0_28px_80px_-32px_rgba(0,0,0,1)] md:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <DialogPrimitive.Title className="text-xl font-bold text-white">

@@ -11,23 +11,23 @@ export const complaintSchema = z.object({
   student_phone: z
     .string()
     .trim()
-    .max(20, 'شماره تماس حداکثر ۲۰ کاراکتر است.')
+    .max(20, 'شماره موبایل حداکثر ۲۰ کاراکتر است.')
     .optional()
     .or(z.literal('')),
   mentor_name: z.string().trim().min(2, 'نام منتور الزامی است.').max(255),
   mentor_phone: z
     .string()
     .trim()
-    .max(20, 'شماره تماس حداکثر ۲۰ کاراکتر است.')
+    .max(20, 'شماره موبایل حداکثر ۲۰ کاراکتر است.')
     .optional()
     .or(z.literal('')),
   description: z
     .string()
     .trim()
-    .min(10, 'توضیحات باید حداقل ۱۰ کاراکتر باشد.')
-    .max(5000, 'توضیحات حداکثر ۵۰۰۰ کاراکتر است.'),
+    .min(10, 'شرح نارضایتی باید حداقل ۱۰ کاراکتر باشد.')
+    .max(5000, 'شرح نارضایتی حداکثر ۵۰۰۰ کاراکتر است.'),
   priority: z.enum(['high', 'normal', 'low'], {
-    errorMap: () => ({ message: 'اولویت را انتخاب کنید.' }),
+    errorMap: () => ({ message: 'اولویت پیگیری را انتخاب کنید.' }),
   }),
 })
 

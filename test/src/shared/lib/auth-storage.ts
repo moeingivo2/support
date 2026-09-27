@@ -29,6 +29,6 @@ export interface PanelUser {
   name: string
   email: string | null
   phone: string | null
-  role: 'admin' | 'support'
+  role: 'admin' | 'support' | 'student'
   support_type?: 'web' | 'ai' | null
 }

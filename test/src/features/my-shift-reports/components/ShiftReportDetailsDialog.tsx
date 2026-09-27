@@ -39,7 +39,8 @@ export function ShiftReportDetailsDialog({ report, onClose }: ShiftReportDetails
           </div>
 
           <div className="grid grid-cols-2 gap-4 rounded-3xl border border-border/10 bg-white/5 p-4">
-            <DetailField label="شناسه گزارش" value={report.id.toLocaleString('fa-IR')} />
+             <DetailField label="پشتیبان" value={report.user?.name ?? `پشتیبان #${report.user_id}`} />
+             <DetailField label="شناسه گزارش" value={report.id.toLocaleString('fa-IR')} />
             <DetailField label="شناسه شیفت" value={report.shift_id.toLocaleString('fa-IR')} />
             <DetailField label="تاریخ شیفت" value={formatShiftDateTime(report.shift.start_time)} />
             <DetailField label="شروع شیفت" value={formatShiftDateTime(report.shift.start_time)} />
@@ -75,7 +76,7 @@ export function ShiftReportDetailsDialog({ report, onClose }: ShiftReportDetails
               value={report.unsatisfied_students_count.toLocaleString('fa-IR')}
             />
             <DetailField
-              label="درخواست‌های میز"
+               label="درخواست‌های دسک"
               value={report.desk_requests_count.toLocaleString('fa-IR')}
             />
           </div>
