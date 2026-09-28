@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ActorRole;
 use App\Support\MessageType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,8 @@ class Message extends Model
         'attachment_size',
         'duration_seconds',
         'read_at',
+        'actor_role',
+        'actor_id',
     ];
 
     /**
@@ -34,7 +37,20 @@ class Message extends Model
         return [
             'type' => MessageType::class,
             'read_at' => 'datetime',
+            'actor_role' => ActorRole::class,
+            'is_edited' => 'boolean',
         ];
+    }
+
+    /**
+     * هویت ثبت‌کننده پس از ثبت پیام تغییر نمی‌کند تا حسابرسی معتبر بماند.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $message): void {
+            $message->actor_role = $message->getOriginal('actor_role');
+            $message->actor_id = $message->getOriginal('actor_id');
+        });
     }
 
     public function conversation(): BelongsTo
@@ -45,6 +61,11 @@ class Message extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id');
     }
 
     public function isFromStudent(): bool

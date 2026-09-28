@@ -47,6 +47,22 @@ class User extends Authenticatable
         return $this->role === 'student';
     }
 
+    /**
+     * ناظر فقط‌خواندنی برای حسابرسی عملیاتی.
+     */
+    public function isObserver(): bool
+    {
+        return $this->role === 'observer';
+    }
+
+    /**
+     * دسترسی به متن گفتگو — سوپر ادمین طبق سیاست ندارد.
+     */
+    public function canReadTranscripts(): bool
+    {
+        return in_array($this->role, ['support', 'observer'], true);
+    }
+
     public function shifts()
     {
         return $this->hasMany(Shift::class);
@@ -68,6 +84,11 @@ class User extends Authenticatable
     public function assignedConversations()
     {
         return $this->hasMany(Conversation::class, 'support_id');
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(MessageRating::class, 'support_agent_id');
     }
 
     // یک متد کمکی برای گرفتن شیفت فعال کاربر

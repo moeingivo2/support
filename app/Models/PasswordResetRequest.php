@@ -11,6 +11,7 @@ class PasswordResetRequest extends Model
 
     protected $fillable = [
         'email',
+        'phone',
         'status',
         'note',
         'resolved_at',
