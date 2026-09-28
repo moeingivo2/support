@@ -1,87 +1,142 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { clearAuth, getStoredUser, getToken, setAuth, type PanelUser } from '@/shared/lib/auth-storage'
 import {
-  login,
-  logout as apiLogout,
-  registerStudent,
-  registerSupport,
-  type StudentRegisterPayload,
-} from '@/shared/services/auth-service'
+    createContext,
+    useCallback,
+    useContext,
+    useMemo,
+    useState,
+    type ReactNode,
+} from "react";
+import {
+    clearAuth,
+    getStoredUser,
+    getToken,
+    setAuth,
+    type PanelUser,
+} from "@/shared/lib/auth-storage";
+import {
+    login,
+    loginStudent,
+    logout as apiLogout,
+    registerStudent,
+    registerSupport,
+    type StudentRegisterPayload,
+} from "@/shared/services/auth-service";
 
 type AuthContextValue = {
-  user: PanelUser | null
-  isAuthenticated: boolean
-  showLoginSplash: boolean
-  login: (loginValue: string, password: string) => Promise<PanelUser>
-  register: (payload: RegisterPayload) => Promise<void>
-  registerStudentAccount: (payload: StudentRegisterPayload) => Promise<void>
-  completeLoginSplash: () => void
-  logout: () => void
-}
+    user: PanelUser | null;
+    isAuthenticated: boolean;
+    showLoginSplash: boolean;
+    login: (loginValue: string, password: string) => Promise<PanelUser>;
+    loginStudentAccount: (phone: string, password: string) => Promise<PanelUser>;
+    register: (payload: RegisterPayload) => Promise<void>;
+    registerStudentAccount: (payload: StudentRegisterPayload) => Promise<void>;
+    completeLoginSplash: () => void;
+    logout: () => void;
+};
 
 type RegisterPayload = {
-  name: string
-  phone: string
-  password: string
-  password_confirmation: string
-}
+    name: string;
+    phone: string;
+    password: string;
+    password_confirmation: string;
+};
 
-const AuthContext = createContext<AuthContextValue | null>(null)
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<PanelUser | null>(() => (getToken() ? getStoredUser() : null))
-  const [showLoginSplash, setShowLoginSplash] = useState(false)
+    const [user, setUser] = useState<PanelUser | null>(() =>
+        getToken() ? getStoredUser() : null,
+    );
+    const [showLoginSplash, setShowLoginSplash] = useState(false);
 
-  const loginAction = useCallback(async (loginValue: string, password: string) => {
-    const { user: authenticatedUser, token } = await login(loginValue, password)
-    setAuth(token, authenticatedUser)
-    setUser(authenticatedUser)
-    setShowLoginSplash(true)
-    return authenticatedUser
-  }, [])
+    const loginAction = useCallback(
+        async (loginValue: string, password: string) => {
+            const { user: authenticatedUser, token } = await login(
+                loginValue,
+                password,
+            );
+            setAuth(token, authenticatedUser);
+            setUser(authenticatedUser);
+            setShowLoginSplash(true);
+            return authenticatedUser;
+        },
+        [],
+    );
 
-  const register = useCallback(async (payload: RegisterPayload) => {
-    const response = await registerSupport(payload)
-    setAuth(response.token, response.user)
-    setUser(response.user)
-  }, [])
+    const loginStudentAction = useCallback(
+        async (phone: string, password: string) => {
+            const { user: authenticatedUser, token } = await loginStudent(
+                phone,
+                password,
+            );
+            setAuth(token, authenticatedUser);
+            setUser(authenticatedUser);
+            setShowLoginSplash(true);
+            return authenticatedUser;
+        },
+        [],
+    );
 
-  const registerStudentAccount = useCallback(async (payload: StudentRegisterPayload) => {
-    const response = await registerStudent(payload)
-    setAuth(response.token, response.user)
-    setUser(response.user)
-  }, [])
+    const register = useCallback(async (payload: RegisterPayload) => {
+        const response = await registerSupport(payload);
+        setAuth(response.token, response.user);
+        setUser(response.user);
+    }, []);
 
-  const logout = useCallback(() => {
-    void apiLogout()
-    clearAuth()
-    setUser(null)
-    setShowLoginSplash(false)
-  }, [])
+    const registerStudentAccount = useCallback(
+        async (payload: StudentRegisterPayload) => {
+            const response = await registerStudent(payload);
+            setAuth(response.token, response.user);
+            setUser(response.user);
+        },
+        [],
+    );
 
-  const completeLoginSplash = useCallback(() => setShowLoginSplash(false), [])
+    const logout = useCallback(() => {
+        void apiLogout();
+        clearAuth();
+        setUser(null);
+        setShowLoginSplash(false);
+    }, []);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      isAuthenticated: user !== null,
-      showLoginSplash,
-      login: loginAction,
-      register,
-      registerStudentAccount,
-      completeLoginSplash,
-      logout,
-    }),
-    [user, showLoginSplash, loginAction, register, registerStudentAccount, completeLoginSplash, logout],
-  )
+    const completeLoginSplash = useCallback(
+        () => setShowLoginSplash(false),
+        [],
+    );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    const value = useMemo<AuthContextValue>(
+        () => ({
+            user,
+            isAuthenticated: user !== null,
+            showLoginSplash,
+            login: loginAction,
+            loginStudentAccount: loginStudentAction,
+            register,
+            registerStudentAccount,
+            completeLoginSplash,
+            logout,
+        }),
+        [
+            user,
+            showLoginSplash,
+            loginAction,
+            loginStudentAction,
+            register,
+            registerStudentAccount,
+            completeLoginSplash,
+            logout,
+        ],
+    );
+
+    return (
+        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    );
 }
 
 export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuth must be used within AuthProvider");
+    }
+    return context;
 }

@@ -1,27 +1,27 @@
-import { getJson, postJson } from '@/shared/api/http'
-import type { StudentProfilePayload } from '../types/student-profile'
+import { getJson, postJson } from "@/shared/api/http";
+import type { StudentProfilePayload } from "../types/student-profile";
 
 export const studentProfileKeys = {
-  profile: ['student', 'profile'] as const,
-}
+    profile: ["student", "profile"] as const,
+};
 
 export function getStudentProfile(): Promise<{ data: StudentProfilePayload }> {
-  return getJson<{ data: StudentProfilePayload }>('/api/student/profile')
+    return getJson<{ data: StudentProfilePayload }>("/api/student/profile");
 }
 
 export type UpgradePayload = {
-  course: 'offline' | 'in_person' | 'school'
-  track?: 'ai' | 'web' | null
-  sessions?: number[]
-  extra_chats: number
-  note?: string | null
-}
+    course: "offline" | "in_person" | "school";
+    track?: "ai" | "web" | null;
+    sessions?: number[];
+    extra_chats: number;
+    note?: string | null;
+};
 
 export function requestUpgrade(
-  payload: UpgradePayload,
+    payload: UpgradePayload,
 ): Promise<{ message: string; data: StudentProfilePayload }> {
-  return postJson<UpgradePayload, { message: string; data: StudentProfilePayload }>(
-    '/api/student/upgrade',
-    payload,
-  )
+    return postJson<
+        UpgradePayload,
+        { message: string; data: StudentProfilePayload }
+    >("/api/student/upgrade", payload);
 }
