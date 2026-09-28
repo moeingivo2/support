@@ -1,7 +1,7 @@
-import { lazy } from 'react'
+import { lazy } from "react";
 
-const EndShiftReportPage = lazy(() => import('./pages/EndShiftReportPage'))
+const EndShiftReportPage = lazy(() => import("./pages/EndShiftReportPage"));
 
 export default function EndShiftReportRoute() {
-  return <EndShiftReportPage />
+    return <EndShiftReportPage />;
 }

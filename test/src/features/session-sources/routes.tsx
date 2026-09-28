@@ -1,7 +1,7 @@
-import { lazy } from 'react'
+import { lazy } from "react";
 
-const SessionSourcesPage = lazy(() => import('./pages/SessionSourcesPage'))
+const SessionSourcesPage = lazy(() => import("./pages/SessionSourcesPage"));
 
 export default function SessionSourcesRoute() {
-  return <SessionSourcesPage />
+    return <SessionSourcesPage />;
 }

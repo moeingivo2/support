@@ -1,30 +1,49 @@
 <!doctype html>
 <html lang="fa-IR" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#121010" />
-    <meta name="description" content="پنل مدیریت و پشتیبانی AIO" />
-    <title>پنل پشتیبانی AIO</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      /* Prevent FOUC flash on the dark canvas before stylesheets apply. */
-      html,
-      body {
-        background-color: #121010;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#121010" />
+        <meta name="description" content="پنل مدیریت و پشتیبانی AIO" />
+        <title>پنل پشتیبانی AIO</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            /* Prevent FOUC flash on the dark canvas before stylesheets apply. */
+            html,
+            body {
+                background-color: #121010;
+            }
+            /* تم انتخابی پیش از رندر اعمال می‌شود تا پرش رنگ نداشته باشیم */
+            html[data-theme="light"],
+            html[data-theme="light"] body {
+                background-color: #f7faf9;
+            }
+        </style>
+        <script>
+            // تم را قبل از استایل‌ها اعمال می‌کنیم تا تغییر رنگ هنگام لود دیده نشود
+            (function () {
+                try {
+                    var stored = localStorage.getItem("aio_theme");
+                    document.documentElement.dataset.theme =
+                        stored === "light" || stored === "dark"
+                            ? stored
+                            : "dark";
+                } catch (error) {
+                    document.documentElement.dataset.theme = "dark";
+                }
+            })();
+        </script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
 </html>

@@ -1,22 +1,29 @@
-import { lazy } from 'react'
+import { lazy } from "react";
 
-const RegisterSupportPage = lazy(() => import('./pages/RegisterSupportPage'))
-const AllReportsPage = lazy(() => import('./pages/AllReportsPage'))
-const ActivityReportPage = lazy(() => import('./pages/ActivityReportPage'))
-const ManageAdminsPage = lazy(() => import('./pages/ManageAdminsPage'))
+const RegisterSupportPage = lazy(() => import("./pages/RegisterSupportPage"));
+const AllReportsPage = lazy(() => import("./pages/AllReportsPage"));
+const ActivityReportPage = lazy(() => import("./pages/ActivityReportPage"));
+const ManageAdminsPage = lazy(() => import("./pages/ManageAdminsPage"));
+const SupportRankingPage = lazy(
+    () => import("./pages/SupportRankingPage"),
+);
 
 export function RegisterSupportRoute() {
-  return <RegisterSupportPage />
+    return <RegisterSupportPage />;
 }
 
 export function AllReportsRoute() {
-  return <AllReportsPage />
+    return <AllReportsPage />;
 }
 
 export function ActivityReportRoute() {
-  return <ActivityReportPage />
+    return <ActivityReportPage />;
 }
 
 export function ManageAdminsRoute() {
-  return <ManageAdminsPage />
+    return <ManageAdminsPage />;
+}
+
+export function SupportRankingRoute() {
+    return <SupportRankingPage />;
 }

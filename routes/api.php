@@ -15,10 +15,14 @@ use App\Http\Controllers\Api\ShiftReportController;
 use App\Http\Controllers\Api\StudentAuthController;
 use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\SupportChatController;
+use App\Http\Controllers\Api\SupportRankingController;
 use App\Http\Controllers\Api\VideoController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+
+// ورود دانشجو با شماره موبایل — عمومی
+Route::post('/login/student', [StudentAuthController::class, 'login'])->middleware('throttle:auth');
 
 // ثبت‌نام دانشجو — عمومی، همراه با انتخاب دوره، رشته و جلسات
 Route::post('/register/student', [StudentAuthController::class, 'register'])->middleware('throttle:auth');
@@ -43,6 +47,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/admins', [AdminController::class, 'storeAdmin']);
         Route::put('/admins/{admin}', [AdminController::class, 'updateAdmin']);
         Route::delete('/admins/{admin}', [AdminController::class, 'destroyAdmin']);
+    });
+
+    // رتبه‌بندی پشتیبان‌ها — فقط سوپر ادمین
+    Route::middleware('role:admin')->prefix('admin/support-ranking')->group(function () {
+        Route::get('/', [SupportRankingController::class, 'index']);
+        Route::get('/export', [SupportRankingController::class, 'export']);
+        Route::get('/{agent}', [SupportRankingController::class, 'show']);
     });
 
     // شیفت — مخصوص پشتیبان‌ها (ادمین شیفت ندارد)
@@ -114,13 +125,24 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/', [ConversationController::class, 'store']);
         Route::get('/{conversation}', [ConversationController::class, 'show']);
         Route::post('/{conversation}/messages', [ConversationController::class, 'storeMessage']);
+        // بستن توسط دانشجو با دروازه‌ی امتیاز الزامی
+        Route::post('/{conversation}/close', [ConversationController::class, 'close']);
+        // امتیازدهی پس از بستن توسط پشتیبان
+        Route::post('/{conversation}/rate', [ConversationController::class, 'rate']);
     });
 
-    // صندوق ورودی مشترک پشتیبان‌ها — همه گفتگوهای همه دانشجویان
-    Route::middleware('role:support,admin')->prefix('support/conversations')->group(function () {
+    // صندوق ورودی مشترک — پشتیبان و ناظر.
+    // ناظر فقط‌خواندنی است و سوپر ادمین طبق سیاست به متن گفتگو دسترسی ندارد.
+    Route::middleware('role:support,observer')->prefix('support/conversations')->group(function () {
         Route::get('/', [SupportChatController::class, 'index']);
         Route::get('/notifications', [SupportChatController::class, 'notifications']);
+
         Route::get('/{conversation}', [SupportChatController::class, 'show']);
-        Route::post('/{conversation}/messages', [SupportChatController::class, 'storeMessage']);
+
+        // پاسخ دادن و بستن گفتگو مختص پشتیبان است؛ ناظر اجازه تغییر ندارد
+        Route::middleware('role:support')->group(function () {
+            Route::post('/{conversation}/messages', [SupportChatController::class, 'storeMessage']);
+            Route::post('/{conversation}/close', [SupportChatController::class, 'close']);
+        });
     });
 });

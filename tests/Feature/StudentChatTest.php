@@ -33,7 +33,7 @@ class StudentChatTest extends TestCase
         $response = $this->postJson('/api/register/student', [
             'first_name' => 'زهرا',
             'last_name' => 'کریمی',
-            'email' => 'zahra@example.com',
+            'phone' => '09123456789',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'course' => 'offline',
@@ -49,7 +49,66 @@ class StudentChatTest extends TestCase
             ->assertJsonPath('profile.remaining_chats', 50)
             ->assertJsonPath('profile.remaining_percentage', 100);
 
-        $this->assertDatabaseHas('users', ['email' => 'zahra@example.com', 'role' => 'student']);
+        // شماره به فرم نرمال 989xxxxxxxxx ذخیره می‌شود
+        $this->assertDatabaseHas('users', ['phone' => '989123456789', 'role' => 'student']);
+    }
+
+    /**
+     * هر دو فرمت مجاز ورودی پذیرفته و به یک شماره‌ی نرمال تبدیل می‌شوند.
+     */
+    public function test_registration_accepts_both_supported_phone_formats(): void
+    {
+        $this->postJson('/api/register/student', [
+            'first_name' => 'زهرا',
+            'last_name' => 'کریمی',
+            'phone' => '+989121111111',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+            'course' => 'school',
+        ])->assertStatus(201);
+
+        $this->postJson('/api/register/student', [
+            'first_name' => 'زهرا',
+            'last_name' => 'کریمی',
+            'phone' => '09212222222',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+            'course' => 'school',
+        ])->assertStatus(201);
+
+        $this->assertDatabaseHas('users', ['phone' => '989121111111']);
+        $this->assertDatabaseHas('users', ['phone' => '989212222222']);
+    }
+
+    public function test_registration_rejects_invalid_and_duplicate_phone_numbers(): void
+    {
+        $this->postJson('/api/register/student', [
+            'first_name' => 'زهرا',
+            'last_name' => 'کریمی',
+            'phone' => '12345',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+            'course' => 'school',
+        ])->assertStatus(422)->assertJsonValidationErrors(['phone']);
+
+        $this->postJson('/api/register/student', [
+            'first_name' => 'زهرا',
+            'last_name' => 'کریمی',
+            'phone' => '09123456789',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+            'course' => 'school',
+        ])->assertStatus(201);
+
+        // همان شمارن با فرمت دیگر هم تکراری محسوب می‌شود
+        $this->postJson('/api/register/student', [
+            'first_name' => 'سارا',
+            'last_name' => 'احمدی',
+            'phone' => '989123456789',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+            'course' => 'school',
+        ])->assertStatus(422);
     }
 
     public function test_offline_registration_requires_track_and_at_least_one_session(): void
@@ -57,7 +116,7 @@ class StudentChatTest extends TestCase
         $this->postJson('/api/register/student', [
             'first_name' => 'زهرا',
             'last_name' => 'کریمی',
-            'email' => 'zahra2@example.com',
+            'phone' => '09120000002',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'course' => 'offline',
@@ -67,7 +126,7 @@ class StudentChatTest extends TestCase
         $this->postJson('/api/register/student', [
             'first_name' => 'زهرا',
             'last_name' => 'کریمی',
-            'email' => 'zahra3@example.com',
+            'phone' => '09120000003',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'course' => 'offline',
@@ -82,7 +141,7 @@ class StudentChatTest extends TestCase
         $this->postJson('/api/register/student', [
             'first_name' => 'سارا',
             'last_name' => 'احمدی',
-            'email' => 'sara@example.com',
+            'phone' => '09121111111',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'course' => 'in_person',
@@ -102,7 +161,7 @@ class StudentChatTest extends TestCase
             $response = $this->postJson('/api/register/student', [
                 'first_name' => 'سارا',
                 'last_name' => 'احمدی',
-                'email' => $course.'-empty@example.com',
+                'phone' => '09130000'.($course === 'school' ? '001' : '002'),
                 'password' => 'secret1234',
                 'password_confirmation' => 'secret1234',
                 'course' => $course,
@@ -123,7 +182,7 @@ class StudentChatTest extends TestCase
         $this->postJson('/api/register/student', [
             'first_name' => 'سارا',
             'last_name' => 'احمدی',
-            'email' => 'school-bare@example.com',
+            'phone' => '09140000000',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'course' => 'school',

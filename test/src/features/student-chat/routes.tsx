@@ -1,7 +1,7 @@
-import { lazy } from 'react'
+import { lazy } from "react";
 
-const ChatPage = lazy(() => import('./pages/ChatPage'))
+const ChatPage = lazy(() => import("./pages/ChatPage"));
 
 export function ChatRoute() {
-  return <ChatPage />
+    return <ChatPage />;
 }
