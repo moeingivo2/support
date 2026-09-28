@@ -33,6 +33,19 @@ abstract class TestCase extends BaseTestCase
         ], $attributes));
     }
 
+    /**
+     * ناظر فقط‌خواندنی — برای تست حاکمیت دسترسی
+     */
+    protected function makeObserver(array $attributes = []): User
+    {
+        return User::create(array_merge([
+            'name' => 'ناظر تست',
+            'email' => uniqid('observer_').'@example.com',
+            'password' => Hash::make('secret1234'),
+            'role' => 'observer',
+        ], $attributes));
+    }
+
     protected function makeStudent(array $attributes = [], array $profileAttributes = []): User
     {
         $student = User::create(array_merge([

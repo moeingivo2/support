@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Conversation;
+use App\Models\MessageRating;
 use App\Models\ShiftReport;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -184,5 +185,96 @@ class ActivityReportExportTest extends TestCase
         $this->assertStringContainsString('پیام دانشجو', $content);
         $this->assertStringContainsString('دانشجو تست', $content);
         $this->assertStringContainsString('هوش مصنوعی', $content);
+    }
+
+    /**
+     * امتیازها باید داخل اکسل همان پشتیبان و به‌صورت گفتگو به گفتگو ذخیره شوند،
+     * در حالی که برگه‌های پیشین گزارش دست‌نخورده باقی می‌مانند.
+     */
+    public function test_activity_report_contains_per_conversation_ratings(): void
+    {
+        $admin = $this->makeAdmin();
+        $support = $this->makeSupport(['name' => 'پشتیبان امتیازدار']);
+        $otherSupport = $this->makeSupport(['name' => 'پشتیبان دیگر']);
+
+        foreach ([5, 4, 3] as $index => $value) {
+            $student = $this->makeStudent(['name' => 'دانشجو امتیاز '.$index]);
+
+            $conversation = Conversation::create([
+                'student_id' => $student->id,
+                'support_id' => $support->id,
+                'title' => 'گفتگوی امتیازدار '.$index,
+                'status' => 'closed',
+                'closure_actor' => 'student',
+                'closed_by' => $student->id,
+                'closed_at' => now()->subHours($index + 1),
+            ]);
+
+            MessageRating::create([
+                'conversation_id' => $conversation->id,
+                'student_id' => $student->id,
+                'support_agent_id' => $support->id,
+                'rating_value' => $value,
+                'closure_actor' => 'student',
+                'submitted_at' => now()->subHours($index + 1),
+            ]);
+        }
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson(sprintf(
+            '/api/admin/activity-report/export?user_id=%d&from=%s&to=%s',
+            $support->id,
+            now()->subDays(2)->toDateString(),
+            now()->toDateString(),
+        ));
+
+        $response->assertStatus(200);
+        $content = $response->getContent();
+        $this->assertNotFalse(simplexml_load_string($content));
+
+        // برگه‌های امتیازدهی به گزارش افزوده شده‌اند
+        $this->assertStringContainsString('امتیاز گفتگو به گفتگو', $content);
+        $this->assertStringContainsString('توزیع امتیازها', $content);
+        $this->assertStringContainsString('رضایت دانشجویان', $content);
+
+        // هر گفتگوی امتیازدار جداگانه در اکسل آمده است
+        $this->assertStringContainsString('گفتگوی امتیازدار 0', $content);
+        $this->assertStringContainsString('گفتگوی امتیازدار 1', $content);
+        $this->assertStringContainsString('گفتگوی امتیازدار 2', $content);
+        $this->assertStringContainsString('دانشجو امتیاز 0', $content);
+        $this->assertStringContainsString('★★★', $content);
+
+        // میانگین و توزیع در بخش خلاصه
+        $this->assertStringContainsString('میانگین امتیاز', $content);
+        $this->assertStringContainsString('مجموع امتیازها', $content);
+
+        // برگه‌های پیشین نباید حذف یا جابه‌جا شوند
+        $this->assertStringContainsString('خلاصه', $content);
+        $this->assertStringContainsString('جزئیات فعالیت', $content);
+        $this->assertStringContainsString('گفتگو با دانشجویان', $content);
+
+        // امتیاز پشتیبان دیگر نباید در این گزارش نشت کند
+        $this->assertStringNotContainsString('پشتیبان دیگر', $content);
+    }
+
+    /**
+     * پشتیبان بدون امتیاز نباید باعث خطا یا گزارش خراب شود
+     */
+    public function test_activity_report_handles_support_without_any_ratings(): void
+    {
+        $admin = $this->makeAdmin();
+        $support = $this->makeSupport(['name' => 'پشتیبان بدون امتیاز']);
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson(sprintf(
+            '/api/admin/activity-report/export?user_id=%d&from=%s&to=%s',
+            $support->id,
+            now()->toDateString(),
+            now()->toDateString(),
+        ));
+
+        $response->assertStatus(200);
+        $content = $response->getContent();
+
+        $this->assertNotFalse(simplexml_load_string($content));
+        $this->assertStringContainsString('برای این پشتیبان امتیازی ثبت نشده است', $content);
     }
 }

@@ -1,7 +1,7 @@
-import { getCurrentUser } from '@/shared/services/auth-service'
+import { getCurrentUser } from "@/shared/services/auth-service";
 
 export const currentUserKeys = {
-  all: ['current-user'] as const,
-}
+    all: ["current-user"] as const,
+};
 
-export { getCurrentUser }
+export { getCurrentUser };

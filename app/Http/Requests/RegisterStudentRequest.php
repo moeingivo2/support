@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Support\CourseTrack;
 use App\Support\CourseType;
+use App\Support\IranianPhone;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,11 @@ use Illuminate\Validation\Validator;
 
 class RegisterStudentRequest extends FormRequest
 {
+    /**
+     * پیام یکسان برای همه‌ی خطاهای اعتبارنامه تا وجود حساب لو نرود.
+     */
+    public const INVALID_CREDENTIALS = 'شماره موبایل یا رمز عبور اشتباه است.';
+
     public function authorize(): bool
     {
         return true;
@@ -24,7 +30,7 @@ class RegisterStudentRequest extends FormRequest
         return [
             'first_name' => ['required', 'string', 'min:2', 'max:120'],
             'last_name' => ['required', 'string', 'min:2', 'max:120'],
-            'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email'],
+            'phone' => ['required', 'string', Rule::unique('users', 'phone')],
             'password' => ['required', 'string', 'min:8', 'max:190', 'confirmed'],
             'course' => ['required', Rule::in(CourseType::values())],
             'track' => ['nullable', Rule::in(CourseTrack::values())],
@@ -37,6 +43,12 @@ class RegisterStudentRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                $phone = (string) $this->input('phone');
+
+                if ($phone !== '' && ! IranianPhone::isValid($phone)) {
+                    $validator->errors()->add('phone', 'شماره موبایل معتبر نیست. نمونه: ۰۹۱۲۳۴۵۶۷۸۹');
+                }
+
                 if ($validator->errors()->has('course')) {
                     return;
                 }
@@ -102,9 +114,8 @@ class RegisterStudentRequest extends FormRequest
             'first_name.min' => 'نام باید حداقل ۲ حرف باشد.',
             'last_name.required' => 'نام خانوادگی الزامی است.',
             'last_name.min' => 'نام خانوادگی باید حداقل ۲ حرف باشد.',
-            'email.required' => 'ایمیل الزامی است.',
-            'email.email' => 'قالب ایمیل معتبر نیست.',
-            'email.unique' => 'این ایمیل قبلاً ثبت شده است.',
+            'phone.required' => 'شماره موبایل الزامی است.',
+            'phone.unique' => 'این شماره موبایل قبلاً ثبت شده است.',
             'password.required' => 'رمز عبور الزامی است.',
             'password.min' => 'رمز عبور باید حداقل ۸ کاراکتر باشد.',
             'password.confirmed' => 'تکرار رمز عبور مطابقت ندارد.',
@@ -122,7 +133,7 @@ class RegisterStudentRequest extends FormRequest
         return [
             'first_name' => 'نام',
             'last_name' => 'نام خانوادگی',
-            'email' => 'ایمیل',
+            'phone' => 'شماره موبایل',
             'password' => 'رمز عبور',
             'course' => 'دوره',
             'track' => 'رشته',

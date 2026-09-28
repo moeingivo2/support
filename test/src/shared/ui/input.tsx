@@ -1,14 +1,14 @@
-import type { ComponentProps } from 'react'
-import { cn } from '@/shared/lib/utils'
+import type { ComponentProps } from "react";
+import { cn } from "@/shared/lib/utils";
 
-export function Input({ className, ...props }: ComponentProps<'input'>) {
-  return (
-    <input
-      className={cn(
-        'h-11 w-full rounded-2xl border border-white/[.12] bg-black/10 px-4 text-sm text-zinc-100 outline-none transition-[border-color,box-shadow,background-color,transform] duration-300 placeholder:text-zinc-500 hover:border-white/[.2] focus-visible:-translate-y-px focus-visible:border-active-blue/70 focus-visible:bg-white/[.07] focus-visible:shadow-[0_0_0_4px_rgba(0,98,255,.12),0_12px_25px_-18px_rgba(0,98,255,.8)] disabled:cursor-not-allowed disabled:opacity-50',
-        className,
-      )}
-      {...props}
-    />
-  )
+export function Input({ className, ...props }: ComponentProps<"input">) {
+    return (
+        <input
+            className={cn(
+                "h-11 w-full rounded-2xl border border-hairline bg-sunken px-4 text-sm text-ink outline-none transition-[border-color,box-shadow,background-color,transform] duration-[320ms] ease-spring-smooth placeholder:text-ink-3 hover:border-hairline-strong focus-visible:-translate-y-px focus-visible:border-primary-line-2 focus-visible:bg-surface-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent),0_12px_25px_-18px_var(--c-glow-accent)] disabled:cursor-not-allowed disabled:opacity-50",
+                className,
+            )}
+            {...props}
+        />
+    );
 }

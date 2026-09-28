@@ -5,21 +5,23 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendChatMessageRequest;
 use App\Models\Conversation;
-use App\Models\Message;
+use App\Models\MessageRating;
 use App\Models\StudentProfile;
 use App\Support\ChatMessageSender;
+use App\Support\ConversationCloser;
 use App\Support\StudentProfilePayload;
 use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class ConversationController extends Controller
 {
-    public function __construct(private readonly ChatMessageSender $sender) {}
+    public function __construct(
+        private readonly ChatMessageSender $sender,
+        private readonly ConversationCloser $closer,
+    ) {}
 
-    /**
-     * فهرست گفتگوهای دانشجو به‌همراه آخرین پیام و تعداد خوانده‌نشده
-     */
     public function index(Request $request): JsonResponse
     {
         $conversations = Conversation::query()
@@ -32,15 +34,13 @@ class ConversationController extends Controller
         return response()->json(['data' => $conversations]);
     }
 
-    /**
-     * شروع گفتگوی جدید
-     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:120'],
         ]);
 
+        // گفتگوی جدید همیشه رکورد تازه می‌سازد؛ گفتگوی بسته باز نمی‌شود
         $conversation = Conversation::create([
             'student_id' => $request->user()->id,
             'title' => $validated['title'] ?? 'گفتگوی جدید',
@@ -52,9 +52,6 @@ class ConversationController extends Controller
         ], 201);
     }
 
-    /**
-     * پیام‌های یک گفتگو؛ با باز کردن گفتگو پیام‌های پشتیبان خوانده‌شده می‌شوند
-     */
     public function show(Request $request, int $conversation): JsonResponse
     {
         $model = $this->ownedConversation($request, $conversation);
@@ -70,19 +67,21 @@ class ConversationController extends Controller
         return response()->json([
             'data' => [
                 'conversation' => $this->summary($model->fresh()),
+                'rating' => $this->ratingPayload($model->fresh()),
                 'messages' => $this->messages($model),
             ],
         ]);
     }
 
-    /**
-     * ارسال پیام دانشجو (متن، کد، تصویر، فایل یا صدا)
-     */
-    public function storeMessage(
-        SendChatMessageRequest $request,
-        int $conversation,
-    ): JsonResponse {
+    public function storeMessage(SendChatMessageRequest $request, int $conversation): JsonResponse
+    {
         $model = $this->ownedConversation($request, $conversation);
+
+        if ($model->isClosed()) {
+            return response()->json([
+                'message' => 'این گفتگو بسته شده است. برای ادامه، گفتگوی جدیدی بسازید.',
+            ], 422);
+        }
 
         if (! $this->sender->studentHasQuota($request->user())) {
             return response()->json([
@@ -108,11 +107,73 @@ class ConversationController extends Controller
             'message' => 'پیام ارسال شد.',
             'data' => $this->messagePayload($message->load('sender')),
             'profile' => StudentProfilePayload::make(
-                StudentProfile::query()
-                    ->with(['user', 'mentor'])
-                    ->where('user_id', $request->user()->id)
-                    ->firstOrFail(),
+                StudentProfile::query()->with(['user', 'mentor'])->where('user_id', $request->user()->id)->firstOrFail(),
             ),
+        ], 201);
+    }
+
+    /**
+     * بستن گفتگو توسط دانشجو — با دروازه‌ی امتیاز اجباری
+     */
+    public function close(Request $request, int $conversation): JsonResponse
+    {
+        $model = $this->ownedConversation($request, $conversation);
+
+        $validated = $request->validate([
+            'rating_value' => ['required', 'integer', 'min:1', 'max:5'],
+            'closure_confirmed' => ['required', 'boolean'],
+        ], [], [
+            'rating_value' => 'امتیاز',
+            'closure_confirmed' => 'تایید هشدار',
+        ]);
+
+        try {
+            $closed = $this->closer->closeByStudent(
+                $model,
+                $request->user(),
+                (int) $validated['rating_value'],
+                (bool) $validated['closure_confirmed'],
+            );
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'گفتگو بسته شد و امتیاز شما ثبت گردید.',
+            'data' => [
+                'conversation' => $this->summary($closed),
+                'rating' => $this->ratingPayload($closed),
+            ],
+        ]);
+    }
+
+    /**
+     * امتیازدهی پس از بستن توسط پشتیبان (از طریق دعوت داخل گفتگو)
+     */
+    public function rate(Request $request, int $conversation): JsonResponse
+    {
+        $model = $this->ownedConversation($request, $conversation);
+
+        $validated = $request->validate([
+            'rating_value' => ['required', 'integer', 'min:1', 'max:5'],
+        ], [], ['rating_value' => 'امتیاز']);
+
+        try {
+            $rating = $this->closer->rateClosedConversation(
+                $model,
+                $request->user(),
+                (int) $validated['rating_value'],
+            );
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'امتیاز شما ثبت شد. از همراهی شما سپاسگزاریم.',
+            'data' => [
+                'conversation' => $this->summary($model->fresh()),
+                'rating' => $this->ratingPayload($model->fresh(), $rating),
+            ],
         ], 201);
     }
 
@@ -124,11 +185,30 @@ class ConversationController extends Controller
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    private function ratingPayload(Conversation $conversation, ?MessageRating $fresh = null): ?array
+    {
+        $rating = $fresh ?? $conversation->rating;
+
+        if ($rating === null) {
+            return null;
+        }
+
+        return [
+            'rating_value' => $rating->rating_value,
+            'closure_actor' => $rating->closure_actor,
+            'submitted_at' => $rating->submitted_at?->toIso8601String(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function summary(Conversation $conversation): array
+    public function summary(Conversation $conversation): array
     {
         $conversation->loadMissing('support');
+        $conversation->setRelation('rating', $conversation->rating);
 
         return [
             'id' => $conversation->id,
@@ -136,6 +216,14 @@ class ConversationController extends Controller
             'last_message_preview' => $conversation->last_message_preview,
             'last_message_at' => $conversation->last_message_at?->toIso8601String(),
             'unread_count' => $conversation->unread_student_count,
+            'status' => $conversation->status->value,
+            'status_label' => $conversation->status->label(),
+            'closure_actor' => $conversation->closure_actor,
+            'closed_at' => $conversation->closed_at?->toIso8601String(),
+            'can_rate' => $conversation->isClosed()
+                && $conversation->closure_actor === 'support'
+                && $conversation->rating === null,
+            'has_rating' => $conversation->rating !== null,
             'support' => $conversation->support ? [
                 'id' => $conversation->support->id,
                 'name' => $conversation->support->name,
@@ -153,14 +241,14 @@ class ConversationController extends Controller
             ->orderBy('created_at')
             ->orderBy('id')
             ->get()
-            ->map(fn (Message $message): array => $this->messagePayload($message))
+            ->map(fn ($message): array => $this->messagePayload($message))
             ->all();
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function messagePayload(Message $message): array
+    private function messagePayload($message): array
     {
         return [
             'id' => $message->id,
@@ -172,6 +260,10 @@ class ConversationController extends Controller
             'attachment_size' => $message->attachment_size,
             'duration_seconds' => $message->duration_seconds,
             'url' => $message->attachmentUrl(),
+            'actor_role' => $message->actor_role->value,
+            'actor_role_label' => $message->actor_role->label(),
+            'actor_name' => $message->sender?->name,
+            'is_edited' => (bool) $message->is_edited,
             'sender' => [
                 'id' => $message->sender?->id,
                 'name' => $message->sender?->name,

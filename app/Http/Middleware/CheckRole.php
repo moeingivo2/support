@@ -10,11 +10,20 @@ use Illuminate\Http\Request;
 class CheckRole
 {
     /**
-     * @param  string  $role  یک نقش یا چند نقش جداشده با کاما (نمونه: support,admin)
+     * نقش‌های مجاز را می‌پذیرد.
+     *
+     * Laravel پارامترهای میان‌افزار را با کاما جدا می‌کند، بنابراین
+     * «role:support,observer» دو آرگومان مجزا می‌فرستد و باید variadic باشد.
+     *
+     * @param  string  ...$roles  یک یا چند نقش مجاز (نمونه: role:support,observer)
      */
-    public function handle(Request $request, Closure $next, string $role)
+    public function handle(Request $request, Closure $next, string ...$roles)
     {
-        $allowed = array_map('trim', explode(',', $role));
+        $allowed = [];
+
+        foreach ($roles as $role) {
+            $allowed = array_merge($allowed, array_map('trim', explode(',', $role)));
+        }
 
         if (! $request->user() || ! in_array($request->user()->role, $allowed, true)) {
             return response()->json(['message' => 'دسترسی غیرمجاز'], 403);

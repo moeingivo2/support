@@ -1,7 +1,7 @@
-import { lazy } from 'react'
+import { lazy } from "react";
 
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
 export default function DashboardRoute() {
-  return <DashboardPage />
+    return <DashboardPage />;
 }

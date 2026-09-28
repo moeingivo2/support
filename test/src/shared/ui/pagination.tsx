@@ -1,54 +1,57 @@
-import type { ReactNode } from 'react'
-import { cn } from '@/shared/lib/utils'
+import type { ReactNode } from "react";
+import { cn } from "@/shared/lib/utils";
 
 export function PageButton({
-  active = false,
-  disabled = false,
-  onClick,
-  children,
-  ...props
+    active = false,
+    disabled = false,
+    onClick,
+    children,
+    ...props
 }: {
-  active?: boolean
-  disabled?: boolean
-  onClick: () => void
-  children: ReactNode
-  'aria-label'?: string
+    active?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+    children: ReactNode;
+    "aria-label"?: string;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'grid size-10 place-items-center rounded-full border text-sm font-semibold transition-all duration-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40',
-        active
-          ? 'border-active-blue bg-active-blue text-white shadow-[0_8px_20px_-10px_rgba(0,98,255,.9)]'
-          : 'border-white/10 bg-white/[.035] text-zinc-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[.1] hover:text-white',
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  )
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={cn(
+                "grid size-10 place-items-center rounded-full border text-sm font-semibold transition-all duration-[320ms] ease-spring-smooth active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
+                active
+                    ? "border-active-blue bg-active-blue text-on-primary shadow-[0_8px_20px_-10px_var(--c-glow-accent)]"
+                    : "border-hairline bg-surface-2 text-ink hover:-translate-y-0.5 hover:border-hairline hover:bg-surface-3 hover:text-ink",
+            )}
+            {...props}
+        >
+            {children}
+        </button>
+    );
 }
 
-export function getPages(currentPage: number, lastPage: number): Array<number | null> {
-  if (lastPage <= 5) {
-    return Array.from({ length: lastPage }, (_, index) => index + 1)
-  }
+export function getPages(
+    currentPage: number,
+    lastPage: number,
+): Array<number | null> {
+    if (lastPage <= 5) {
+        return Array.from({ length: lastPage }, (_, index) => index + 1);
+    }
 
-  const pages = new Set<number>([1, currentPage, lastPage])
+    const pages = new Set<number>([1, currentPage, lastPage]);
 
-  if (currentPage > 2) pages.add(currentPage - 1)
-  if (currentPage < lastPage - 1) pages.add(currentPage + 1)
+    if (currentPage > 2) pages.add(currentPage - 1);
+    if (currentPage < lastPage - 1) pages.add(currentPage + 1);
 
-  return Array.from(pages)
-    .sort((first, second) => first - second)
-    .flatMap((page, index, sorted) => {
-      const previous = sorted[index - 1]
+    return Array.from(pages)
+        .sort((first, second) => first - second)
+        .flatMap((page, index, sorted) => {
+            const previous = sorted[index - 1];
 
-      if (previous && page - previous > 1) return [null, page]
+            if (previous && page - previous > 1) return [null, page];
 
-      return [page]
-    })
+            return [page];
+        });
 }
