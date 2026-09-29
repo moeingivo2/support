@@ -29,7 +29,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return (
         <div className="app-canvas flex h-dvh overflow-hidden">
             <div className="mx-auto flex h-dvh w-full max-w-[1440px]">
-                <aside className="hidden h-full w-[276px] shrink-0 flex-col border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
+                {/* ستون صفحات با لوگو، چسبیده به لبه‌ی چپ. در RTL فرزند آخر
+                    سمت چپ می‌نشیند، پس order-2 آن را از راست به چپ می‌برد. */}
+                <aside className="order-2 hidden h-full w-[276px] shrink-0 flex-col border-r border-hairline bg-glass px-5 py-6 shadow-[18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
                     <div className="flex w-full flex-1 flex-col">
                         <Link
                             to={user?.role === "observer" ? "/inbox" : "/"}
@@ -51,7 +53,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                         </Link>
                         <span
                             className={cn(
-                                "mb-6 mr-1 inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold ring-1",
+                                "mb-6 ms-1 inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold ring-1",
                                 user?.role === "admin" || user?.role === "observer"
                                     ? "bg-warn-soft text-alret-gold ring-warn-ring"
                                     : "bg-primary-soft text-accent-ink ring-primary-ring",
@@ -71,7 +73,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                         />
                     </div>
                 </aside>
-                <div className="flex min-w-0 flex-1 flex-col">
+                <div className="order-1 flex min-w-0 flex-1 flex-col">
                     <header className="sticky top-0 z-20 flex h-18 items-center gap-3 border-b border-hairline bg-glass px-4 backdrop-blur-xl md:h-20 md:px-7">
                         <Dialog.Root
                             open={mobileMenuOpen}
