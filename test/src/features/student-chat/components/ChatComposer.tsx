@@ -159,9 +159,9 @@ export function ChatComposer({
                 </div>
             ) : null}
 
-            {/* یک ردیف در هر اندازه: ورودی، ارسال و ابزارهای پیوست. ابزارها
-                آخر می‌نشینند تا در RTL سمت چپ باشند و بالای صفحه خلوت بماند. */}
-            <div className="flex flex-row items-end gap-1.5 sm:gap-2">
+            {/* موبایل: ابزارها بالا، ورودی و ارسال پایین. دسکتاپ: یک ردیف.
+                این عنصر خودش شکست را مدیریت می‌کند، پس نباید sm:contents داشته باشد. */}
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <input
                     ref={imageInputRef}
                     type="file"
@@ -176,9 +176,8 @@ export function ChatComposer({
                     onChange={() => pickFile(fileInputRef.current)}
                 />
 
-                {/* دکمه‌های پیوست بعد از ارسال می‌نشینند تا در RTL سمت چپ
-                    ورودی باشند و بالای صفحه خلوت بماند. */}
-                <div className="composer-toolbar order-last">
+                {/* دکمه‌های پیوست: هم‌اندازه، لنگر راست در RTL */}
+                <div className="composer-toolbar">
                     <button
                         type="button"
                         className="composer-tool"
@@ -226,8 +225,8 @@ export function ChatComposer({
                     }
                     className={
                         codeMode
-                            ? "min-h-12 flex-1 font-mono text-left"
-                            : "min-h-12 flex-1"
+                            ? "w-full min-h-12 sm:flex-1 sm:font-mono sm:text-left"
+                            : "w-full min-h-12 sm:flex-1"
                     }
                     disabled={isSending}
                 />
@@ -235,7 +234,7 @@ export function ChatComposer({
                 <MagneticSendButton
                     disabled={!canSend}
                     aria-label="ارسال پیام"
-                    className="shrink-0"
+                    className="self-end sm:self-auto"
                 >
                     {isSending ? (
                         <Loader2 className="animate-spin" />

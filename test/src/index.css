@@ -665,8 +665,7 @@
     .composer-toolbar {
         display: flex;
         align-items: center;
-        /* فاصله‌ی کمتر تا روی صفحه‌ی باریک، ورودی جای کافی داشته باشد. */
-        gap: 4px;
+        gap: 8px;
     }
 
     .composer-tool {
