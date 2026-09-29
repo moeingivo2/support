@@ -89,9 +89,8 @@ class ChatMessageSender
         // هر کدام از یک عدد کهنه شروع می‌کردند و شمارنده کمتر از واقعیت
         // می‌شد — یعنی هرچه ترافیک بیشتر، اعلان‌ها دقیق‌تر غلط.
         $conversation->newQuery()->whereKey($conversation->id)->update([
-            'title' => $conversation->title === 'گفتگوی جدید' && $message->body !== null
-                ? mb_strimwidth($message->body, 0, 60, '…')
-                : $conversation->title,
+            // عنوان دیگر از متن پیام اول پر نمی‌شود؛ همان شماره‌ی گفتگو
+            // (#۱، #۲، …) می‌ماند تا فهرست‌ها شلوغ نشوند.
             'last_message_preview' => $message->preview(),
             'last_message_at' => $message->created_at,
             $unreadColumn => DB::raw('"'.$unreadColumn.'" + 1'),

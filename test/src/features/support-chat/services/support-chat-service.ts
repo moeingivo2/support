@@ -8,16 +8,32 @@ import type {
     SupportConversationSummary,
     SupportInboxResponse,
     SupportNotifications,
+    SupportStudentRow,
 } from "../types/support-chat";
 
 export const supportChatKeys = {
-    inbox: ["support", "conversations"] as const,
+    inbox: (studentId: number | null) =>
+        ["support", "conversations", { studentId }] as const,
+    students: ["support", "students"] as const,
     conversation: (id: number) => ["support", "conversations", id] as const,
     notifications: ["support", "conversations", "notifications"] as const,
 };
 
-export function getSupportInbox(): Promise<SupportInboxResponse> {
-    return getJson<SupportInboxResponse>("/api/support/conversations");
+/** دانشجویان به‌همراه تعداد گفتگو، جدیدترین فعالیت اول. */
+export function getSupportStudents(): Promise<{
+    data: SupportStudentRow[];
+}> {
+    return getJson<{ data: SupportStudentRow[] }>(
+        "/api/support/conversations/students",
+    );
+}
+
+export function getSupportInbox(
+    studentId: number | null = null,
+): Promise<SupportInboxResponse> {
+    return getJson<SupportInboxResponse>("/api/support/conversations", {
+        student_id: studentId ?? undefined,
+    });
 }
 
 export function getSupportNotifications(): Promise<SupportNotifications> {

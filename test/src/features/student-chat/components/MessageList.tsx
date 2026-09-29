@@ -61,7 +61,7 @@ export function MessageList({
     }
 
     return (
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 md:p-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 md:p-5">
             <div ref={startRef} />
             {messages.map((message) => (
                 <MessageBubble

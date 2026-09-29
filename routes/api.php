@@ -156,6 +156,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/', [SupportChatController::class, 'index']);
         Route::get('/notifications', [SupportChatController::class, 'notifications']);
 
+        // فهرست دانشجویان با تعداد گفتگو؛ پشتیبان اول نفر را انتخاب
+        // می‌کند و بعد فقط گفتگوهای همان دانشجو را می‌بیند.
+        Route::get('/students', [SupportChatController::class, 'students']);
+
         Route::get('/{conversation}', [SupportChatController::class, 'show']);
 
         // پاسخ دادن و بستن گفتگو مختص پشتیبان است؛ ناظر اجازه تغییر ندارد

@@ -53,10 +53,15 @@ class ConversationController extends Controller
             'title' => ['nullable', 'string', 'max:120'],
         ]);
 
-        // گفتگوی جدید همیشه رکورد تازه می‌سازد؛ گفتگوی بسته باز نمی‌شود
+        // گفتگوی جدید همیشه رکورد تازه می‌سازد؛ گفتگوی بسته باز نمی‌شود.
+        // عنوان از شماره‌ی ترتیبی دانشجو می‌آید (#۱، #۲، …) و دیگر از
+        // متن پیام اول گرفته نمی‌شود.
+        $sequence = $this->nextSequenceFor($request->user()->id);
+
         $conversation = Conversation::create([
             'student_id' => $request->user()->id,
-            'title' => $validated['title'] ?? 'گفتگوی جدید',
+            'student_sequence' => $sequence,
+            'title' => '#'.$sequence,
         ]);
 
         return response()->json([
@@ -243,6 +248,19 @@ class ConversationController extends Controller
                 'name' => $conversation->support->name,
             ] : null,
         ];
+    }
+
+    /**
+     * شماره‌ی بعدی گفتگو برای این دانشجو.
+     *
+     * از بیشترین شماره‌ی موجود کمی بیشتر می‌شود تا شماره‌ها هرگز تکراری
+     * نشوند، حتی اگر رکوردی حذف شده باشد.
+     */
+    private function nextSequenceFor(int $studentId): int
+    {
+        return (int) Conversation::query()
+            ->where('student_id', $studentId)
+            ->max('student_sequence') + 1;
     }
 
     /**

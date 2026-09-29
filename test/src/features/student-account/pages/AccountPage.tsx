@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import {
     AlertTriangle,
     CalendarDays,
+    ChevronRight,
     GraduationCap,
     Phone,
     Sparkles,
     UserRound,
     UserRoundCheck,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -32,7 +34,21 @@ export default function AccountPage() {
     const profile = profileQuery.data?.data;
 
     return (
-        <div className="mx-auto w-full max-w-6xl space-y-6">
+        // اسکرول در همین ستون می‌ماند تا هدرِ چسبانِ پوسته و این صفحه
+        // با هم سر جای خود بمانند.
+        <div className="mx-auto w-full max-w-6xl space-y-6 overflow-y-auto pb-6">
+            {/* در RTL گوشه‌ی چپ یعنی انتهای سطر؛ همان‌جا دکمه‌ی بازگشت
+                به چت قرار می‌گیرد. */}
+            <div className="flex justify-start">
+                <Link
+                    to="/chat"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[transform,background-color,border-color] duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-95 md:hidden"
+                >
+                    <ChevronRight className="size-4" aria-hidden="true" />
+                    بازگشت به گفتگو
+                </Link>
+            </div>
+
             <Card className="p-6 md:p-7">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-start gap-4">

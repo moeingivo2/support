@@ -207,7 +207,9 @@ export default function ChatPage() {
     );
 
     return (
-        <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">
+        // روی گوشی فاصله‌ها صفر می‌شود تا چت تمام صفحه را بگیرد؛ فهرست
+        // گفتگوها و پروفایل در منوی همبرگری پوسته می‌مانند.
+        <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4 md:gap-4">
             <Card className="hidden w-80 shrink-0 overflow-y-auto p-4 lg:block">
                 {sidebar}
             </Card>
@@ -218,7 +220,7 @@ export default function ChatPage() {
                         type="button"
                         aria-label="بستن فهرست گفتگوها"
                         onClick={() => setIsSidebarOpen(false)}
-                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        className="absolute inset-0 bg-overlay backdrop-blur-sm"
                     />
                     <Card className="absolute inset-y-3 right-3 left-3 overflow-y-auto p-4 shadow-2xl">
                         {sidebar}
@@ -226,8 +228,8 @@ export default function ChatPage() {
                 </div>
             ) : null}
 
-            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <header className="flex flex-wrap items-center gap-2 border-b border-hairline bg-sunken px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
+            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 md:rounded-3xl md:border">
+                <header className="flex shrink-0 items-center gap-2 border-b border-hairline bg-sunken px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
                     {/* روی گوشی، وقتی گفتگویی باز است، دکمه‌ی برگشت به فهرست لازم است */}
                     {activeId !== null ? (
                         <button

@@ -7,16 +7,26 @@ import {
     getSupportConversation,
     getSupportInbox,
     getSupportNotifications,
+    getSupportStudents,
     supportChatKeys,
 } from "../services/support-chat-service";
 import type { SupportNotifications } from "../types/support-chat";
 
 const POLL_INTERVAL = 5000;
 
-export function useSupportInbox() {
+export function useSupportInbox(studentId: number | null = null) {
     return useQuery({
-        queryKey: supportChatKeys.inbox,
-        queryFn: getSupportInbox,
+        queryKey: supportChatKeys.inbox(studentId),
+        queryFn: () => getSupportInbox(studentId),
+        refetchInterval: POLL_INTERVAL,
+    });
+}
+
+/** فهرست دانشجویان با تعداد گفتگو؛ نمای پیش‌فرض پنل پشتیبان. */
+export function useSupportStudents() {
+    return useQuery({
+        queryKey: supportChatKeys.students,
+        queryFn: getSupportStudents,
         refetchInterval: POLL_INTERVAL,
     });
 }

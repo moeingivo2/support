@@ -27,9 +27,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     }
 
     return (
-        <div className="app-canvas min-h-screen">
-            <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
-                <aside className="sticky top-0 hidden h-screen w-[276px] shrink-0 flex-col border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
+        <div className="app-canvas flex h-dvh overflow-hidden">
+            <div className="mx-auto flex h-dvh w-full max-w-[1440px]">
+                <aside className="hidden h-full w-[276px] shrink-0 flex-col border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
                     <div className="flex w-full flex-1 flex-col">
                         <Link
                             to={user?.role === "observer" ? "/inbox" : "/"}
@@ -145,7 +145,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             </Button>
                         </div>
                     </header>
-            <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col px-4 py-6 md:px-7 md:py-8">
+            {/* صفحه‌های چت خودشان اسکرول داخلی دارند و min-h-0 لازم دارند؛
+                بقیه‌ی صفحه‌ها بلندتر از دید هستند و overflow-y-auto اسکرول
+                را همین‌جا نگه می‌دارد. */}
+            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 md:px-7 md:py-8">
                 {children}
             </main>
                 </div>

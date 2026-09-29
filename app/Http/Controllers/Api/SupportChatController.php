@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\ObserverAccessLog;
 use App\Models\StudentProfile;
+use App\Models\User;
 use App\Support\ChatMessageSender;
 use App\Support\ConversationCloser;
 use App\Support\StudentProfilePayload;
@@ -15,6 +16,7 @@ use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
@@ -27,6 +29,9 @@ class SupportChatController extends Controller
 {
     /** سقف ردیف‌های فهرست و اعلان؛ بدون آن پاسخ با رشد داده بزرگ می‌شود */
     private const INBOX_LIMIT = 200;
+
+    /** سقف دانشجویان فهرست‌شده در نمای «دانشجوها». */
+    private const STUDENT_LIMIT = 200;
 
     private const NOTIFICATION_LIMIT = 200;
 
@@ -44,9 +49,71 @@ class SupportChatController extends Controller
      * rating باید داخل eager-load بیاید؛ در غیر این صورت برای هر ردیف یک
      * کوئری جداگانه اجرا می‌شد (۲۰۰+ کوئری در هر بار به‌روزرسانی).
      */
+    /**
+     * فهرست دانشجویان، هر کدام با تعداد گفتگو و آخرین فعالیت.
+     *
+     * پشتیبان به‌جای دیدن یک صفحه‌ی شلوغ از گفتگوهای پراکنده، اول دانشجوها
+     * را می‌بیند و بعد گفتگوهای همان یک نفر را باز می‌کند. همه‌چیز در یک
+     * کوئری جمع می‌شود تا فهرست بلند نشود.
+     */
+    public function students(Request $request): JsonResponse
+    {
+        $studentId = $request->integer('student_id') ?: null;
+
+        $rows = Conversation::query()
+            ->select([
+                'student_id',
+                DB::raw('count(*) as conversations_count'),
+                DB::raw('sum(unread_support_count) as unread_count'),
+                DB::raw('max(last_message_at) as last_message_at'),
+            ])
+            ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
+            ->groupBy('student_id')
+            ->orderByDesc('last_message_at')
+            ->limit(self::STUDENT_LIMIT)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        $students = User::query()
+            ->whereIn('id', $rows->pluck('student_id'))
+            ->get()
+            ->keyBy('id');
+
+        $data = [];
+
+        foreach ($rows as $row) {
+            $student = $students->get($row->student_id);
+
+            if ($student === null) {
+                continue;
+            }
+
+            $data[] = [
+                'student' => [
+                    'id' => $student->id,
+                    'name' => $student->name,
+                    'email' => $student->email,
+                    'phone' => $student->phone,
+                ],
+                'conversations_count' => (int) $row->conversations_count,
+                'unread_count' => (int) $row->unread_count,
+                'last_message_at' => $row->last_message_at?->toIso8601String(),
+            ];
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     public function index(Request $request): JsonResponse
     {
+        $studentId = $request->integer('student_id') ?: null;
+
         $conversations = Conversation::query()
+            // با باز کردن پروفایل یک دانشجو، فقط گفتگوهای همان نفر می‌آید.
+            ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
             ->with([
                 'student:id,name,email,phone',
                 'support:id,name',

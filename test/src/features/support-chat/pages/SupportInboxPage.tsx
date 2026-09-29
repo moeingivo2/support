@@ -27,6 +27,7 @@ import {
     useNewMessageAlert,
     useSupportConversation,
     useSupportInbox,
+    useSupportStudents,
 } from "../hooks/useSupportChat";
 import {
     closeSupportConversation,
@@ -35,6 +36,7 @@ import {
 } from "../services/support-chat-service";
 import { ConversationList } from "../components/ConversationList";
 import { NotificationSoundToggle } from "../components/NotificationSoundToggle";
+import { StudentList } from "../components/StudentList";
 import { SupportCloseDialog } from "../components/SupportCloseDialog";
 import { SupportComposer } from "../components/SupportComposer";
 
@@ -57,11 +59,22 @@ export default function SupportInboxPage() {
     const activeId = searchParams.get("c")
         ? Number(searchParams.get("c"))
         : null;
-    const inboxQuery = useSupportInbox();
+
+    // ?s=<studentId> یعنی فقط گفتگوهای همان دانشجو باز است؛ بدون آن
+    // پنل روی فهرست دانشجویان می‌نشیند.
+    const studentId = searchParams.get("s")
+        ? Number(searchParams.get("s"))
+        : null;
+
+    const studentsQuery = useSupportStudents();
+    const inboxQuery = useSupportInbox(studentId);
     const notificationsQuery = useNewMessageAlert(activeId);
     const conversationQuery = useSupportConversation(activeId);
 
+    const students = studentsQuery.data?.data ?? [];
     const conversations = inboxQuery.data?.data ?? [];
+    const selectedStudent =
+        students.find((row) => row.student.id === studentId) ?? null;
     const profile = conversationQuery.data?.data.profile ?? null;
     const unreadTotal = notificationsQuery.data?.unread_total ?? 0;
     const activeConversation = conversationQuery.data?.data.conversation ?? null;
@@ -73,6 +86,20 @@ export default function SupportInboxPage() {
         setIsCloseDialogOpen(false);
         setDialogError(null);
         setSearchParams({ c: String(id) }, { replace: true });
+    }
+
+    /** باز کردن پروفایل یک دانشجو: فقط گفتگوهای همان نفر. */
+    function selectStudent(id: number) {
+        setSendError(null);
+        setIsListOpen(false);
+        setSearchParams({ s: String(id) }, { replace: true });
+    }
+
+    /** برگشت به فهرست همه‌ی دانشجویان. */
+    function backToStudents() {
+        setSendError(null);
+        setIsListOpen(false);
+        setSearchParams({}, { replace: true });
     }
 
     const replyMutation = useMutation({
@@ -105,7 +132,7 @@ export default function SupportInboxPage() {
                 });
             }
             void queryClient.invalidateQueries({
-                queryKey: supportChatKeys.inbox,
+                queryKey: supportChatKeys.inbox(studentId),
             });
         },
         onError: (error: unknown) => {
@@ -134,7 +161,7 @@ export default function SupportInboxPage() {
                 });
             }
             void queryClient.invalidateQueries({
-                queryKey: supportChatKeys.inbox,
+                queryKey: supportChatKeys.inbox(studentId),
             });
             // بستن گفتگو وضعیت امتیازدهی را تغییر می‌دهد
             void queryClient.invalidateQueries({ queryKey: rankKeys.board });
@@ -151,14 +178,47 @@ export default function SupportInboxPage() {
         },
     });
 
-    const list = (
-        <ConversationList
-            conversations={conversations}
-            activeId={activeId}
-            isPending={inboxQuery.isPending}
-            onSelect={selectConversation}
-        />
-    );
+    // دو نما: فهرست دانشجویان (پیش‌فرض) و گفتگوهای یک دانشجوی مشخص.
+    const list =
+        studentId === null ? (
+            <StudentList
+                students={students}
+                isPending={studentsQuery.isPending}
+                onSelect={selectStudent}
+            />
+        ) : (
+            <div className="space-y-3">
+                <button
+                    type="button"
+                    onClick={backToStudents}
+                    className="inline-flex h-11 w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[transform,background-color,border-color] duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.98]"
+                >
+                    <ChevronRight className="size-4" aria-hidden="true" />
+                    بازگشت به همه‌ی دانشجویان
+                </button>
+
+                {selectedStudent ? (
+                    <div className="rounded-2xl border border-hairline bg-surface-2 px-3 py-3">
+                        <p className="truncate text-sm font-bold text-ink">
+                            {selectedStudent.student.name}
+                        </p>
+                        <p className="text-xs text-ink-2">
+                            {toPersianDigits(
+                                selectedStudent.conversations_count,
+                            )}{" "}
+                            گفتگو
+                        </p>
+                    </div>
+                ) : null}
+
+                <ConversationList
+                    conversations={conversations}
+                    activeId={activeId}
+                    isPending={inboxQuery.isPending}
+                    onSelect={selectConversation}
+                />
+            </div>
+        );
 
     return (
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">

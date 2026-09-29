@@ -1,3 +1,15 @@
+export type SupportStudentRow = {
+    student: {
+        id: number;
+        name: string;
+        email: string | null;
+        phone: string | null;
+    };
+    conversations_count: number;
+    unread_count: number;
+    last_message_at: string | null;
+};
+
 export type SupportConversationSummary = {
     id: number;
     title: string;

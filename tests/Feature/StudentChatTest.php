@@ -203,6 +203,54 @@ class StudentChatTest extends TestCase
             ->assertJsonPath('profile.course', 'school');
     }
 
+    /**
+     * عنوان هر گفتگو شماره‌ی ترتیبی همان دانشجوست و دیگر از متن پیام اول
+     * ساخته نمی‌شود؛ فهرست‌های طولانی با ده‌ها عنوان بلند شلوغ می‌شدند.
+     */
+    public function test_conversation_titles_are_numbered_per_student(): void
+    {
+        $student = $this->makeStudent();
+
+        $titles = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $response = $this->actingAs($student, 'sanctum')
+                ->postJson('/api/conversations')
+                ->assertStatus(201);
+
+            $titles[] = $response->json('data.title');
+        }
+
+        $this->assertSame(['#1', '#2', '#3'], $titles);
+
+        // متن پیام نباید عنوان را عوض کند
+        $conversation = Conversation::where('student_id', $student->id)
+            ->orderByDesc('id')
+            ->firstOrFail();
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/conversations/{$conversation->id}/messages", [
+                'body' => 'این متن نباید عنوان شود',
+            ])
+            ->assertStatus(201);
+
+        $this->assertSame('#3', $conversation->fresh()->title);
+    }
+
+    public function test_conversation_numbering_is_independent_per_student(): void
+    {
+        $first = $this->makeStudent();
+        $second = $this->makeStudent();
+
+        $this->actingAs($first, 'sanctum')->postJson('/api/conversations')->assertStatus(201);
+        $this->actingAs($first, 'sanctum')->postJson('/api/conversations')->assertStatus(201);
+
+        // دانشجوی دوم از #۱ شروع می‌کند، نه ادامه‌ی شماره‌ی قبلی
+        $this->actingAs($second, 'sanctum')
+            ->postJson('/api/conversations')
+            ->assertStatus(201)
+            ->assertJsonPath('data.title', '#1');
+    }
+
     public function test_student_can_start_conversation_and_send_text_message(): void
     {
         $student = $this->makeStudent();

@@ -17,6 +17,7 @@ class Conversation extends Model
         'student_id',
         'support_id',
         'title',
+        'student_sequence',
         'last_message_preview',
         'last_message_at',
         'unread_student_count',

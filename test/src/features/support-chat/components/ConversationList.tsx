@@ -77,6 +77,11 @@ export function ConversationList({
 
                             <span className="min-w-0 flex-1">
                                 <span className="flex items-center gap-2">
+                                    {/* شماره‌ی گفتگو تنها چیزی است که ردیف‌های یک
+                                        دانشجو را از هم جدا می‌کند. */}
+                                    <span className="shrink-0 rounded-lg bg-surface-2 px-1.5 py-0.5 text-[11px] font-bold text-ink-2">
+                                        {conversation.title}
+                                    </span>
                                     <span
                                         className={cn(
                                             "line-clamp-1 flex-1 text-sm",
