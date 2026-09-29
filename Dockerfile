@@ -41,5 +41,11 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader
 # تنظیم دسترسی‌های لازم برای لاراول
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
+# entrypoint این تنظیم را در هر بار بالا آمدن کانتینر هم تکرار می‌کند؛
+# چون یک ولوم که پیش‌تر با مالک root ساخته شده با COPY هم اصلاح نمی‌شود.
+COPY docker/entrypoint.sh /usr/local/bin/app-entrypoint
+RUN chmod +x /usr/local/bin/app-entrypoint
+
 EXPOSE 9000
+ENTRYPOINT ["app-entrypoint"]
 CMD ["php-fpm"]

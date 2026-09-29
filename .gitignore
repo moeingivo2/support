@@ -26,7 +26,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-support
+# فقط symlink محلی ریشه. الگوی بدون اسلش روی ویندوز با app/Support هم
+# مطابقت می‌کرد و کل لایه‌ی منطق (AttachmentStorage، ConversationCloser،
+# IranianPhone و…) از مخزن بیرون می‌ماند.
+/support
 amozesh/00-فهرست.md
 amozesh/02-composer-json-و-env.md
 amozesh/04-routes-api-php.md

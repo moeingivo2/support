@@ -14,6 +14,55 @@ type VoiceRecorderProps = {
 const MAX_SECONDS = 300;
 
 /**
+ * نگاشت MIME به پسوند.
+ *
+ * `MediaRecorder` بسته به مرورگر یکی از این‌ها را برمی‌گرداند و رویداد
+ * `dataavailable` هم نوع خودش را دارد. اگر پسوند از روی MIME انتخاب نشود،
+ * یک فایل MP4 موبایل با نام `.webm` ذخیره می‌شود و سرور آن را ناسازگار
+ * می‌بیند.
+ */
+const EXTENSION_BY_MIME: Record<string, string> = {
+    "audio/webm": "webm",
+    "video/webm": "webm",
+    "audio/ogg": "ogg",
+    "audio/oga": "oga",
+    "application/ogg": "ogg",
+    "audio/mp4": "m4a",
+    "audio/x-m4a": "m4a",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+    "audio/vnd.wave": "wav",
+    "audio/aac": "aac",
+    "audio/mp3": "mp3",
+};
+
+/**
+ * MIME و پسوند هماهنگ را از خروجی واقعی ضبط استخراج می‌کند.
+ *
+ * پارامترهای codec از MIME حذف می‌شوند تا هدر Content-Type تمیز باشد؛
+ * `audio/webm;codecs=opus` با پسوند `.webm` برای سرور قابل تفسیر نیست.
+ */
+function describeRecording(
+    recorderMime?: string | null,
+    chunkMime?: string | null,
+): { mime: string; extension: string } {
+    const candidates = [recorderMime, chunkMime];
+
+    for (const candidate of candidates) {
+        if (!candidate) continue;
+        // فقط بخش نوع؛ «;codecs=opus» باید کنار برود.
+        const base = candidate.split(";")[0]?.trim().toLowerCase() ?? "";
+        const extension = EXTENSION_BY_MIME[base];
+        if (base && extension) {
+            return { mime: base, extension };
+        }
+    }
+
+    return { mime: "audio/webm", extension: "webm" };
+}
+
+/**
  * ضبط پیام صوتی در مرورگر و تحویل فایل صوتی به کامپوزر.
  *
  * حین ضبط، موج از داده‌ی واقعی میکروفون می‌خواند تا هر چه بلندتر حرف بزنید
@@ -67,15 +116,14 @@ export function VoiceRecorder({
 
             recorder.onstop = () => {
                 stream.getTracks().forEach((track) => track.stop());
-                const blob = new Blob(chunksRef.current, {
-                    type: recorder.mimeType || "audio/webm",
-                });
-                const extension = blob.type.includes("ogg") ? "ogg" : "webm";
-                const file = new File(
-                    [blob],
-                    `voice-${Date.now()}.${extension}`,
-                    { type: blob.type },
+                const { mime, extension } = describeRecording(
+                    recorder.mimeType,
+                    chunksRef.current[0]?.type,
                 );
+                const blob = new Blob(chunksRef.current, { type: mime });
+                const file = new File([blob], `voice-${Date.now()}.${extension}`, {
+                    type: mime,
+                });
                 onRecorded(
                     file,
                     Math.max(

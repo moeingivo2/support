@@ -276,6 +276,68 @@ class StudentChatTest extends TestCase
         $this->assertDatabaseCount('messages', 0);
     }
 
+    /**
+     * finfo نوع ظرف را برمی‌گرداند نه نوع ترک، پس یک ضبط صوتی مرورگر که واقعاً
+     * فقط صدا دارد به صورت `video/webm` تشخیص داده می‌شود. بدون پذیرش این
+     * حالت، هر پیام صوتی رد می‌شد.
+     */
+    public function test_voice_message_recorded_by_the_browser_is_accepted(): void
+    {
+        Storage::fake('public');
+        $student = $this->makeStudent();
+        $conversation = Conversation::create(['student_id' => $student->id]);
+
+        $recording = $this->browserWebmRecording();
+
+        $this->actingAs($student, 'sanctum')
+            ->post("/api/conversations/{$conversation->id}/messages", [
+                'attachment' => UploadedFile::fake()->createWithContent(
+                    'voice-1.webm',
+                    $recording,
+                ),
+                'type' => 'voice',
+                'duration_seconds' => 3,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.type', 'voice');
+
+        $message = Message::where('conversation_id', $conversation->id)->firstOrFail();
+        Storage::disk('public')->assertExists($message->attachment_path);
+    }
+
+    public function test_a_webm_container_named_as_an_image_is_still_rejected(): void
+    {
+        Storage::fake('public');
+        $student = $this->makeStudent();
+        $conversation = Conversation::create(['student_id' => $student->id]);
+
+        $this->actingAs($student, 'sanctum')
+            ->post("/api/conversations/{$conversation->id}/messages", [
+                'attachment' => UploadedFile::fake()->createWithContent(
+                    'not-really.png',
+                    $this->browserWebmRecording(),
+                ),
+            ])
+            ->assertStatus(422);
+
+        $this->assertDatabaseCount('messages', 0);
+    }
+
+    /**
+     * ۵۱۲ بایت اول یک ضبط واقعی MediaRecorder در کروم. finfo فقط به سرِ ظرف
+     * نگاه می‌کند، پس این مقدار برای تشخیص نوع کافی است و فایل تست بزرگ
+     * نمی‌شود. اگر روزی نوع‌شناسی ظرف عوض شود، همین تست می‌افتد.
+     */
+    private function browserWebmRecording(): string
+    {
+        return base64_decode(
+            'GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAIB6EU2bdLlNu4tT'
+            .'q4QVSalmU6yBbk27i1OrhBZUrmtTrIGTTbuLU6uEH0O2dVOsgddNu4xTq4QcU7trU6yCgGjsrgAA'
+            .'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmoCrXsYMPQkBE',
+            true,
+        );
+    }
+
     public function test_student_cannot_send_when_the_chat_quota_is_exhausted(): void
     {
         $student = $this->makeStudent([], ['total_chats' => 2, 'used_chats' => 2]);
