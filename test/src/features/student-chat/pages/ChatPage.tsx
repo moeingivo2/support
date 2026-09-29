@@ -202,8 +202,10 @@ export default function ChatPage() {
         // روی گوشی فاصله‌ها صفر می‌شود تا چت تمام صفحه را بگیرد؛ فهرست
         // گفتگوها و پروفایل در منوی همبرگری پوسته می‌مانند.
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4 md:gap-4">
-            {/* اسکرول روی div داخلی است تا اسکول‌بار داخل قاب بماند. */}
-            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:block">
+            {/* lg:flex لازم است: Card ذاتاً display:block است و بدون آن
+                flex-column بی‌اثر می‌ماند، ارتفاع کارت بی‌کران می‌شود و
+                اسکرول داخلی از کار می‌افتد. */}
+            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:flex">
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     {sidebar}
                 </div>
@@ -217,7 +219,7 @@ export default function ChatPage() {
                         onClick={() => setIsSidebarOpen(false)}
                         className="absolute inset-0 bg-overlay backdrop-blur-sm"
                     />
-                    <Card className="absolute inset-y-3 right-3 left-3 flex-col overflow-hidden shadow-2xl">
+                    <Card className="absolute inset-y-3 right-3 left-3 flex flex-col overflow-hidden shadow-2xl">
                         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                             {sidebar}
                         </div>

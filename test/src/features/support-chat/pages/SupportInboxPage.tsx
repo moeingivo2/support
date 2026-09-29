@@ -222,9 +222,9 @@ export default function SupportInboxPage() {
 
     return (
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">
-            {/* اسکرول روی یک div داخلی است تا اسکرول‌بار داخل قاب بماند و
-                روی حاشیه/خط کارت نیفتد. */}
-            <Card className="hidden w-88 shrink-0 flex-col overflow-hidden xl:block">
+            {/* xl:flex لازم است: Card ذاتاً display:block است و بدون آن
+                flex-column بی‌اثر می‌ماند و اسکرول داخلی از کار می‌افتد. */}
+            <Card className="hidden w-88 shrink-0 flex-col overflow-hidden xl:flex">
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     {list}
                 </div>
@@ -238,7 +238,7 @@ export default function SupportInboxPage() {
                         onClick={() => setIsListOpen(false)}
                         className="absolute inset-0 bg-overlay backdrop-blur-sm"
                     />
-                    <Card className="absolute inset-y-3 right-3 left-3 flex-col overflow-hidden shadow-2xl">
+                    <Card className="absolute inset-y-3 right-3 left-3 flex flex-col overflow-hidden shadow-2xl">
                         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                             {list}
                         </div>
