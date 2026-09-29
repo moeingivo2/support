@@ -19,8 +19,8 @@ services:
       CACHE_STORE: database
       SESSION_DRIVER: database
       QUEUE_CONNECTION: database
-    ports:
-      - "${API_PORT:-8000}:8000"
+    expose:
+      - "9000"
     volumes:
       # پیوست‌های گفتگو و فایل‌های پنل روی دیسک public ذخیره می‌شوند و باید بین
       # بازسازی‌های کانتینر باقی بمانند.
@@ -28,7 +28,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "php artisan storage:link --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    # php-fpm به‌جای artisan serve.
+    # artisan serve تک‌نویسی بود: هر درخواست پشت سر قبلی صف می‌شد و با
+    # opcache هم کامپایل دوباره‌ی فریم‌ورک را تکرار می‌کرد.
+    command: >
+      sh -c "php artisan storage:link --force &&
+             php artisan migrate --force &&
+             php-fpm --nodaemonize -F"
 
   web:
     build:
