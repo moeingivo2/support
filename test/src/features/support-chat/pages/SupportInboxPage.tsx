@@ -222,8 +222,12 @@ export default function SupportInboxPage() {
 
     return (
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">
-            <Card className="hidden w-88 shrink-0 overflow-y-auto p-4 xl:block">
-                {list}
+            {/* اسکرول روی یک div داخلی است تا اسکرول‌بار داخل قاب بماند و
+                روی حاشیه/خط کارت نیفتد. */}
+            <Card className="hidden w-88 shrink-0 flex-col overflow-hidden xl:block">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                    {list}
+                </div>
             </Card>
 
             {isListOpen ? (
@@ -232,10 +236,12 @@ export default function SupportInboxPage() {
                         type="button"
                         aria-label="بستن فهرست گفتگوها"
                         onClick={() => setIsListOpen(false)}
-                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        className="absolute inset-0 bg-overlay backdrop-blur-sm"
                     />
-                    <Card className="absolute inset-y-3 right-3 left-3 overflow-y-auto p-4 shadow-2xl">
-                        {list}
+                    <Card className="absolute inset-y-3 right-3 left-3 flex-col overflow-hidden shadow-2xl">
+                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                            {list}
+                        </div>
                     </Card>
                 </div>
             ) : null}

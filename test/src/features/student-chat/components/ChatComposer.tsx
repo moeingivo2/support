@@ -159,9 +159,9 @@ export function ChatComposer({
                 </div>
             ) : null}
 
-            {/* موبایل: ابزارها بالا، ورودی و ارسال پایین. دسکتاپ: یک ردیف.
-                این عنصر خودش شکست را مدیریت می‌کند، پس نباید sm:contents داشته باشد. */}
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {/* یک ردیف در هر اندازه: ورودی، ارسال و ابزارهای پیوست. ابزارها
+                آخر می‌نشینند تا در RTL سمت چپ باشند و بالای صفحه خلوت بماند. */}
+            <div className="flex flex-row items-end gap-1.5 sm:gap-2">
                 <input
                     ref={imageInputRef}
                     type="file"
@@ -176,41 +176,42 @@ export function ChatComposer({
                     onChange={() => pickFile(fileInputRef.current)}
                 />
 
-                {/* دکمه‌های پیوست: هم‌اندازه، لنگر راست در RTL */}
-                <div className="composer-toolbar">
-                        <button
-                            type="button"
-                            className="composer-tool"
-                            onClick={() => imageInputRef.current?.click()}
-                            disabled={isSending || disabled}
-                            aria-label="پیوست تصویر"
-                            title="پیوست تصویر"
-                        >
-                            <ImageIcon className="size-4" aria-hidden="true" />
-                        </button>
-                        <button
-                            type="button"
-                            className="composer-tool"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isSending || disabled}
-                            aria-label="پیوست فایل"
-                            title="پیوست فایل"
-                        >
-                            <Paperclip
-                                className="size-4"
-                                aria-hidden="true"
-                            />
-                        </button>
-                        <button
-                            type="button"
-                            className="composer-tool"
-                            onClick={() => setIsRecording(true)}
-                            disabled={isSending || disabled}
-                            aria-label="ضبط پیام صوتی"
-                            title="ضبط پیام صوتی"
-                        >
-                            <Mic className="size-4" aria-hidden="true" />
-                        </button>
+                {/* دکمه‌های پیوست بعد از ارسال می‌نشینند تا در RTL سمت چپ
+                    ورودی باشند و بالای صفحه خلوت بماند. */}
+                <div className="composer-toolbar order-last">
+                    <button
+                        type="button"
+                        className="composer-tool"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={isSending || disabled}
+                        aria-label="پیوست تصویر"
+                        title="پیوست تصویر"
+                    >
+                        <ImageIcon className="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        className="composer-tool"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isSending || disabled}
+                        aria-label="پیوست فایل"
+                        title="پیوست فایل"
+                    >
+                        <Paperclip
+                            className="size-4"
+                            aria-hidden="true"
+                        />
+                    </button>
+                    <button
+                        type="button"
+                        className="composer-tool"
+                        onClick={() => setIsRecording(true)}
+                        disabled={isSending || disabled}
+                        aria-label="ضبط پیام صوتی"
+                        title="ضبط پیام صوتی"
+                    >
+                        <Mic className="size-4" aria-hidden="true" />
+                    </button>
                 </div>
 
                 <ChatTextarea
@@ -225,8 +226,8 @@ export function ChatComposer({
                     }
                     className={
                         codeMode
-                            ? "w-full min-h-12 sm:flex-1 sm:font-mono sm:text-left"
-                            : "w-full min-h-12 sm:flex-1"
+                            ? "min-h-12 flex-1 font-mono text-left"
+                            : "min-h-12 flex-1"
                     }
                     disabled={isSending}
                 />
@@ -234,7 +235,7 @@ export function ChatComposer({
                 <MagneticSendButton
                     disabled={!canSend}
                     aria-label="ارسال پیام"
-                    className="self-end sm:self-auto"
+                    className="shrink-0"
                 >
                     {isSending ? (
                         <Loader2 className="animate-spin" />

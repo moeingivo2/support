@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-    ChevronRight,
-    Code2,
-    Lock,
-    MessagesSquare,
-    PanelRightClose,
-    PanelRightOpen,
-    Star,
-} from "lucide-react";
+import { Code2, Lock, MessagesSquare, Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
@@ -210,8 +202,11 @@ export default function ChatPage() {
         // روی گوشی فاصله‌ها صفر می‌شود تا چت تمام صفحه را بگیرد؛ فهرست
         // گفتگوها و پروفایل در منوی همبرگری پوسته می‌مانند.
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4 md:gap-4">
-            <Card className="hidden w-80 shrink-0 overflow-y-auto p-4 lg:block">
-                {sidebar}
+            {/* اسکرول روی div داخلی است تا اسکول‌بار داخل قاب بماند. */}
+            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:block">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                    {sidebar}
+                </div>
             </Card>
 
             {isSidebarOpen ? (
@@ -222,43 +217,19 @@ export default function ChatPage() {
                         onClick={() => setIsSidebarOpen(false)}
                         className="absolute inset-0 bg-overlay backdrop-blur-sm"
                     />
-                    <Card className="absolute inset-y-3 right-3 left-3 overflow-y-auto p-4 shadow-2xl">
-                        {sidebar}
+                    <Card className="absolute inset-y-3 right-3 left-3 flex-col overflow-hidden shadow-2xl">
+                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                            {sidebar}
+                        </div>
                     </Card>
                 </div>
             ) : null}
 
             <Card className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 md:rounded-3xl md:border">
+                {/* روی گوشی فقط نام گفتگو و وضعیت می‌ماند؛ فهرست به منوی
+                    همبرگری رفته و تنها «بستن گفتگو» دسترسی می‌ماند. */}
                 <header className="flex shrink-0 items-center gap-2 border-b border-hairline bg-sunken px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
-                    {/* روی گوشی، وقتی گفتگویی باز است، دکمه‌ی برگشت به فهرست لازم است */}
-                    {activeId !== null ? (
-                        <button
-                            type="button"
-                            onClick={() => setSearchParams({}, { replace: true })}
-                            aria-label="بازگشت به فهرست گفتگوها"
-                            className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink-2 transition-transform duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-95 lg:hidden"
-                        >
-                            <ChevronRight className="size-4" aria-hidden="true" />
-                            فهرست
-                        </button>
-                    ) : null}
-
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="lg:hidden"
-                        onClick={() => setIsSidebarOpen((current) => !current)}
-                        aria-label="فهرست گفتگوها"
-                        aria-expanded={isSidebarOpen}
-                    >
-                        {isSidebarOpen ? (
-                            <PanelRightClose />
-                        ) : (
-                            <PanelRightOpen />
-                        )}
-                    </Button>
-                    <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-ink ring-1 ring-primary-ring">
+                    <span className="hidden size-10 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-ink ring-1 ring-primary-ring sm:grid">
                         <MessagesSquare className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -270,7 +241,7 @@ export default function ChatPage() {
                         </h1>
                         <p className="truncate text-xs text-ink-2">
                             {activeId === null
-                                ? "برای شروع یک گفتگوی جدید انتخاب کنید."
+                                ? "برای شروع یک گفتگوی جدید از منو انتخاب کنید."
                                 : messagesQuery.data?.data.conversation.support
                                         ?.name
                                   ? `پشتیبان: ${messagesQuery.data.data.conversation.support.name}`
@@ -278,31 +249,42 @@ export default function ChatPage() {
                         </p>
                     </div>
 
-                    <Button
-                        type="button"
-                        variant={codeMode ? "primary" : "ghost"}
-                        onClick={() => setCodeMode((current) => !current)}
-                        aria-pressed={codeMode}
-                        title="پیام را داخل بلوک کد ارسال کن"
-                        disabled={isClosed}
-                    >
-                        <Code2 />
-                        {codeMode ? "حالت کد: فعال" : "حالت کد"}
-                    </Button>
-
-                    {activeId !== null && !isClosed ? (
+                    {/* کنش‌ها سمت چپ هدر می‌نشینند تا بالا خلوت بماند. */}
+                    <div className="flex shrink-0 items-center gap-1.5">
                         <Button
                             type="button"
-                            variant="danger"
-                            onClick={() => {
-                                setDialogError(null);
-                                setDialogMode("close");
-                            }}
+                            variant={codeMode ? "primary" : "ghost"}
+                            onClick={() => setCodeMode((current) => !current)}
+                            aria-pressed={codeMode}
+                            title="پیام را داخل بلوک کد ارسال کن"
+                            disabled={isClosed}
+                            className="max-sm:px-2.5"
                         >
-                            <Lock />
-                            بستن گفتگو
+                            <Code2 />
+                            <span className="max-sm:hidden">
+                                {codeMode
+                                    ? "حالت کد: فعال"
+                                    : "حالت کد"}
+                            </span>
                         </Button>
-                    ) : null}
+
+                        {activeId !== null && !isClosed ? (
+                            <Button
+                                type="button"
+                                variant="danger"
+                                onClick={() => {
+                                    setDialogError(null);
+                                    setDialogMode("close");
+                                }}
+                                className="max-sm:px-2.5"
+                            >
+                                <Lock />
+                                <span className="max-sm:hidden">
+                                    بستن گفتگو
+                                </span>
+                            </Button>
+                        ) : null}
+                    </div>
                 </header>
 
                 {activeId === null ? (
