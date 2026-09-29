@@ -187,6 +187,49 @@ export async function downloadFile(
     };
 }
 
+/**
+ * دریافت فایل به‌صورت blob با هدر احراز هویت.
+ *
+ * `<audio src>` و `<img src>` نمی‌توانند هدر Authorization بفرستند، و پیوست‌ها
+ * پشت `auth:sanctum` هستند. برای همین فایل دستی گرفته می‌شود و به یک object
+ * URL تبدیل می‌گردد. نوع واقعی صریح داده می‌شود چون سرور فایل‌ها را عمداً با
+ * `application/octet-stream` می‌فرستد تا مرورگر آن‌ها را اجرا نکند.
+ */
+export async function fetchAuthenticatedBlob(
+    url: string,
+    mimeType: string,
+): Promise<Blob> {
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    let response: Response;
+    try {
+        response = await fetch(url, { headers });
+    } catch {
+        throw new HttpApiError(
+            "اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.",
+            0,
+        );
+    }
+
+    if (response.status === 401) {
+        clearAuth();
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+    }
+
+    if (!response.ok) {
+        throw new HttpApiError(
+            `دریافت فایل با کد ${response.status} ناموفق بود.`,
+            response.status,
+        );
+    }
+
+    return new Blob([await response.arrayBuffer()], { type: mimeType });
+}
+
 function appendQuery(
     url: string,
     query?: Record<string, string | number | undefined>,

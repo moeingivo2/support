@@ -89,6 +89,9 @@ export function ChatComposer({
         return (
             <div className="space-y-2 border-t border-hairline bg-sunken p-3 md:p-4">
                 <VoiceRecorder
+                    // با باز شدن پنل ضبط، ضبط بلافاصله شروع می‌شود تا کاربر
+                    // مجبور به کلیک دوم نباشد.
+                    autoStart
                     disabled={isSending}
                     onCancel={() => setIsRecording(false)}
                     onRecorded={(file, durationSeconds) => {

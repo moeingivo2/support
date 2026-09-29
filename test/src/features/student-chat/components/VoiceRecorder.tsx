@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { useMicLevelFrame, VoiceWaveform } from "@/shared/ui/voice-waveform";
@@ -9,6 +9,8 @@ type VoiceRecorderProps = {
     onRecorded: (file: File, durationSeconds: number) => void;
     onCancel: () => void;
     disabled?: boolean;
+    /** با باز شدن پنل، ضبط بلافاصله شروع می‌شود. */
+    autoStart?: boolean;
 };
 
 const MAX_SECONDS = 300;
@@ -63,6 +65,37 @@ function describeRecording(
 }
 
 /**
+ * علت واقعی شکست دسترسی به میکروفون را به فارسی برمی‌گرداند.
+ *
+ * پیام یکسان برای همه‌ی حالت‌ها بی‌فایده بود: کاربر نمی‌فهمید باید از
+ * طریق `https` یا `localhost` باز کند، یا باید اجازه‌ی دسترسی را در مرورگر
+ * بدهد، یا اصلاً میکروفون ندارد.
+ */
+function describeMicFailure(error: unknown): string {
+    // مرورگر فقط روی زمینه‌ی امن اجازه‌ی دسترسی به میکروفون می‌دهد؛ روی
+    // http با آدرس شبکه‌ی محلی (مثل 192.168.x.x) همیشه رد می‌شود.
+    if (!window.isSecureContext) {
+        return "برای ضبط صدا باید سایت را با آدرس localhost یا https باز کنید.";
+    }
+
+    const name = error instanceof DOMException ? error.name : "";
+
+    if (name === "NotAllowedError" || name === "SecurityError") {
+        return "دسترسی به میکروفون داده نشده است. از تنظیمات مرورگر اجازه‌ی دسترسی را باز کنید.";
+    }
+
+    if (name === "NotFoundError" || name === "OverconstrainedError") {
+        return "میکروفونی روی این دستگاه پیدا نشد.";
+    }
+
+    if (name === "NotReadableError") {
+        return "میکروفون توسط برنامه‌ی دیگری اشغال شده است.";
+    }
+
+    return "دسترسی به میکروفون ممکن نشد.";
+}
+
+/**
  * ضبط پیام صوتی در مرورگر و تحویل فایل صوتی به کامپوزر.
  *
  * حین ضبط، موج از داده‌ی واقعی میکروفون می‌خواند تا هر چه بلندتر حرف بزنید
@@ -72,6 +105,7 @@ export function VoiceRecorder({
     onRecorded,
     onCancel,
     disabled = false,
+    autoStart = false,
 }: VoiceRecorderProps) {
     const [elapsed, setElapsed] = useState(0);
     const [isRecording, setIsRecording] = useState(false);
@@ -91,7 +125,7 @@ export function VoiceRecorder({
         };
     }, []);
 
-    async function start() {
+    const start = useCallback(async () => {
         setError(null);
 
         if (
@@ -146,12 +180,14 @@ export function VoiceRecorder({
                 setElapsed(seconds);
                 if (seconds >= MAX_SECONDS) stop();
             }, 250);
-        } catch {
-            setError("دسترسی به میکروفون ممکن نشد.");
+        } catch (error) {
+            setError(describeMicFailure(error));
+            setIsRecording(false);
+            setStream(null);
         }
-    }
+    }, []);
 
-    function stop() {
+    const stop = useCallback(() => {
         if (timerRef.current) {
             window.clearInterval(timerRef.current);
             timerRef.current = null;
@@ -160,7 +196,15 @@ export function VoiceRecorder({
             recorderRef.current.stop();
         setIsRecording(false);
         setStream(null);
-    }
+    }, []);
+
+    // شروع خودکار؛ فقط بار اول تا ضبط دوباره از نو آغاز نشود.
+    const startedRef = useRef(false);
+    useEffect(() => {
+        if (!autoStart || startedRef.current) return;
+        startedRef.current = true;
+        void start();
+    }, [autoStart, start]);
 
     return (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-danger-line bg-danger-soft px-3 py-2">

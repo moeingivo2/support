@@ -8,6 +8,27 @@ use Tests\TestCase;
 
 class SecurityTest extends TestCase
 {
+    /**
+     * `<audio src>` و `<img src>` هدر Accept: application/json نمی‌فرستند.
+     *
+     * میدلور auth در آن حالت تلاش می‌کرد به ریت `login` ریدایرکت کند؛ چون
+     * این برنامه فقط API است و چنین ریتی ندارد، به‌جای 401 یک
+     * RouteNotFoundException و پاسخ 500 برمی‌گشت و هیچ فایل صوتی یا تصویری
+     * پخش یا نمایش داده نمی‌شد.
+     */
+    public function test_protected_route_without_json_accept_header_returns_401_not_500(): void
+    {
+        $this->get('/api/attachments/chat/whatever.webm')
+            ->assertStatus(401);
+    }
+
+    public function test_every_protected_api_route_survives_a_plain_browser_request(): void
+    {
+        foreach (['/api/dashboard', '/api/conversations', '/api/faqs'] as $path) {
+            $this->get($path)->assertStatus(401);
+        }
+    }
+
     public function test_login_rate_limiting_blocks_brute_force(): void
     {
         $user = $this->makeSupport();

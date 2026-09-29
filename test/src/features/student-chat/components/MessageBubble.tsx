@@ -120,7 +120,11 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "voice" && message.url ? (
-                    <VoicePlayer src={message.url} durationSeconds={message.duration_seconds} />
+                    <VoicePlayer
+        src={message.url}
+        durationSeconds={message.duration_seconds}
+        mimeType={message.attachment_mime ?? "audio/webm"}
+      />
                 ) : null}
 
                 {message.type === "file" ? (

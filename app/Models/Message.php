@@ -82,7 +82,9 @@ class Message extends Model
             return null;
         }
 
-        return route('attachments.show', ['path' => $this->attachment_path]);
+        // نسبی برگردانده می‌شود: APP_URL پشت nginx به پورتی اشاره می‌کند که
+        // دیگر منتشر نیست، و مسیر نسبی با هر دامنه و پورتی درست کار می‌کند.
+        return route('attachments.show', ['path' => $this->attachment_path], absolute: false);
     }
 
     public function preview(): string
