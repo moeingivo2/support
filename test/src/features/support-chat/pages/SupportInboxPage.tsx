@@ -224,16 +224,16 @@ export default function SupportInboxPage() {
 
     return (
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">
-            {/* xl:flex لازم است: Card ذاتاً display:block است و بدون آن
+            {/* lg:flex لازم است: Card ذاتاً display:block است و بدون آن
                 flex-column بی‌اثر می‌ماند و اسکرول داخلی از کار می‌افتد. */}
-            <Card className="hidden w-88 shrink-0 flex-col overflow-hidden xl:flex">
+            <Card className="hidden w-88 shrink-0 flex-col overflow-hidden lg:flex">
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     {list}
                 </div>
             </Card>
 
             {isListOpen ? (
-                <div className="fixed inset-0 z-40 xl:hidden">
+                <div className="fixed inset-0 z-40 lg:hidden">
                     <button
                         type="button"
                         aria-label="بستن فهرست گفتگوها"
@@ -267,7 +267,7 @@ export default function SupportInboxPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="xl:hidden"
+                        className="lg:hidden"
                         onClick={() => setIsListOpen((current) => !current)}
                         aria-label="فهرست گفتگوها"
                         aria-expanded={isListOpen}
