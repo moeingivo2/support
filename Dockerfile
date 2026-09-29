@@ -19,6 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# opcache از قبل در ایمیج رسمی کامپایل شده و فقط باید فعال شود؛
+# تلاش برای نصب دوباره‌اش خطای build می‌دهد چون تکراری است.
+# تنظیمات در docker/php-production.ini می‌آید.
+
+# محدودیت‌های اجرایی و حافظه
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/zz-app.ini
+
 # نصب کامپوزر (Composer)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

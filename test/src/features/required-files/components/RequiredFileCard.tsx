@@ -55,7 +55,7 @@ export function RequiredFileCard({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="size-9"
+                        className="size-11"
                         aria-label="ویرایش فایل"
                         onClick={() => onEdit(resource)}
                     >
@@ -64,7 +64,7 @@ export function RequiredFileCard({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="size-9 text-err-text hover:text-err-text"
+                        className="size-11 text-err-text hover:text-err-text"
                         aria-label="حذف فایل"
                         onClick={() => onDelete(resource)}
                     >

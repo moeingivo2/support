@@ -138,9 +138,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             </Button>
                         </div>
                     </header>
-                    <main className="flex-1 px-4 py-6 md:px-7 md:py-8">
-                        {children}
-                    </main>
+            <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col px-4 py-6 md:px-7 md:py-8">
+                {children}
+            </main>
                 </div>
             </div>
         </div>

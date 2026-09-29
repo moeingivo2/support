@@ -7,7 +7,6 @@ use App\Support\MessageType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class Message extends Model
 {
@@ -73,13 +72,17 @@ class Message extends Model
         return $this->conversation !== null && $this->sender_id === $this->conversation->student_id;
     }
 
+    /**
+     * پیوست‌ها نباید با نوع واقعی‌شان سرو شوند: یک فایل html یا svg می‌تواند
+     * در مرورگر اجرا شود و از همان مبدأ به توکن دسترسی دست بزند.
+     */
     public function attachmentUrl(): ?string
     {
         if ($this->attachment_path === null) {
             return null;
         }
 
-        return Storage::disk(config('aiosupport.attachments.disk'))->url($this->attachment_path);
+        return route('attachments.show', ['path' => $this->attachment_path]);
     }
 
     public function preview(): string

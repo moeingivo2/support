@@ -15,7 +15,7 @@ export function VoicePlayer({ src, durationSeconds }: { src: string; durationSec
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="flex min-w-56 items-center gap-2.5" dir="rtl">
+        <div className="flex w-full min-w-0 items-center gap-2.5" dir="rtl">
             <audio
                 ref={audioRef}
                 src={src}

@@ -49,7 +49,7 @@ class ResourceController extends Controller
         // اگر فایل آپلود شده بود، روی سرور ذخیره کن
         if ($request->hasFile('file')) {
             try {
-                $fileUrl = url(Storage::url($this->attachments->store($request->file('file'), 'resources')));
+                $fileUrl = url(Storage::url($this->attachments->store($request->file('file'), 'resources', AttachmentStorage::ALLOWED_DOCUMENT_EXTENSIONS)));
             } catch (UnsupportedAttachmentException $exception) {
                 return response()->json([
                     'message' => $exception->getMessage(),
@@ -96,7 +96,7 @@ class ResourceController extends Controller
 
         if ($request->hasFile('file')) {
             try {
-                $path = $this->attachments->store($request->file('file'), 'resources');
+                $path = $this->attachments->store($request->file('file'), 'resources', AttachmentStorage::ALLOWED_DOCUMENT_EXTENSIONS);
             } catch (UnsupportedAttachmentException $exception) {
                 return response()->json([
                     'message' => $exception->getMessage(),

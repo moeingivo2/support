@@ -33,7 +33,7 @@ export function DialogShell({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overscroll-contain bg-ink/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="dialog-title"
@@ -46,9 +46,11 @@ export function DialogShell({
                 tabIndex={-1}
             />
 
+            {/* max-h + اسکرول مستقل: روی صفحه‌ی کوتاه (یا وقتی
+                صفحه‌کلید باز است) دکمه‌های پایین نباید بریده شوند. */}
             <div
                 className={cn(
-                    "spring-in relative w-full max-w-md rounded-2xl border bg-surface p-6 shadow-2xl",
+                    "spring-in relative my-auto w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-3xl border bg-surface p-6 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl",
                     tone === "danger"
                         ? "border-danger-line"
                         : tone === "warning"
@@ -61,7 +63,7 @@ export function DialogShell({
                     type="button"
                     onClick={onClose}
                     aria-label="بستن"
-                    className="absolute top-4 left-4 rounded-full p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                    className="absolute top-4 left-4 grid size-11 place-items-center rounded-full text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                 >
                     <X className="size-4" />
                 </button>

@@ -35,8 +35,9 @@ export function CloseConversationDialog({
     const [rating, setRating] = useState(5);
     const [hasRated, setHasRated] = useState(false);
 
-    // فقط جابه‌جایی بین مراحل؛ لغو واقعی با onCancel انجام می‌شود
-    const backTo = (target: Stage) => () => setStage(target);
+    // مسیر فقط رو به جلو است. هر لغو/بازگشتی کل سه مرحله را با هم
+    // می‌بندد تا کاربر در مرحله‌ها گم نشود و خروج یک‌باره باشد.
+    const closeAll = () => onCancel();
 
     // ---------------------------------------------------------------- مرحله ۱
     if (stage === "confirm") {
@@ -45,7 +46,7 @@ export function CloseConversationDialog({
                 title="مطمئن هستید؟"
                 description="اگر می‌خواهید گفتگوی فعلی را ببندید، در مرحله‌ی بعد جزئیات آن را می‌بینید."
                 tone="neutral"
-                onClose={onCancel}
+                onClose={closeAll}
             >
                 <div className="flex flex-col-reverse gap-2 sm:flex-row">
                     <Button
@@ -76,7 +77,7 @@ export function CloseConversationDialog({
             <DialogShell
                 title="بستن گفتگو"
                 tone="danger"
-                onClose={backTo("confirm")}
+                onClose={closeAll}
                 icon={
                     <span
                         className="grid size-12 place-items-center rounded-full bg-danger-soft text-err-text"
@@ -142,16 +143,16 @@ export function CloseConversationDialog({
                     <Button
                         type="button"
                         variant="ghost"
-                        onClick={backTo("confirm")}
-                        disabled={isSubmitting}
-                        className="flex-1"
-                    >
-                        لغو
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="danger"
-                        onClick={() => setStage("rating")}
+                    onClick={closeAll}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                >
+                    لغو
+                </Button>
+                <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => setStage("rating")}
                         disabled={isSubmitting}
                         className="flex-1"
                     >
@@ -172,7 +173,7 @@ export function CloseConversationDialog({
                     : "امتیاز شما در رتبه‌بندی پشتیبان‌ها ثبت می‌شود."
             }
             tone="neutral"
-            onClose={backTo("warning")}
+            onClose={closeAll}
         >
             <StarRating
                 value={rating}
@@ -196,11 +197,11 @@ export function CloseConversationDialog({
                 <Button
                     type="button"
                     variant="ghost"
-                    onClick={backTo("warning")}
+                    onClick={closeAll}
                     disabled={isSubmitting}
                     className="flex-1"
                 >
-                    بازگشت
+                    لغو
                 </Button>
                 <Button
                     type="button"

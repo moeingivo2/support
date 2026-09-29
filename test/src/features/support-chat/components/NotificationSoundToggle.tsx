@@ -30,7 +30,7 @@ export function NotificationSoundToggle() {
             aria-pressed={isMuted}
             title={isMuted ? "صدای اعلان خاموش است" : "صدای اعلان روشن است"}
             className={cn(
-                "inline-flex h-9 w-9 items-center justify-center rounded-full",
+                "inline-flex h-11 w-11 items-center justify-center rounded-full",
                 "border border-hairline bg-surface-2 text-ink-2",
                 "transition-transform duration-[220ms] ease-spring-snappy",
                 "hover:-translate-y-0.5 hover:text-ink",

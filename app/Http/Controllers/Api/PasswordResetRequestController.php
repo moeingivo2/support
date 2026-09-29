@@ -43,6 +43,17 @@ class PasswordResetRequestController extends Controller
 
         $phone = IranianPhone::normalize($rawPhone);
 
+        // دو سقف لازم است: یکی بر اساس شماره و یکی بر اساس IP.
+        // بدون سقف IP، یک مهاجم با چرخاندن شماره‌ها می‌توانست صف انتظار
+        // پشتیبانی را سیل کند، چون هر درخواست یک ردیف «تماس بگیرید» می‌ساخت.
+        $ipKey = 'password-reset-ip:'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($ipKey, 5)) {
+            return response()->json([
+                'message' => 'تعداد درخواست‌ها زیاد است. کمی بعد دوباره تلاش کنید.',
+            ], 429);
+        }
+
         $throttleKey = 'password-reset:'.$phone;
 
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
@@ -51,6 +62,7 @@ class PasswordResetRequestController extends Controller
             ], 429);
         }
 
+        RateLimiter::hit($ipKey, 600);
         RateLimiter::hit($throttleKey, 600);
 
         PasswordResetRequest::firstOrCreate(

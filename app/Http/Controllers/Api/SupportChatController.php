@@ -14,6 +14,7 @@ use App\Support\StudentProfilePayload;
 use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
@@ -24,6 +25,14 @@ use RuntimeException;
  */
 class SupportChatController extends Controller
 {
+    /** سقف ردیف‌های فهرست و اعلان؛ بدون آن پاسخ با رشد داده بزرگ می‌شود */
+    private const INBOX_LIMIT = 200;
+
+    private const NOTIFICATION_LIMIT = 200;
+
+    /** تعداد پیام هر درخواست ترنسکریپت */
+    private const MESSAGE_PAGE = 100;
+
     public function __construct(
         private readonly ChatMessageSender $sender,
         private readonly ConversationCloser $closer,
@@ -31,21 +40,41 @@ class SupportChatController extends Controller
 
     /**
      * فهرست گفتگوهای دانشجویان همراه با نشانگر خوانده‌نشده و پشتیبان مسئول
+     *
+     * rating باید داخل eager-load بیاید؛ در غیر این صورت برای هر ردیف یک
+     * کوئری جداگانه اجرا می‌شد (۲۰۰+ کوئری در هر بار به‌روزرسانی).
      */
     public function index(Request $request): JsonResponse
     {
         $conversations = Conversation::query()
-            ->with(['student', 'support'])
+            ->with([
+                'student:id,name,email,phone',
+                'support:id,name',
+                'rating:id,conversation_id,rating_value,closure_actor,submitted_at',
+            ])
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
-            ->limit(200)
+            ->limit(self::INBOX_LIMIT)
             ->get()
             ->map(fn (Conversation $conversation): array => $this->summary($conversation));
 
         return response()->json([
             'data' => $conversations,
-            'unread_total' => Conversation::query()->sum('unread_support_count'),
+            'unread_total' => $this->unreadTotal(),
         ]);
+    }
+
+    /**
+     * مجموع پیام‌های خوانده‌نشده — یک بار محاسبه و کش می‌شود تا در هر
+     * poll به‌جای اسکن کامل جدول اجرا نشود.
+     */
+    private function unreadTotal(): int
+    {
+        return (int) Cache::remember(
+            'support:unread_total',
+            2,
+            fn (): int => (int) Conversation::query()->sum('unread_support_count'),
+        );
     }
 
     /**
@@ -58,13 +87,16 @@ class SupportChatController extends Controller
     {
         $unread = Conversation::query()
             ->where('unread_support_count', '>', 0)
-            ->with('student')
+            ->with('student:id,name')
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
+            ->limit(self::NOTIFICATION_LIMIT)
             ->get();
 
+        $unreadTotal = $unread->sum('unread_support_count');
+
         return response()->json([
-            'unread_total' => $unread->sum('unread_support_count'),
+            'unread_total' => max($unreadTotal, $this->unreadTotal()),
             'unread_conversations' => $unread->count(),
             'unread' => $unread->map(fn (Conversation $conversation): array => [
                 'conversation_id' => $conversation->id,
@@ -86,25 +118,35 @@ class SupportChatController extends Controller
             // ناظر فقط‌خواندنی است: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
             $this->logObserverAccess($request, $model);
         } else {
-            $model->update([
-                'unread_support_count' => 0,
-                'support_last_read_at' => now(),
-                'support_id' => $request->user()->id,
-            ]);
+            // نوشتن فقط وقتی لازم است که چیزی تغییر کرده باشد؛
+            // poll هر ۵ ثانیه نباید بی‌دلیل در دیتابیس بنویسد.
+            $needsUpdate = $model->unread_support_count > 0
+                || $model->support_id !== $request->user()->id
+                || $model->support_last_read_at === null;
 
-            $model->messages()->whereNull('read_at')->where('sender_id', '!=', $request->user()->id)
-                ->update(['read_at' => now()]);
+            if ($needsUpdate) {
+                $model->update([
+                    'unread_support_count' => 0,
+                    'support_last_read_at' => now(),
+                    'support_id' => $request->user()->id,
+                ]);
+            }
         }
 
         return response()->json([
             'data' => [
-                'conversation' => $this->summary($model->fresh(['student', 'support'])),
+                'conversation' => $this->summary(
+                    $model->load(['student:id,name,email,phone', 'support:id,name', 'rating'])
+                ),
                 'profile' => $isObserver ? null : $this->studentProfile($model),
+                // سقف تعداد پیام تا یک گفتگوی طولانی کل حافظه را پر نکند
                 'messages' => $model->messages()
-                    ->with('sender')
+                    ->with('sender:id,name')
                     ->orderByDesc('created_at')
                     ->orderByDesc('id')
+                    ->limit(self::MESSAGE_PAGE)
                     ->get()
+                    ->sortBy('id')
                     ->map(fn (Message $message): array => $this->messagePayload($message))
                     ->all(),
             ],
@@ -217,7 +259,9 @@ class SupportChatController extends Controller
      */
     private function summary(Conversation $conversation): array
     {
-        $conversation->loadMissing('rating');
+        $rating = $conversation->relationLoaded('rating')
+            ? $conversation->getRelation('rating')
+            : $conversation->rating()->first();
 
         return [
             'id' => $conversation->id,
@@ -234,8 +278,8 @@ class SupportChatController extends Controller
             // پشتیبان بعد از بستن توسط خودش، دعوت امتیازدهی را می‌بیند
             'awaiting_student_rating' => $conversation->isClosed()
                 && $conversation->closure_actor === 'support'
-                && $conversation->rating === null,
-            'rating_value' => $conversation->rating?->rating_value,
+                && $rating === null,
+            'rating_value' => $rating?->rating_value,
             'student' => $conversation->student ? [
                 'id' => $conversation->student->id,
                 'name' => $conversation->student->name,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Bell,
+    ChevronRight,
     Eye,
     GraduationCap,
     Lock,
@@ -160,7 +161,7 @@ export default function SupportInboxPage() {
     );
 
     return (
-        <div className="mx-auto flex h-[calc(100dvh-8rem)] min-h-[36rem] w-full max-w-[1500px] gap-4">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4">
             <Card className="hidden w-88 shrink-0 overflow-y-auto p-4 xl:block">
                 {list}
             </Card>
@@ -180,7 +181,20 @@ export default function SupportInboxPage() {
             ) : null}
 
             <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <header className="flex flex-wrap items-center gap-3 border-b border-hairline bg-sunken px-4 py-3">
+                <header className="flex flex-wrap items-center gap-2 border-b border-hairline bg-sunken px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
+                    {/* برگشت به فهرست گفتگوها — فقط وقتی یک گفتگو باز است */}
+                    {activeId !== null ? (
+                        <button
+                            type="button"
+                            onClick={() => setSearchParams({}, { replace: true })}
+                            aria-label="بازگشت به فهرست گفتگوها"
+                            className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink-2 transition-transform duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-95 xl:hidden"
+                        >
+                            <ChevronRight className="size-4" aria-hidden="true" />
+                            فهرست
+                        </button>
+                    ) : null}
+
                     <Button
                         type="button"
                         variant="ghost"

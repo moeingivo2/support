@@ -102,20 +102,40 @@ class ComplaintController extends Controller
     // آخرین نارضایتی‌ها (برای کارت داشبورد)
     public function latest(Request $request)
     {
-        $limit = $request->get('limit', 5);
+        $request->validate([
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
 
         $complaints = Complaint::with(['student', 'mentor', 'support'])
             ->orderBy('created_at', 'desc')
-            ->limit($limit)
+            ->limit((int) $request->input('limit', 5))
             ->get();
 
         return response()->json($complaints);
     }
 
+    /**
+     * شکایت‌ها فقط باید در اختیار پشتیبانِ صاحب آن یا ادمین باشد.
+     * بدون این محدودیت، هر پشتیبانی می‌توانست شکایت دیگران را بخواند یا ببندد.
+     */
+    private function findAccessible(Request $request, int $id): Complaint
+    {
+        $complaint = Complaint::with(['student', 'mentor', 'support', 'shift'])
+            ->findOrFail($id);
+
+        abort_unless(
+            $request->user()->isAdmin() || $complaint->support_id === $request->user()->id,
+            403,
+            'این نارضایتی به شما تعلق ندارد.',
+        );
+
+        return $complaint;
+    }
+
     // آپدیت وضعیت نارضایتی
     public function update(Request $request, $id)
     {
-        $complaint = Complaint::findOrFail($id);
+        $complaint = $this->findAccessible($request, (int) $id);
 
         $request->validate([
             'status' => 'required|in:open,in_progress,resolved',
@@ -132,23 +152,26 @@ class ComplaintController extends Controller
     }
 
     // نمایش جزئیات یک نارضایتی
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $complaint = Complaint::with(['student', 'mentor', 'support', 'shift'])
-            ->findOrFail($id);
-
-        return response()->json($complaint);
+        return response()->json($this->findAccessible($request, (int) $id));
     }
 
     // لیست دانشجویان دارای نارضایتی (برای Sidebar)
-    public function studentsWithComplaints()
+    public function studentsWithComplaints(Request $request)
     {
         $students = Student::whereHas('complaints')
             ->withCount('complaints')
-            ->with(['complaints' => function ($query) {
-                $query->latest()->limit(1);
-            }])
-            ->get();
+            ->withMax('complaints', 'created_at')
+            ->when(
+                ! $request->user()->isAdmin(),
+                // پشتیبان فقط شکایت‌های خودش را می‌بیند
+                fn ($query) => $query->whereHas(
+                    'complaints',
+                    fn ($complaints) => $complaints->where('support_id', $request->user()->id),
+                ),
+            )
+            ->paginate(min((int) $request->input('per_page', 25), 100));
 
         return response()->json($students);
     }

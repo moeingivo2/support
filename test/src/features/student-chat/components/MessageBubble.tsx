@@ -128,7 +128,7 @@ export function MessageBubble({
                         href={message.url ?? "#"}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex min-w-56 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3 transition-colors hover:border-primary-line hover:bg-primary-soft"
+                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3 transition-colors hover:border-primary-line hover:bg-primary-soft"
                     >
                         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-warn-soft text-alret-gold">
                             {message.attachment_mime?.includes("pdf") ? (

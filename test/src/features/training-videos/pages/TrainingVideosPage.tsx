@@ -202,7 +202,7 @@ export default function TrainingVideosPage() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-9"
+                                        className="size-11"
                                         aria-label="ویرایش ویدیو"
                                         onClick={() => openEdit(video)}
                                     >
@@ -211,7 +211,7 @@ export default function TrainingVideosPage() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-9 text-err-text hover:text-err-text"
+                                        className="size-11 text-err-text hover:text-err-text"
                                         aria-label="حذف ویدیو"
                                         onClick={() => setDeletingVideo(video)}
                                     >

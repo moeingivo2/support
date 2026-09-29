@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ActivityReportController;
 // routes/api.php
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\ConversationController;
@@ -36,13 +37,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
+    // پیوست‌ها با نوع امن و به‌صورت دانلود سرو می‌شوند تا کد اجرا نشود
+    Route::get('/attachments/{path}', [AttachmentController::class, 'show'])
+        ->where('path', '.*')
+        ->name('attachments.show');
+
     // پنل ادمین — ثبت و مدیریت پشتیبان‌ها
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::post('/supports', [AdminController::class, 'storeSupport']);
         Route::get('/supports', [AdminController::class, 'supports']);
         Route::put('/supports/{support}', [AdminController::class, 'updateSupport']);
         Route::delete('/supports/{support}', [AdminController::class, 'destroySupport']);
-        Route::get('/activity-report/export', [ActivityReportController::class, 'export']);
+        Route::get('/activity-report/export', [ActivityReportController::class, 'export'])->middleware('throttle:exports');
         Route::get('/admins', [AdminController::class, 'admins']);
         Route::post('/admins', [AdminController::class, 'storeAdmin']);
         Route::put('/admins/{admin}', [AdminController::class, 'updateAdmin']);
@@ -52,7 +58,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // رتبه‌بندی پشتیبان‌ها — فقط سوپر ادمین
     Route::middleware('role:admin')->prefix('admin/support-ranking')->group(function () {
         Route::get('/', [SupportRankingController::class, 'index']);
-        Route::get('/export', [SupportRankingController::class, 'export']);
+        Route::get('/export', [SupportRankingController::class, 'export'])->middleware('throttle:exports');
         Route::get('/{agent}', [SupportRankingController::class, 'show']);
     });
 
@@ -67,19 +73,25 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // پشتیبان‌های فعال — فقط برای ادمین (نظارت)
     Route::get('/shifts/active', [ShiftController::class, 'active'])->middleware('role:admin');
 
+    // شکایات — فقط پشتیبان و ادمین. دسترسی دانشجو یا ناظر به شکایات
+    // دیگران افشای اطلاعات شخصی بود.
     Route::prefix('complaints')->group(function () {
         Route::middleware('role:support')->group(function () {
             Route::post('/', [ComplaintController::class, 'store']);
             Route::get('/my', [ComplaintController::class, 'myComplaints']);
         });
-        Route::get('/', [ComplaintController::class, 'index']);
-        Route::get('/latest', [ComplaintController::class, 'latest']);
-        Route::get('/students', [ComplaintController::class, 'studentsWithComplaints']);
-        Route::get('/{id}', [ComplaintController::class, 'show']);
-        Route::put('/{id}', [ComplaintController::class, 'update']);
+
+        Route::middleware('role:admin,support')->group(function () {
+            Route::get('/', [ComplaintController::class, 'index']);
+            Route::get('/latest', [ComplaintController::class, 'latest']);
+            Route::get('/students', [ComplaintController::class, 'studentsWithComplaints']);
+            Route::get('/{id}', [ComplaintController::class, 'show']);
+            Route::put('/{id}', [ComplaintController::class, 'update']);
+        });
     });
 
-    Route::prefix('resources')->group(function () {
+    // منابع پنل — محتوای داخلی است و نباید در دسترس دانشجو یا ناظر باشد.
+    Route::middleware('role:admin,support')->prefix('resources')->group(function () {
         Route::get('/', [ResourceController::class, 'index']);
         Route::post('/', [ResourceController::class, 'store']);
         Route::get('/{id}', [ResourceController::class, 'show']);
@@ -87,7 +99,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}', [ResourceController::class, 'destroy']);
     });
 
-    Route::prefix('faqs')->group(function () {
+    Route::middleware('role:admin,support')->prefix('faqs')->group(function () {
         Route::get('/', [FaqController::class, 'index']);
         Route::get('/categories', [FaqController::class, 'categories']);
         Route::post('/', [FaqController::class, 'store']);
@@ -96,7 +108,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}', [FaqController::class, 'destroy']);
     });
 
-    Route::prefix('videos')->group(function () {
+    Route::middleware('role:admin,support')->prefix('videos')->group(function () {
         Route::get('/', [VideoController::class, 'index']);
         Route::post('/', [VideoController::class, 'store']);
         Route::get('/{id}', [VideoController::class, 'show']);
@@ -104,13 +116,20 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}', [VideoController::class, 'destroy']);
     });
 
+    // گزارش شیفت — ثبت و «گزارش‌های من» مختص پشتیبان است و فهرست
+    // کامل در اختیار ادمین قرار می‌گیرد.
     Route::prefix('shift-reports')->group(function () {
-        Route::post('/', [ShiftReportController::class, 'store']);
-        Route::get('/', [ShiftReportController::class, 'index']);
-        Route::get('/my', [ShiftReportController::class, 'myReports']);
-        Route::get('/pending', [ShiftReportController::class, 'pending']);
-        Route::get('/{id}', [ShiftReportController::class, 'show']);
-        Route::put('/{id}', [ShiftReportController::class, 'update']);
+        Route::middleware('role:support')->group(function () {
+            Route::post('/', [ShiftReportController::class, 'store']);
+            Route::get('/my', [ShiftReportController::class, 'myReports']);
+        });
+
+        Route::middleware('role:admin,support')->group(function () {
+            Route::get('/', [ShiftReportController::class, 'index']);
+            Route::get('/pending', [ShiftReportController::class, 'pending']);
+            Route::get('/{id}', [ShiftReportController::class, 'show']);
+            Route::put('/{id}', [ShiftReportController::class, 'update']);
+        });
     });
 
     // حساب دانشجو — دوره، جلسات، منتور و سهمیه چت

@@ -133,8 +133,8 @@ export function SupportComposer({
                 </div>
             ) : null}
 
-            {/* items-center تا دکمه‌های ۳۶ پیکسلی با ورودی هم‌تراز بمانند */}
-            <div className="flex items-center gap-2 max-sm:flex-col max-sm:items-stretch">
+            {/* موبایل: ابزارها بالا، ورودی و ارسال پایین. دسکتاپ: یک ردیف. */}
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <input
                     ref={fileInputRef}
                     type="file"
@@ -201,8 +201,8 @@ export function SupportComposer({
                     }
                     className={
                         codeMode
-                            ? "flex-1 font-mono text-left"
-                            : "flex-1"
+                            ? "w-full min-h-12 sm:flex-1 sm:font-mono sm:text-left"
+                            : "w-full min-h-12 sm:flex-1"
                     }
                     disabled={isSending}
                 />
@@ -210,6 +210,7 @@ export function SupportComposer({
                 <MagneticSendButton
                     disabled={!canSend}
                     aria-label="ارسال پاسخ"
+                    className="self-end sm:self-auto"
                 >
                     {isSending ? (
                         <Loader2 className="animate-spin" />

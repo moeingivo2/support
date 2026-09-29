@@ -664,7 +664,9 @@
 
     /* ==================================================================
        نوار نوشتن پیام
-       دکمه‌های پیوست هم‌اندازه (۳۶×۳۶) با فاصله‌ی ۸ پیکسل
+       دکمه‌های پیوست هم‌اندازه با فاصله‌ی مشخص.
+       روی گوشی به ۴۴ پیکسل می‌رسند تا هدف لمسی قابل اعتماد باشد؛
+       روی دسکتاپ ۳۶ پیکسل جمع‌وجورتر و هم‌تراز با ورودی است.
        ================================================================== */
     .composer-toolbar {
         display: flex;
@@ -689,6 +691,14 @@
             background-color var(--spring-smooth-ms) var(--spring-smooth),
             color var(--spring-smooth-ms) var(--spring-smooth),
             border-color var(--spring-smooth-ms) var(--spring-smooth);
+    }
+
+    /* هدف لمسی ۴۴ پیکسل در کمتر از ۶۴۰ پیکسل عرض */
+    @media (max-width: 639px) {
+        .composer-tool {
+            width: 44px;
+            height: 44px;
+        }
     }
 
     .composer-tool:hover:not(:disabled) {

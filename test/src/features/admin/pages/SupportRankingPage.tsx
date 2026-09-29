@@ -187,13 +187,13 @@ export default function SupportRankingPage() {
                                     </button>
 
                                     {isExpanded ? (
-                                        <div className="mt-2 max-h-80 overflow-auto rounded-2xl border border-hairline bg-surface px-4 py-3">
+                                        <div className="mt-2 max-h-80 overflow-y-auto overflow-x-auto overscroll-x-contain rounded-2xl border border-hairline bg-surface px-4 py-3">
                                             {detailQuery.isPending ? (
                                                 <p className="py-4 text-center text-xs text-ink-2">
                                                     در حال بارگذاری جزئیات…
                                                 </p>
                                             ) : (
-                                                <table className="w-full text-right text-xs">
+                                                <table className="w-full min-w-[26rem] text-right text-xs">
                                                     <thead className="text-ink-2">
                                                         <tr>
                                                             <th className="py-2 font-semibold">رتبه</th>

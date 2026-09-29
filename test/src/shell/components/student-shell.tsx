@@ -37,7 +37,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     return (
         <div dir="rtl" className="app-canvas relative min-h-dvh">
             <header className="sticky top-0 z-30 border-b border-hairline bg-glass backdrop-blur-xl">
-                <div className="mx-auto flex h-18 w-full max-w-[1500px] items-center gap-3 px-4 py-3 md:px-7">
+                <div className="mx-auto flex min-h-18 w-full max-w-[1500px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 md:h-18 md:flex-nowrap md:py-3 md:px-7">
                     <Link
                         to="/chat"
                         className="flex items-center gap-3 rounded-2xl px-1"
@@ -120,7 +120,9 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                 </div>
             </header>
 
-            <main className="mx-auto w-full max-w-[1500px] px-4 py-5 md:px-7 md:py-6">
+            {/* flex-1 + min-h-0 تا صفحه‌های تمام‌ارتفاع (چت) خودشان ارتفاع
+                باقی‌مانده را بگیرند و کمپوزر زیر صفحه نرود. */}
+            <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col px-4 py-5 md:px-7 md:py-6">
                 {children}
             </main>
         </div>

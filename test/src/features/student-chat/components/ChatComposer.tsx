@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button, MagneticSendButton } from "@/shared/ui/button";
-import { ChatTextarea } from "@/shared/ui/textarea";
+import { Textarea } from "@/shared/ui/textarea";
 import type { OutgoingAttachment } from "../types/chat";
 import { formatFileSize } from "../utils/format";
 import { VoiceRecorder } from "./VoiceRecorder";
@@ -156,8 +156,9 @@ export function ChatComposer({
                 </div>
             ) : null}
 
-            {/* items-center تا دکمه‌های ۳۶ پیکسلی پایین‌افتاده به نظر نرسند */}
-            <div className="flex items-center gap-2 max-sm:flex-col max-sm:items-stretch">
+            {/* موبایل: ابزارها بالا، ورودی و ارسال پایین. دسکتاپ: یک ردیف.
+                این عنصر خودش شکست را مدیریت می‌کند، پس نباید sm:contents داشته باشد. */}
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <input
                     ref={imageInputRef}
                     type="file"
@@ -172,10 +173,8 @@ export function ChatComposer({
                     onChange={() => pickFile(fileInputRef.current)}
                 />
 
-                {/* در موبایل دکمه‌ها در ردیف جدا می‌نشینند تا ورودی فشرده نشود */}
-                <div className="flex items-center gap-2 sm:contents">
-                    {/* دکمه‌های پیوست: هم‌اندازه ۳۶×۳۶ با فاصله‌ی ۸ پیکسل، لنگر راست در RTL */}
-                    <div className="composer-toolbar">
+                {/* دکمه‌های پیوست: هم‌اندازه، لنگر راست در RTL */}
+                <div className="composer-toolbar">
                         <button
                             type="button"
                             className="composer-tool"
@@ -209,38 +208,37 @@ export function ChatComposer({
                         >
                             <Mic className="size-4" aria-hidden="true" />
                         </button>
-                    </div>
-
-                    <ChatTextarea
-                        value={body}
-                        onChange={(event) => setBody(event.target.value)}
-                        onKeyDown={handleKeyDown}
-                        dir={codeMode ? "ltr" : "rtl"}
-                        placeholder={
-                            codeMode
-                                ? "کد خود را بنویسید..."
-                                : "پیام خود را بنویسید..."
-                        }
-                        className={
-                            codeMode
-                                ? "order-first w-full flex-1 font-mono text-left sm:order-none"
-                                : "order-first w-full flex-1 sm:order-none"
-                        }
-                        disabled={isSending}
-                    />
-
-                    <MagneticSendButton
-                        disabled={!canSend}
-                        aria-label="ارسال پیام"
-                        className="mr-auto sm:mr-0"
-                    >
-                        {isSending ? (
-                            <Loader2 className="animate-spin" />
-                        ) : (
-                            <Send />
-                        )}
-                    </MagneticSendButton>
                 </div>
+
+                <Textarea
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    dir={codeMode ? "ltr" : "rtl"}
+                    placeholder={
+                        codeMode
+                            ? "کد خود را بنویسید..."
+                            : "پیام خود را بنویسید..."
+                    }
+                    className={
+                        codeMode
+                            ? "w-full min-h-12 sm:flex-1 sm:font-mono sm:text-left"
+                            : "w-full min-h-12 sm:flex-1"
+                    }
+                    disabled={isSending}
+                />
+
+                <MagneticSendButton
+                    disabled={!canSend}
+                    aria-label="ارسال پیام"
+                    className="self-end sm:self-auto"
+                >
+                    {isSending ? (
+                        <Loader2 className="animate-spin" />
+                    ) : (
+                        <Send />
+                    )}
+                </MagneticSendButton>
             </div>
 
             <p className="hidden text-[11px] text-ink-3 sm:block">

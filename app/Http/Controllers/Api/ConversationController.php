@@ -17,6 +17,12 @@ use RuntimeException;
 
 class ConversationController extends Controller
 {
+    /** سقف ردیف‌های فهرست گفتگوها */
+    private const LIST_LIMIT = 100;
+
+    /** تعداد پیام هر درخواست */
+    private const MESSAGE_PAGE = 200;
+
     public function __construct(
         private readonly ChatMessageSender $sender,
         private readonly ConversationCloser $closer,
@@ -24,10 +30,17 @@ class ConversationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        // rating و support باید eager-load شوند؛ در غیر این صورت برای هر
+        // گفتگو دو کوئری جداگانه اجرا می‌شد (1 + 2N).
         $conversations = Conversation::query()
             ->where('student_id', $request->user()->id)
+            ->with([
+                'support:id,name',
+                'rating:id,conversation_id,rating_value,closure_actor,submitted_at',
+            ])
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
+            ->limit(self::LIST_LIMIT)
             ->get()
             ->map(fn (Conversation $conversation): array => $this->summary($conversation));
 
@@ -207,8 +220,9 @@ class ConversationController extends Controller
      */
     public function summary(Conversation $conversation): array
     {
-        $conversation->loadMissing('support');
-        $conversation->setRelation('rating', $conversation->rating);
+        $rating = $conversation->relationLoaded('rating')
+            ? $conversation->getRelation('rating')
+            : $conversation->rating()->first();
 
         return [
             'id' => $conversation->id,
@@ -223,7 +237,7 @@ class ConversationController extends Controller
             'can_rate' => $conversation->isClosed()
                 && $conversation->closure_actor === 'support'
                 && $conversation->rating === null,
-            'has_rating' => $conversation->rating !== null,
+            'has_rating' => $rating !== null,
             'support' => $conversation->support ? [
                 'id' => $conversation->support->id,
                 'name' => $conversation->support->name,
