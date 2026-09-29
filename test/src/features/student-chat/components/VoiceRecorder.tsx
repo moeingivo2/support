@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { useMicLevelFrame, VoiceWaveform } from "@/shared/ui/voice-waveform";
 import { formatDuration } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
 
@@ -14,6 +15,9 @@ const MAX_SECONDS = 300;
 
 /**
  * ضبط پیام صوتی در مرورگر و تحویل فایل صوتی به کامپوزر.
+ *
+ * حین ضبط، موج از داده‌ی واقعی میکروفون می‌خواند تا هر چه بلندتر حرف بزنید
+ * میله‌ها بلندتر شوند.
  */
 export function VoiceRecorder({
     onRecorded,
@@ -23,10 +27,12 @@ export function VoiceRecorder({
     const [elapsed, setElapsed] = useState(0);
     const [isRecording, setIsRecording] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [stream, setStream] = useState<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const startedAtRef = useRef(0);
     const timerRef = useRef<number | null>(null);
+    const levelsRef = useMicLevelFrame(stream);
 
     useEffect(() => {
         return () => {
@@ -81,6 +87,7 @@ export function VoiceRecorder({
 
             startedAtRef.current = Date.now();
             setElapsed(0);
+            setStream(stream);
             setIsRecording(true);
             recorder.start();
 
@@ -104,6 +111,7 @@ export function VoiceRecorder({
         if (recorderRef.current?.state === "recording")
             recorderRef.current.stop();
         setIsRecording(false);
+        setStream(null);
     }
 
     return (
@@ -118,11 +126,14 @@ export function VoiceRecorder({
                     <span dir="ltr" className="text-xs font-bold text-ink">
                         {toPersianDigits(formatDuration(elapsed))}
                     </span>
-                    <span className="voice-recording-wave" aria-label="موج ضبط صدا">
-                        {Array.from({ length: 20 }, (_, index) => (
-                            <span key={index} style={{ animationDelay: `${(index * 67) % 430}ms` }} />
-                        ))}
-                    </span>
+                    <VoiceWaveform
+                        levelsRef={levelsRef}
+                        progress={null}
+                        className="min-w-[5rem] max-w-[12rem] flex-1"
+                        activeClassName="bg-err-text"
+                        idleClassName="bg-err-text/30"
+                        ariaLabel="موج زنده‌ی صدای ضبط‌شده"
+                    />
                     <span className="text-[11px] text-ink-2">
                         حداکثر {toPersianDigits(MAX_SECONDS)} ثانیه
                     </span>

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button, MagneticSendButton } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
+import { ChatTextarea } from "@/shared/ui/textarea";
 import type { OutgoingAttachment } from "../types/chat";
 import { formatFileSize } from "../utils/format";
 import { VoiceRecorder } from "./VoiceRecorder";
@@ -210,7 +210,7 @@ export function ChatComposer({
                         </button>
                 </div>
 
-                <Textarea
+                <ChatTextarea
                     value={body}
                     onChange={(event) => setBody(event.target.value)}
                     onKeyDown={handleKeyDown}

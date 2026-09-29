@@ -1,11 +1,8 @@
 import { useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
+import { VoiceWaveform } from "@/shared/ui/voice-waveform";
 import { formatDuration } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
-
-const BARS = Array.from({ length: 36 }, (_, index) =>
-    7 + ((index * 17 + index * index * 3) % 22),
-);
 
 export function VoicePlayer({ src, durationSeconds }: { src: string; durationSeconds: number | null }) {
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -42,11 +39,14 @@ export function VoicePlayer({ src, durationSeconds }: { src: string; durationSec
                 {playing ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
             </button>
             <div className="relative min-w-0 flex-1">
-                <div className="flex h-8 items-center justify-between gap-px overflow-hidden" aria-hidden="true">
-                    {BARS.map((height, index) => (
-                        <span key={index} className={`w-0.5 flex-1 rounded-full ${index / BARS.length * 100 <= progress ? "bg-active-blue" : "bg-ink-3/50"}`} style={{ height }} />
-                    ))}
-                </div>
+                <VoiceWaveform
+                    progress={progress}
+                    animateWhilePlaying={playing}
+                    className="h-8 w-full"
+                    activeClassName="bg-active-blue"
+                    idleClassName="bg-ink-3/50"
+                    ariaLabel="موج پیام صوتی"
+                />
                 <input
                     type="range"
                     min={0}

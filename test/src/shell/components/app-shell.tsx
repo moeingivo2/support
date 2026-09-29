@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { getNavigation } from "@/shared/navigation";
 import { useAuth } from "@/shared/services/auth-context";
 import { Logo } from "@/shared/api/logo";
+import { BackButton } from "@/shared/ui/back-button";
 import { Button } from "@/shared/ui/button";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { cn } from "@/shared/lib/utils";
@@ -16,6 +17,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const activePath = location.pathname;
     const navigation = getNavigation(user);
+    const homePath = user?.role === "observer" ? "/inbox" : "/";
+    // روی صفحه‌ی اصلی چیزی برای برگشت نیست، پس دکمه مخفی می‌شود.
+    const canGoBack = activePath !== homePath;
 
     function handleLogout() {
         logout();
@@ -114,6 +118,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             </Dialog.Portal>
                         </Dialog.Root>
                         <div className="mr-auto flex items-center gap-2">
+                            {canGoBack ? (
+                                <BackButton fallbackPath={homePath} className="max-md:px-2.5" />
+                            ) : null}
                             <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary-line bg-primary-soft text-sm font-bold text-accent-ink">
                                 {getUserInitial(user?.name)}
                             </span>

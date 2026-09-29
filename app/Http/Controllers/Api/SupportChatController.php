@@ -139,14 +139,16 @@ class SupportChatController extends Controller
                     $model->load(['student:id,name,email,phone', 'support:id,name', 'rating'])
                 ),
                 'profile' => $isObserver ? null : $this->studentProfile($model),
-                // سقف تعداد پیام تا یک گفتگوی طولانی کل حافظه را پر نکند
+                // سقف تعداد پیام تا یک گفتگوی طولانی کل حافظه را پر نکند.
+                // ترتیب نزولی نگه داشته می‌شود: MessageList فرض می‌کند
+                // messages[0] جدیدترین است و روی آن اسکرول می‌کند. معکوس‌کردن
+                // اینجا باعث می‌شد هر پیام جدید پنل را به قدیمی‌ترین پیام ببرد.
                 'messages' => $model->messages()
                     ->with('sender:id,name')
                     ->orderByDesc('created_at')
                     ->orderByDesc('id')
                     ->limit(self::MESSAGE_PAGE)
                     ->get()
-                    ->sortBy('id')
                     ->map(fn (Message $message): array => $this->messagePayload($message))
                     ->all(),
             ],

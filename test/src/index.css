@@ -1,32 +1,5 @@
 @import "tailwindcss";
 
-.voice-recording-wave {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    height: 28px;
-    flex: 1;
-    min-width: 80px;
-    max-width: 180px;
-}
-
-.voice-recording-wave span {
-    width: 3px;
-    flex: 1;
-    height: 35%;
-    border-radius: 99px;
-    background: var(--c-danger);
-    animation: voice-wave 850ms ease-in-out infinite alternate;
-}
-
-@keyframes voice-wave {
-    to { height: 95%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .voice-recording-wave span { animation: none; }
-}
-
 /* ==========================================================================
    تم‌ها — مقادیر پایه در :root (تیره) و [data-theme="light"] (روشن).
    همه رنگ‌های برنامه از همین متغیرها می‌آیند؛ کامپوننت‌ها رنگ هاردکد ندارند.
@@ -75,7 +48,7 @@
 
     /* وضعیت‌ها */
     --c-success: #16a34a;
-    --c-success-soft: #eaf7ef;
+    --c-success-soft: rgb(22 163 74 / 0.14);
     --c-warning: #f2a93a;
     --c-warning-soft: rgb(242 169 58 / 0.14);
     --c-danger: #db5e5e;

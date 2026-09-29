@@ -187,26 +187,26 @@ export default function SupportRankingPage() {
                                     </button>
 
                                     {isExpanded ? (
-                                        <div className="mt-2 max-h-80 overflow-y-auto overflow-x-auto overscroll-x-contain rounded-2xl border border-hairline bg-surface px-4 py-3">
+                                        <div className="mt-2 max-h-[70vh] overflow-y-auto overscroll-contain rounded-2xl border border-hairline bg-surface">
                                             {detailQuery.isPending ? (
                                                 <p className="py-4 text-center text-xs text-ink-2">
                                                     در حال بارگذاری جزئیات…
                                                 </p>
                                             ) : (
                                                 <table className="w-full min-w-[26rem] text-right text-xs">
-                                                    <thead className="text-ink-2">
+                                                    <thead className="sticky top-0 z-10 bg-surface text-ink-2 shadow-[0_1px_0_var(--c-hairline)]">
                                                         <tr>
-                                                            <th className="py-2 font-semibold">رتبه</th>
-                                                            <th className="py-2 font-semibold">
+                                                            <th className="px-4 py-2 font-semibold">رتبه</th>
+                                                            <th className="px-4 py-2 font-semibold">
                                                                 دانشجو
                                                             </th>
-                                                            <th className="py-2 font-semibold">
+                                                            <th className="px-4 py-2 font-semibold">
                                                                 امتیاز
                                                             </th>
-                                                            <th className="py-2 font-semibold">
+                                                            <th className="px-4 py-2 font-semibold">
                                                                 بسته توسط
                                                             </th>
-                                                            <th className="py-2 font-semibold">
+                                                            <th className="px-4 py-2 font-semibold">
                                                                 تاریخ
                                                             </th>
                                                         </tr>
@@ -220,13 +220,13 @@ export default function SupportRankingPage() {
                                                                 key={rating.conversation_id}
                                                                 className="border-t border-hairline"
                                                             >
-                                                                <td className="py-2 text-ink-2">{toPersianDigits(rating.index)}</td>
-                                                                <td className="py-2 text-ink">
+                                                                <td className="px-4 py-2 text-ink-2">{toPersianDigits(rating.index)}</td>
+                                                                <td className="px-4 py-2 text-ink">
                                                                     {
                                                                         rating.student
                                                                     }
                                                                 </td>
-                                                                <td className="py-2">
+                                                                <td className="px-4 py-2">
                                                                     <span className="inline-flex items-center gap-0.5" dir="rtl">
                                                                         {[
                                                                             1, 2, 3, 4, 5,
@@ -248,12 +248,12 @@ export default function SupportRankingPage() {
                                                                             )}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-2 text-ink-2">
+                                                                <td className="px-4 py-2 text-ink-2">
                                                                     {
                                                                         rating.closure_actor
                                                                     }
                                                                 </td>
-                                                                <td className="py-2 text-ink-2">
+                                                                <td className="px-4 py-2 text-ink-2">
                                                                     {rating.submitted_at
                                                                         ? new Date(
                                                                               rating.submitted_at,

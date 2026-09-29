@@ -29,20 +29,20 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const TONE_STYLES: Record<ToastTone, { container: string; icon: ReactNode }> = {
     success: {
-        container: "border-success-line bg-succ-btn text-succ-txt",
-        icon: <CheckCircle2 className="size-5" />,
+        container: "border-success-line bg-succ-btn",
+        icon: <CheckCircle2 className="size-5 text-succ-txt" />,
     },
     error: {
-        container: "border-danger-line bg-danger-soft text-err-text",
-        icon: <XCircle className="size-5" />,
+        container: "border-danger-line bg-danger-soft",
+        icon: <XCircle className="size-5 text-err-text" />,
     },
     info: {
-        container: "border-primary-line bg-primary-soft text-accent-ink",
-        icon: <Info className="size-5" />,
+        container: "border-primary-line bg-primary-soft",
+        icon: <Info className="size-5 text-accent-ink" />,
     },
     warning: {
-        container: "border-warn-line bg-warn-soft text-alret-gold",
-        icon: <TriangleAlert className="size-5" />,
+        container: "border-warn-line bg-warn-soft",
+        icon: <TriangleAlert className="size-5 text-alret-gold" />,
     },
 };
 
@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                         <div
                             key={toast.id}
                             className={cn(
-                                "pointer-events-auto flex animate-[toast-in_460ms_var(--spring-gentle)] items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold shadow-[var(--c-shadow-soft)] backdrop-blur-xl",
+                                "pointer-events-auto flex animate-[toast-in_460ms_var(--spring-gentle)] items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold text-ink shadow-[var(--c-shadow-soft),0_0_0_1px_var(--c-hairline)] backdrop-blur-xl",
                                 style.container,
                             )}
                         >
