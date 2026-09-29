@@ -1,8 +1,9 @@
-import { FileCode2, FileText, Play } from "lucide-react";
+import { FileCode2, FileText } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { ActorRole, ChatMessage } from "../types/chat";
 import { formatFileSize, formatMessageTime } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
+import { VoicePlayer } from "./VoicePlayer";
 
 /**
  * نقش ثبت‌شده هنگام ارسال پیام — برای حسابرسی صریح است و از جای‌گیری حباب
@@ -119,25 +120,7 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "voice" && message.url ? (
-                    <div className="flex min-w-52 items-center gap-3" dir="rtl">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft-2 text-accent-ink">
-                            <Play className="size-4" />
-                        </span>
-                        <audio
-                            controls
-                            src={message.url}
-                            className="h-9 w-full"
-                            preload="metadata"
-                        >
-                            مرورگر شما از پخش صدا پشتیبانی نمی‌کند.
-                        </audio>
-                        <span
-                            className="shrink-0 text-[11px] text-ink-2"
-                            dir="ltr"
-                        >
-                            {toPersianDigits(message.duration_seconds ?? 0)}s
-                        </span>
-                    </div>
+                    <VoicePlayer src={message.url} durationSeconds={message.duration_seconds} />
                 ) : null}
 
                 {message.type === "file" ? (

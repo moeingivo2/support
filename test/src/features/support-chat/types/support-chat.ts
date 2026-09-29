@@ -39,9 +39,9 @@ export type SupportNotifications = {
     unread_total: number;
     unread_conversations: number;
     /** طبق سیاست حریم خصوصی، فقط نام دانشجو — بدون پیش‌نمایش متن پیام */
-    latest: {
+    unread: {
         conversation_id: number;
         student_name: string | null;
         last_message_at: string | null;
-    } | null;
+    }[];
 };

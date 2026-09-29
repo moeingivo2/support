@@ -338,7 +338,7 @@ export default function ChatPage() {
                                 </div>
 
                                 {activeConversation?.has_rating ? (
-                                    <div className="flex items-center justify-center gap-1">
+                                    <div className="flex items-center justify-center gap-1" dir="rtl">
                                         {[1, 2, 3, 4, 5].map((value) => (
                                             <Star
                                                 key={value}

@@ -17,7 +17,7 @@ class AdminRegisterSupportRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|min:10|unique:users,phone',
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', 'min:8', 'not_regex:/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u'],
             'support_type' => ['required', Rule::in(['web', 'ai'])],
         ];
     }
@@ -31,6 +31,7 @@ class AdminRegisterSupportRequest extends FormRequest
             'phone.min' => 'شماره تلفن معتبر نیست',
             'password.required' => 'رمز عبور الزامی است',
             'password.min' => 'رمز عبور باید حداقل ۸ کاراکتر باشد',
+            'password.not_regex' => 'لطفاً کیبوردتان را انگلیسی کنید.',
             'support_type.required' => 'نوع پشتیبانی الزامی است',
             'support_type.in' => 'نوع پشتیبانی باید وب یا هوش مصنوعی باشد',
         ];

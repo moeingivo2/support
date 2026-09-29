@@ -22,12 +22,12 @@ export function MessageList({
     emptyHint,
     showAttribution = false,
 }: MessageListProps) {
-    const endRef = useRef<HTMLDivElement | null>(null);
-    const lastMessageId = messages.at(-1)?.id ?? 0;
+    const startRef = useRef<HTMLDivElement | null>(null);
+    const newestMessageId = messages[0]?.id ?? 0;
 
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, [lastMessageId]);
+        startRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, [newestMessageId]);
 
     if (isPending) {
         return (
@@ -62,6 +62,7 @@ export function MessageList({
 
     return (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 md:p-5">
+            <div ref={startRef} />
             {messages.map((message) => (
                 <MessageBubble
                     key={message.id}
@@ -73,7 +74,6 @@ export function MessageList({
                     showAttribution={showAttribution}
                 />
             ))}
-            <div ref={endRef} />
         </div>
     );
 }

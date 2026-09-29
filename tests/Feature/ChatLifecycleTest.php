@@ -386,14 +386,14 @@ class ChatLifecycleTest extends TestCase
             ->getJson('/api/support/conversations/notifications')
             ->assertStatus(200)
             ->assertJsonPath('unread_total', 4)
-            ->assertJsonPath('latest.student_name', $student->name);
+            ->assertJsonPath('unread.0.student_name', $student->name);
 
         $body = $response->getContent();
 
         // اعلان فقط نام و شمارش دارد؛ نه متن پیام
         $this->assertStringNotContainsString('6037', $body);
         $this->assertStringNotContainsString('محرمانه', $body);
-        $this->assertArrayNotHasKey('preview', $response->json('latest'));
+        $this->assertArrayNotHasKey('preview', $response->json('unread.0'));
     }
 
     public function test_observer_can_read_notifications(): void

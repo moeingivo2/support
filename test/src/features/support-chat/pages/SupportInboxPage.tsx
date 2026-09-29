@@ -323,7 +323,7 @@ export default function SupportInboxPage() {
                                             این گفتگو بسته شده است
                                         </p>
                                         {activeConversation?.rating_value ? (
-                                            <div className="flex items-center justify-center gap-1">
+                                            <div className="flex items-center justify-center gap-1" dir="rtl">
                                                 <span className="text-xs text-ink-2">
                                                     امتیاز دانشجو:
                                                 </span>

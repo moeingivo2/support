@@ -22,7 +22,7 @@ function Stars({ value }: { value: number | null }) {
     }
 
     return (
-        <span className="inline-flex items-center gap-0.5" dir="ltr">
+        <span className="inline-flex items-center gap-0.5" dir="rtl">
             {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                     key={star}
@@ -187,7 +187,7 @@ export default function SupportRankingPage() {
                                     </button>
 
                                     {isExpanded ? (
-                                        <div className="mt-2 overflow-hidden rounded-2xl border border-hairline bg-surface px-4 py-3">
+                                        <div className="mt-2 max-h-80 overflow-auto rounded-2xl border border-hairline bg-surface px-4 py-3">
                                             {detailQuery.isPending ? (
                                                 <p className="py-4 text-center text-xs text-ink-2">
                                                     در حال بارگذاری جزئیات…
@@ -196,6 +196,7 @@ export default function SupportRankingPage() {
                                                 <table className="w-full text-right text-xs">
                                                     <thead className="text-ink-2">
                                                         <tr>
+                                                            <th className="py-2 font-semibold">رتبه</th>
                                                             <th className="py-2 font-semibold">
                                                                 دانشجو
                                                             </th>
@@ -219,13 +220,14 @@ export default function SupportRankingPage() {
                                                                 key={rating.conversation_id}
                                                                 className="border-t border-hairline"
                                                             >
+                                                                <td className="py-2 text-ink-2">{toPersianDigits(rating.index)}</td>
                                                                 <td className="py-2 text-ink">
                                                                     {
                                                                         rating.student
                                                                     }
                                                                 </td>
                                                                 <td className="py-2">
-                                                                    <span className="inline-flex items-center gap-0.5">
+                                                                    <span className="inline-flex items-center gap-0.5" dir="rtl">
                                                                         {[
                                                                             1, 2, 3, 4, 5,
                                                                         ]

@@ -37,8 +37,8 @@ export function StarRating({
             aria-label="امتیاز رضایت"
         >
             <div
-                className="flex flex-row-reverse justify-center gap-1.5"
-                dir="ltr"
+                className="flex justify-center gap-1.5"
+                dir="rtl"
                 onMouseLeave={() => setHovered(null)}
             >
                 {[1, 2, 3, 4, 5].map((star) => (

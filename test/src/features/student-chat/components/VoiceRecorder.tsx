@@ -118,6 +118,11 @@ export function VoiceRecorder({
                     <span dir="ltr" className="text-xs font-bold text-ink">
                         {toPersianDigits(formatDuration(elapsed))}
                     </span>
+                    <span className="voice-recording-wave" aria-label="موج ضبط صدا">
+                        {Array.from({ length: 20 }, (_, index) => (
+                            <span key={index} style={{ animationDelay: `${(index * 67) % 430}ms` }} />
+                        ))}
+                    </span>
                     <span className="text-[11px] text-ink-2">
                         حداکثر {toPersianDigits(MAX_SECONDS)} ثانیه
                     </span>

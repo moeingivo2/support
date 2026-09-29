@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useLayoutEffect, useRef, type ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
@@ -11,4 +11,18 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
             {...props}
         />
     );
+}
+
+export function ChatTextarea({ value, className, ...props }: ComponentProps<"textarea"> & { value: string }) {
+    const ref = useRef<HTMLTextAreaElement>(null);
+
+    useLayoutEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+        element.style.height = "auto";
+        element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
+        element.style.overflowY = element.scrollHeight > 160 ? "auto" : "hidden";
+    }, [value]);
+
+    return <Textarea ref={ref} value={value} rows={2} className={cn("min-h-16 max-h-40 resize-none overflow-y-hidden", className)} {...props} />;
 }

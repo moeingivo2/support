@@ -27,7 +27,7 @@ class UpdateSupportRequest extends FormRequest
                 'max:20',
                 Rule::unique('users', 'phone')->ignore($this->route('support')),
             ],
-            'password' => ['nullable', 'string', 'min:8', 'max:255'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255', 'not_regex:/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u'],
         ];
     }
 
@@ -39,6 +39,7 @@ class UpdateSupportRequest extends FormRequest
             'phone.unique' => 'این شماره تلفن قبلاً ثبت شده است.',
             'phone.min' => 'شماره تلفن معتبر نیست.',
             'password.min' => 'رمز عبور باید حداقل ۸ کاراکتر باشد.',
+            'password.not_regex' => 'لطفاً کیبوردتان را انگلیسی کنید.',
         ];
     }
 }

@@ -45,32 +45,40 @@ export function useNewMessageAlert(activeConversationId: number | null) {
         refetchOnWindowFocus: true,
     });
 
-    const latest = query.data?.latest ?? null;
+    const unreadConversations = query.data?.unread;
 
     useEffect(() => {
-        if (latest === null) return;
+        if (!unreadConversations) return;
 
-        const stamp = `${latest.conversation_id}:${latest.last_message_at ?? ""}`;
+        const stamps = unreadConversations.map((item) =>
+            `${item.conversation_id}:${item.last_message_at ?? ""}`,
+        );
 
         if (seenRef.current === null) {
-            seenRef.current = new Set([stamp]);
+            seenRef.current = new Set(stamps);
             return;
         }
 
-        if (seenRef.current.has(stamp)) return;
-
-        seenRef.current.add(stamp);
-        if (latest.conversation_id === activeConversationId) return;
+        const previouslySeen = seenRef.current;
+        const newMessages = unreadConversations.filter((item) =>
+            !previouslySeen.has(`${item.conversation_id}:${item.last_message_at ?? ""}`) &&
+            item.conversation_id !== activeConversationId,
+        );
+        seenRef.current = new Set(stamps);
+        if (newMessages.length === 0) return;
 
         playNewMessageSound();
 
         // طبق سیاست حریم خصوصی، اعلان فقط نام دانشجو و تعداد پیام را نشان می‌دهد
         const unread = query.data?.unread_total ?? 0;
 
+        const firstMessage = newMessages[0];
         toast.warning(
-            `پیام جدید از ${latest.student_name ?? "دانشجو"} — مجموع ${toPersianDigits(unread)} پیام خوانده‌نشده`,
+            newMessages.length === 1
+                ? `پیام جدید از ${firstMessage?.student_name ?? "دانشجو"} — مجموع ${toPersianDigits(unread)} پیام خوانده‌نشده`
+                : `پیام جدید در ${toPersianDigits(newMessages.length)} گفتگو — مجموع ${toPersianDigits(unread)} پیام خوانده‌نشده`,
         );
-    }, [latest, activeConversationId, query.data?.unread_total, toast]);
+    }, [unreadConversations, activeConversationId, query.data?.unread_total, toast]);
 
     return query;
 }

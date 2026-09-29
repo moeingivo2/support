@@ -56,20 +56,21 @@ class SupportChatController extends Controller
      */
     public function notifications(Request $request): JsonResponse
     {
-        $latest = Conversation::query()
+        $unread = Conversation::query()
             ->where('unread_support_count', '>', 0)
             ->with('student')
             ->orderByDesc('last_message_at')
-            ->first();
+            ->orderByDesc('id')
+            ->get();
 
         return response()->json([
-            'unread_total' => Conversation::query()->sum('unread_support_count'),
-            'unread_conversations' => Conversation::query()->where('unread_support_count', '>', 0)->count(),
-            'latest' => $latest ? [
-                'conversation_id' => $latest->id,
-                'student_name' => $latest->student?->name,
-                'last_message_at' => $latest->last_message_at?->toIso8601String(),
-            ] : null,
+            'unread_total' => $unread->sum('unread_support_count'),
+            'unread_conversations' => $unread->count(),
+            'unread' => $unread->map(fn (Conversation $conversation): array => [
+                'conversation_id' => $conversation->id,
+                'student_name' => $conversation->student?->name,
+                'last_message_at' => $conversation->last_message_at?->toIso8601String(),
+            ])->all(),
         ]);
     }
 
@@ -101,8 +102,8 @@ class SupportChatController extends Controller
                 'profile' => $isObserver ? null : $this->studentProfile($model),
                 'messages' => $model->messages()
                     ->with('sender')
-                    ->orderBy('created_at')
-                    ->orderBy('id')
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id')
                     ->get()
                     ->map(fn (Message $message): array => $this->messagePayload($message))
                     ->all(),

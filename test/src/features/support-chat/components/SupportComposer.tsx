@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button, MagneticSendButton } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
+import { ChatTextarea } from "@/shared/ui/textarea";
 import { cn } from "@/shared/lib/utils";
 import type { OutgoingAttachment } from "@/features/student-chat/types/chat";
 import { formatFileSize } from "@/features/student-chat/utils/format";
@@ -184,7 +184,7 @@ export function SupportComposer({
                     </button>
                 </div>
 
-                <Textarea
+                <ChatTextarea
                     value={body}
                     onChange={(event) => setBody(event.target.value)}
                     onKeyDown={(event) => {
@@ -193,7 +193,6 @@ export function SupportComposer({
                             event.currentTarget.form?.requestSubmit();
                         }
                     }}
-                    rows={1}
                     dir={codeMode ? "ltr" : "rtl"}
                     placeholder={
                         codeMode
@@ -202,8 +201,8 @@ export function SupportComposer({
                     }
                     className={
                         codeMode
-                            ? "min-h-12 flex-1 font-mono text-left"
-                            : "min-h-12 flex-1"
+                            ? "flex-1 font-mono text-left"
+                            : "flex-1"
                     }
                     disabled={isSending}
                 />

@@ -53,6 +53,19 @@ class StudentChatTest extends TestCase
         $this->assertDatabaseHas('users', ['phone' => '989123456789', 'role' => 'student']);
     }
 
+    public function test_registration_rejects_persian_password_characters(): void
+    {
+        $this->postJson('/api/register/student', [
+            'first_name' => 'زهرا',
+            'last_name' => 'کریمی',
+            'phone' => '09123456789',
+            'password' => 'secret123فارسی',
+            'password_confirmation' => 'secret123فارسی',
+            'course' => 'school',
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.password.0', 'لطفاً کیبوردتان را انگلیسی کنید.');
+    }
+
     /**
      * هر دو فرمت مجاز ورودی پذیرفته و به یک شماره‌ی نرمال تبدیل می‌شوند.
      */
@@ -386,6 +399,27 @@ class StudentChatTest extends TestCase
         $this->assertSame($secondAgent->id, $conversation->fresh()->support_id);
     }
 
+    public function test_conversation_messages_are_newest_first_for_student_and_support(): void
+    {
+        $student = $this->makeStudent();
+        $support = $this->makeSupport();
+        $conversation = Conversation::create(['student_id' => $student->id]);
+        $conversation->messages()->create(['sender_id' => $student->id, 'type' => 'text', 'body' => 'قدیمی']);
+        $conversation->messages()->create(['sender_id' => $student->id, 'type' => 'text', 'body' => 'جدید']);
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson("/api/conversations/{$conversation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.messages.0.body', 'جدید')
+            ->assertJsonPath('data.messages.1.body', 'قدیمی');
+
+        $this->actingAs($support, 'sanctum')
+            ->getJson("/api/support/conversations/{$conversation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.messages.0.body', 'جدید')
+            ->assertJsonPath('data.messages.1.body', 'قدیمی');
+    }
+
     public function test_support_reply_increments_student_unread_counter(): void
     {
         $student = $this->makeStudent();
@@ -422,14 +456,17 @@ class StudentChatTest extends TestCase
         $conversation = Conversation::create(['student_id' => $student->id]);
         $conversation->messages()->create(['sender_id' => $student->id, 'type' => 'text', 'body' => 'سلام']);
         $conversation->update(['unread_support_count' => 2, 'last_message_preview' => 'سلام', 'last_message_at' => now()]);
+        $olderConversation = Conversation::create(['student_id' => $student->id]);
+        $olderConversation->update(['unread_support_count' => 1, 'last_message_at' => now()->subMinute()]);
 
         $this->actingAs($support, 'sanctum')
             ->getJson('/api/support/conversations/notifications')
             ->assertStatus(200)
-            ->assertJsonPath('unread_total', 2)
-            ->assertJsonPath('unread_conversations', 1)
-            ->assertJsonPath('latest.conversation_id', $conversation->id)
-            ->assertJsonPath('latest.student_name', 'دانشجو تست');
+            ->assertJsonPath('unread_total', 3)
+            ->assertJsonPath('unread_conversations', 2)
+            ->assertJsonPath('unread.0.conversation_id', $conversation->id)
+            ->assertJsonPath('unread.0.student_name', 'دانشجو تست')
+            ->assertJsonPath('unread.1.conversation_id', $olderConversation->id);
     }
 
     public function test_remaining_percentage_is_zero_when_quota_is_empty(): void

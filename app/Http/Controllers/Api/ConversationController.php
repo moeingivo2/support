@@ -238,8 +238,8 @@ class ConversationController extends Controller
     {
         return $conversation->messages()
             ->with('sender')
-            ->orderBy('created_at')
-            ->orderBy('id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get()
             ->map(fn ($message): array => $this->messagePayload($message))
             ->all();

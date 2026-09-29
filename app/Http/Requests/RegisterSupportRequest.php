@@ -16,7 +16,7 @@ class RegisterSupportRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|min:10|unique:users,phone',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'not_regex:/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u'],
         ];
     }
 
@@ -29,6 +29,7 @@ class RegisterSupportRequest extends FormRequest
             'password.required' => 'رمز عبور الزامی است',
             'password.min' => 'رمز عبور باید حداقل ۶ کاراکتر باشد',
             'password.confirmed' => 'تکرار رمز عبور مطابقت ندارد',
+            'password.not_regex' => 'لطفاً کیبوردتان را انگلیسی کنید.',
         ];
     }
 }

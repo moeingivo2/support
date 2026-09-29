@@ -54,11 +54,15 @@ async function playTone(): Promise<void> {
     if (!context) return;
 
     if (context.state === "suspended") {
+        armFirstInteractionPlayback();
         await context.resume().catch(() => undefined);
     }
 
     // اگر مرورگر همچنان پخش را مسدود کند، بی‌صدا رد می‌شویم
-    if (context.state !== "running") return;
+    if (context.state !== "running") {
+        armFirstInteractionPlayback();
+        return;
+    }
 
     const now = context.currentTime;
 
