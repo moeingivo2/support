@@ -73,7 +73,11 @@ export function ChatSidebar({
                             onClick={() => onSelect(conversation.id)}
                             aria-current={active ? "page" : undefined}
                             className={cn(
-                                "group flex w-full flex-col gap-1 rounded-2xl border p-3 text-right transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                // روی دسکتاپ با فهرست بلند ( ده‌ها گفتگو )
+                                // ردیف‌ها بزرگ‌تر و خواناتر می‌شوند؛ روی گوشی
+                                // همین فهرست داخل منوی همبرگری است و فشرده
+                                // می‌ماند.
+                                "group flex w-full flex-col gap-1 rounded-2xl border p-3 text-right transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 md:gap-1.5 md:p-4",
                                 active
                                     ? "border-primary-line bg-primary-soft"
                                     : "border-transparent hover:border-hairline hover:bg-surface-2",
@@ -82,7 +86,7 @@ export function ChatSidebar({
                             <span className="flex items-center gap-2">
                                 <span
                                     className={cn(
-                                        "line-clamp-1 flex-1 text-sm font-semibold",
+                                        "line-clamp-1 flex-1 text-sm font-semibold md:text-base",
                                         active ? "text-accent-ink" : "text-ink",
                                     )}
                                 >
@@ -96,11 +100,11 @@ export function ChatSidebar({
                                     </span>
                                 ) : null}
                             </span>
-                            <span className="line-clamp-1 text-xs text-ink-2">
+                            <span className="line-clamp-1 text-xs text-ink-2 md:text-sm">
                                 {conversation.last_message_preview ??
                                     "بدون پیام"}
                             </span>
-                            <span className="flex items-center justify-between text-[11px] text-ink-3">
+                            <span className="flex items-center justify-between text-[11px] text-ink-3 md:text-xs">
                                 <span>
                                     {formatConversationDate(
                                         conversation.last_message_at,

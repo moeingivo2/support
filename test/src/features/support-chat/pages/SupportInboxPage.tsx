@@ -188,17 +188,19 @@ export default function SupportInboxPage() {
             />
         ) : (
             <div className="space-y-3">
+                {/* در RTL سمت راست یعنی ابتدای سطر؛ دکمه هم‌عرض با باکس
+                    دانشجو تا لبه‌ی کادر بخواند. */}
                 <button
                     type="button"
                     onClick={backToStudents}
-                    className="inline-flex h-11 w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[transform,background-color,border-color] duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.98]"
+                    className="flex w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-sm font-semibold text-ink transition-[background-color,border-color,transform] duration-[220ms] ease-spring-snappy hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.99]"
                 >
                     <ChevronRight className="size-4" aria-hidden="true" />
                     بازگشت به همه‌ی دانشجویان
                 </button>
 
                 {selectedStudent ? (
-                    <div className="rounded-2xl border border-hairline bg-surface-2 px-3 py-3">
+                    <div className="rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-right">
                         <p className="truncate text-sm font-bold text-ink">
                             {selectedStudent.student.name}
                         </p>

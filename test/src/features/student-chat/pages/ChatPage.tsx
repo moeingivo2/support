@@ -205,7 +205,7 @@ export default function ChatPage() {
             {/* lg:flex لازم است: Card ذاتاً display:block است و بدون آن
                 flex-column بی‌اثر می‌ماند، ارتفاع کارت بی‌کران می‌شود و
                 اسکرول داخلی از کار می‌افتد. */}
-            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:flex">
+            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:flex xl:w-[22rem]">
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     {sidebar}
                 </div>

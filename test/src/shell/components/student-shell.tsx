@@ -5,7 +5,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/shared/api/logo";
 import { Button } from "@/shared/ui/button";
-import { StatusPill } from "@/shared/ui/status-pill";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { useAuth } from "@/shared/services/auth-context";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
@@ -53,29 +52,18 @@ export default function StudentShell({ children }: { children: ReactNode }) {
         >
             <header className="sticky top-0 z-30 shrink-0 border-b border-hairline bg-glass backdrop-blur-xl">
                 <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
-                    {/* سمت راست: نام و سهمیه، فقط روی دسکتاپ */}
-                    <div className="me-auto hidden items-center gap-2 md:flex">
-                        {profile ? (
-                            <StatusPill
-                                tone={
-                                    profile.is_low_on_chats
-                                        ? "danger"
-                                        : "info"
-                                }
-                            >
-                                <Wallet className="size-3" />
-                                {toPersianDigits(profile.remaining_chats)} چت
-                            </StatusPill>
-                        ) : null}
-                        <span className="max-w-40 truncate text-xs text-ink-2">
-                            {user?.name}
-                        </span>
-                    </div>
-
-                    {/* سمت چپ: همبرگری، لوگو، تم و خروج.
-                        margin-inline-start:auto در RTL فضای خالی را از
-                        راست می‌گیرد و این گروه را به گوشه‌ی چپ می‌برد. */}
+                    {/* گروه چپ؛ روی دسکتاپ سمت راست خالی می‌ماند چون نام
+                        کاربر و سهمیه داخل همین گروه آمده‌اند. */}
                     <div className="ms-auto flex items-center gap-1.5">
+                        {/* تعداد گفتگوی باقی‌مانده — روی دسکتاپ همیشه دیده می‌شود */}
+                        {profile ? (
+                            <span className="hidden items-center gap-1.5 rounded-full border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink md:flex">
+                                <Wallet className="size-3.5" aria-hidden="true" />
+                                {toPersianDigits(profile.remaining_chats)}{" "}
+                                گفتگوی باقی‌مانده
+                            </span>
+                        ) : null}
+
                         <Dialog.Root
                             open={isMenuOpen}
                             onOpenChange={setIsMenuOpen}
@@ -84,6 +72,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
+                                    className="md:hidden"
                                     aria-label="باز کردن منو"
                                 >
                                     <Menu />
@@ -228,7 +217,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                         <Link
                             to="/chat"
                             aria-label="خانه"
-                            className="flex items-center gap-2.5 rounded-2xl px-1"
+                            className="flex items-center gap-2.5 rounded-2xl px-1 md:hidden"
                         >
                             <Logo size={36} />
                         </Link>
