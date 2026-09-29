@@ -117,10 +117,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                 </Dialog.Content>
                             </Dialog.Portal>
                         </Dialog.Root>
+                        {/*
+                            دکمه بازگشت در انتهای هدر می‌نشیند تا در RTL به
+                            گوشه‌ی راست بیفتد؛ اگر اولین فرزند گروه
+                            mr-auto باشد، همان سمت چپ می‌افتد.
+                        */}
+                        {canGoBack ? (
+                            <BackButton
+                                fallbackPath={homePath}
+                                className="max-md:px-2.5"
+                            />
+                        ) : null}
+                        {/* mr-auto مثل قبل گروه را به لبه می‌چسباند؛ فقط
+                            دکمه بازگشت از آن بیرون آمده و سمت راست نشسته. */}
                         <div className="mr-auto flex items-center gap-2">
-                            {canGoBack ? (
-                                <BackButton fallbackPath={homePath} className="max-md:px-2.5" />
-                            ) : null}
                             <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary-line bg-primary-soft text-sm font-bold text-accent-ink">
                                 {getUserInitial(user?.name)}
                             </span>
