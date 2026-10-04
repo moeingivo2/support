@@ -28,9 +28,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
                 className={className}
             >
                 {isDark ? (
-                    <Sun className="icon-settle" />
+                    <Sun className="motion-enter" />
                 ) : (
-                    <Moon className="icon-settle" />
+                    <Moon className="motion-enter" />
                 )}
             </Button>
         </Tooltip>

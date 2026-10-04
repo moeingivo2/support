@@ -32,10 +32,10 @@ export function NotificationSoundToggle() {
             className={cn(
                 "inline-flex h-11 w-11 items-center justify-center rounded-full",
                 "border border-hairline bg-surface-2 text-ink-2",
-                "transition-transform duration-[220ms] ease-spring-snappy",
-                "hover:-translate-y-0.5 hover:text-ink",
+                "transition-colors duration-150 ease-out",
+                " hover:text-ink",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
-                "active:scale-95",
+                "",
             )}
         >
             {isMuted ? (

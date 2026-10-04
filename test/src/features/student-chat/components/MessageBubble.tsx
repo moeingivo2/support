@@ -1,5 +1,9 @@
-import { FileCode2, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Copy, FileCode2, FileText } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/button";
+import { useToast } from "@/shared/ui/toast";
+import { copyTextToClipboard } from "@/shared/lib/clipboard";
 import type { ActorRole, ChatMessage } from "../types/chat";
 import { formatFileSize, formatMessageTime } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
@@ -35,20 +39,43 @@ export function MessageBubble({
     isOwn,
     showAttribution = false,
 }: MessageBubbleProps) {
+    const toast = useToast();
+    const [copied, setCopied] = useState(false);
+    const copiedTimeoutRef = useRef<number | null>(null);
     const actorRole = message.actor_role ?? "student";
     const authorName =
         message.actor_name ?? message.sender.name ?? ROLE_LABEL[actorRole];
 
+    useEffect(() => () => {
+        if (copiedTimeoutRef.current !== null) {
+            window.clearTimeout(copiedTimeoutRef.current);
+        }
+    }, []);
+
+    async function handleCopyCode() {
+        if (!message.body) return;
+        try {
+            await copyTextToClipboard(message.body);
+            setCopied(true);
+            if (copiedTimeoutRef.current !== null) {
+                window.clearTimeout(copiedTimeoutRef.current);
+            }
+            copiedTimeoutRef.current = window.setTimeout(() => setCopied(false), 1800);
+        } catch {
+            toast.error("کپی کردن کد انجام نشد.");
+        }
+    }
+
     return (
         <div
             className={cn(
-                "flex w-full",
+                "flex w-full shrink-0",
                 isOwn ? "justify-start" : "justify-end",
             )}
         >
             <div
                 className={cn(
-                    "group relative max-w-[min(78%,34rem)] overflow-hidden rounded-3xl border px-4 py-3 shadow-[var(--c-shadow-soft)] transition-transform duration-[460ms] ease-spring-gentle hover:-translate-y-0.5",
+                    "group relative max-w-[min(78%,34rem)] overflow-hidden rounded-3xl border px-4 py-3 shadow-[var(--c-shadow-soft)] transition-colors duration-150 ease-out ",
                     isOwn
                         ? "border-primary-line bg-primary-soft"
                         : "border-hairline bg-surface-2",
@@ -91,13 +118,19 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "code" && message.body ? (
-                    <div className="space-y-2" dir="ltr">
+                    <div className="min-w-0 space-y-2" dir="ltr">
+                        <div className="flex items-center justify-between gap-2">
                         {message.language ? (
                             <span className="inline-block rounded-lg bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-alret-gold">
                                 {message.language}
                             </span>
                         ) : null}
-                        <pre className="overflow-x-auto rounded-2xl border border-hairline bg-black/45 p-3 text-left text-[13px] leading-6 text-emerald-200">
+                            <Button type="button" variant="ghost" onClick={() => void handleCopyCode()} className="h-8 shrink-0 rounded-lg px-2 text-[11px]" aria-label={copied ? "کد کپی شد" : "کپی کد"}>
+                                {copied ? <Check /> : <Copy />}
+                                {copied ? "کپی شد" : "کپی"}
+                            </Button>
+                        </div>
+                        <pre className="max-w-full overflow-x-auto rounded-2xl border border-hairline bg-black/45 p-3 text-left text-[13px] leading-6 text-emerald-200">
                             <code>{message.body}</code>
                         </pre>
                     </div>

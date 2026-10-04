@@ -12,7 +12,7 @@ export const SPLASH_MIN_MS = 420;
 export const SPLASH_MAX_MS = 2200;
 
 /** مدت انیمیشن خروج */
-export const SPLASH_LEAVE_MS = 360;
+export const SPLASH_LEAVE_MS = 180;
 
 /**
  * انتظار برای آماده‌شدن واقعی صفحه: فونت‌ها، پایان بارگذاری مستند،

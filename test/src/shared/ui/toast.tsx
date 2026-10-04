@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                         <div
                             key={toast.id}
                             className={cn(
-                                "pointer-events-auto flex animate-[toast-in_460ms_var(--spring-gentle)] items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold text-ink shadow-[var(--c-shadow-soft),0_0_0_1px_var(--c-hairline)] backdrop-blur-xl",
+                                "pointer-events-auto flex animate-[toast-in_180ms_var(--motion-ease)] items-center gap-3 rounded-3xl border px-4 py-3 text-sm font-semibold text-ink shadow-[var(--c-shadow-soft),0_0_0_1px_var(--c-hairline)] backdrop-blur-xl",
                                 style.container,
                             )}
                         >

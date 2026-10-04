@@ -1,18 +1,16 @@
-import { useRef, useState, type FormEvent } from "react";
-import {
-    Image as ImageIcon,
-    Loader2,
-    Mic,
-    Paperclip,
-    Send,
-    X,
-} from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Check, Image as ImageIcon, Loader2, Mic, Paperclip, RotateCcw, Send } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
-import { Button, MagneticSendButton } from "@/shared/ui/button";
+import { Button, SendButton } from "@/shared/ui/button";
 import { ChatTextarea } from "@/shared/ui/textarea";
 import type { OutgoingAttachment } from "../types/chat";
-import { formatFileSize } from "../utils/format";
+import { ChatAttachmentPreview } from "./ChatAttachmentPreview";
+import { CodeEditor } from "./CodeEditor";
+import { VoicePreview } from "./VoicePreview";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { getChatSendError } from "../utils/chat-error";
+
+type VoiceState = "idle" | "recording" | "preview";
 
 type ChatComposerProps = {
     onSend: (
@@ -21,57 +19,79 @@ type ChatComposerProps = {
             codeMode: boolean;
             language: string;
             attachment?: OutgoingAttachment;
+            signal?: AbortSignal;
         },
-    ) => void;
+    ) => Promise<unknown>;
     codeMode: boolean;
     isSending: boolean;
-    error: string | null;
+    isOnline: boolean;
     disabled?: boolean;
 };
-
-const CODE_LANGUAGES = [
-    "plain",
-    "python",
-    "php",
-    "javascript",
-    "sql",
-    "bash",
-    "json",
-];
 
 export function ChatComposer({
     onSend,
     codeMode,
     isSending,
-    error,
+    isOnline,
     disabled = false,
 }: ChatComposerProps) {
     const [body, setBody] = useState("");
     const [language, setLanguage] = useState("plain");
-    const [attachment, setAttachment] = useState<OutgoingAttachment | null>(
-        null,
-    );
-    const [isRecording, setIsRecording] = useState(false);
+    const [attachment, setAttachment] = useState<OutgoingAttachment | null>(null);
+    const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+    const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+    const [sendError, setSendError] = useState<string | null>(null);
+    const submitLockRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const imageInputRef = useRef<HTMLInputElement | null>(null);
+    const isDisabled = disabled || !isOnline;
+    const canSend = !isSending && !isDisabled && (body.trim() !== "" || attachment !== null);
 
-    const canSend =
-        !isSending && !disabled && (body.trim() !== "" || attachment !== null);
+    useEffect(() => {
+        if (!isOnline) {
+            abortControllerRef.current?.abort();
+        }
+    }, [isOnline]);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        if (!canSend) return;
+    async function handleSubmit(event?: FormEvent<HTMLFormElement>, retry = false) {
+        event?.preventDefault();
+        if (submitLockRef.current || (!retry && !canSend)) return;
+        if (!navigator.onLine) {
+            setSendState("failed");
+            setSendError("اتصال اینترنت برقرار نیست. پیام یا فایل ارسال نشد؛ برای تلاش دوباره روی «تلاش مجدد» بزنید.");
+            return;
+        }
 
-        onSend(body.trim(), {
-            codeMode,
-            language: codeMode ? language : "plain",
-            attachment: attachment ?? undefined,
-        });
-        setBody("");
-        setAttachment(null);
+        submitLockRef.current = true;
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        setSendError(null);
+        setSendState("sending");
+
+        try {
+            await onSend(codeMode ? body : body.trim(), {
+                codeMode,
+                language: codeMode ? language : "plain",
+                attachment: attachment ?? undefined,
+                signal: controller.signal,
+            });
+            setBody("");
+            setAttachment(null);
+            setVoiceState("idle");
+            setSendState("sent");
+        } catch (failure) {
+            setSendState("failed");
+            setSendError(!navigator.onLine
+                ? "اتصال اینترنت هنگام ارسال قطع شد. پیام یا فایل حفظ شده است؛ برای تلاش دوباره روی «تلاش مجدد» بزنید."
+                : getChatSendError(failure, attachment !== null));
+        } finally {
+            submitLockRef.current = false;
+            abortControllerRef.current = null;
+        }
     }
 
-    function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    function handleTextKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             event.currentTarget.form?.requestSubmit();
@@ -80,23 +100,27 @@ export function ChatComposer({
 
     function pickFile(input: HTMLInputElement | null) {
         const file = input?.files?.[0];
-        if (!file) return;
-        setAttachment({ file });
+        if (file) {
+            setAttachment({ file });
+            setSendState("idle");
+            setSendError(null);
+        }
         if (input) input.value = "";
     }
 
-    if (isRecording) {
+    if (voiceState === "recording") {
         return (
-            <div className="space-y-2 border-t border-hairline bg-sunken p-3 md:p-4">
+            <div className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:p-4">
+                {!isOnline ? <Alert tone="danger">اتصال اینترنت برقرار نیست.</Alert> : null}
                 <VoiceRecorder
-                    // با باز شدن پنل ضبط، ضبط بلافاصله شروع می‌شود تا کاربر
-                    // مجبور به کلیک دوم نباشد.
                     autoStart
-                    disabled={isSending}
-                    onCancel={() => setIsRecording(false)}
+                    disabled={isDisabled || isSending}
+                    onCancel={() => setVoiceState("idle")}
                     onRecorded={(file, durationSeconds) => {
                         setAttachment({ file, durationSeconds });
-                        setIsRecording(false);
+                        setSendState("idle");
+                        setSendError(null);
+                        setVoiceState("preview");
                     }}
                 />
             </div>
@@ -105,63 +129,87 @@ export function ChatComposer({
 
     return (
         <form
-            onSubmit={handleSubmit}
+            onSubmit={(event) => void handleSubmit(event)}
             className="space-y-3 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:p-4"
         >
-            {error ? <Alert tone="danger">{error}</Alert> : null}
+            {!isOnline && sendState !== "failed" ? <Alert tone="danger">اتصال اینترنت برقرار نیست. پیام یا فایل را پس از بازگشت اتصال می‌توانید ارسال کنید.</Alert> : null}
+            {isOnline ? <p className="text-xs text-succ-txt" role="status">● آنلاین</p> : null}
+            {sendState === "failed" && sendError ? (
+                <Alert tone="danger">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span><strong>ارسال ناموفق بود.</strong> {sendError}</span>
+                        <Button type="button" variant="ghost" disabled={!isOnline || isSending} onClick={() => void handleSubmit(undefined, true)}>
+                            <RotateCcw /> تلاش مجدد
+                        </Button>
+                    </div>
+                </Alert>
+            ) : null}
+            {sendState === "sending" || sendState === "sent" ? (
+                <p aria-live="polite" className="text-xs text-ink-2">
+                    {sendState === "sending" ? (attachment ? "در حال بارگذاری فایل…" : "در حال ارسال پیام…") : <span className="inline-flex items-center gap-1 text-succ-txt"><Check className="size-4" /> ارسال شد</span>}
+                </p>
+            ) : null}
 
             {attachment ? (
-                <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface-2 p-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-accent-ink">
-                        <Paperclip className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-ink">
-                            {attachment.file.name}
-                        </span>
-                        <span className="block text-[11px] text-ink-2">
-                            {formatFileSize(attachment.file.size)}
-                        </span>
-                    </span>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setAttachment(null)}
-                        aria-label="حذف پیوست"
-                        disabled={isSending}
-                    >
-                        <X />
-                    </Button>
+                <div className="space-y-2">
+                    {attachment.durationSeconds !== undefined ? (
+                        <VoicePreview
+                            file={attachment.file}
+                            durationSeconds={attachment.durationSeconds}
+                            disabled={isSending}
+                            onDelete={() => { setAttachment(null); setSendState("idle"); setSendError(null); }}
+                            onRerecord={() => {
+                                setAttachment(null);
+                                setSendState("idle");
+                                setSendError(null);
+                                setVoiceState("recording");
+                            }}
+                        />
+                    ) : (
+                        <ChatAttachmentPreview
+                            attachment={attachment}
+                            disabled={isSending}
+                            onRemove={() => { setAttachment(null); setSendState("idle"); setSendError(null); }}
+                        />
+                    )}
                 </div>
             ) : null}
 
             {codeMode ? (
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-bold text-alret-gold">
-                        حالت کد فعال است
-                    </span>
-                    {CODE_LANGUAGES.map((item) => (
-                        <button
-                            key={item}
-                            type="button"
-                            onClick={() => setLanguage(item)}
-                            aria-pressed={language === item}
-                            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 ${
-                                language === item
-                                    ? "bg-warn-soft-2 text-alret-gold ring-1 ring-warn-ring"
-                                    : "bg-surface-2 text-ink-2 ring-1 ring-hairline hover:bg-surface-3 hover:text-ink"
-                            }`}
-                        >
-                            {item}
-                        </button>
-                    ))}
+                <CodeEditor
+                    value={body}
+                    onChange={(value) => {
+                        setBody(value);
+                        setSendState("idle");
+                        setSendError(null);
+                    }}
+                    language={language}
+                    onLanguageChange={setLanguage}
+                    disabled={isSending || isDisabled}
+                    onSubmit={() => void handleSubmit()}
+                />
+            ) : (
+                <div className="flex min-w-0 items-end gap-2">
+                    <ChatTextarea
+                        value={body}
+                        onChange={(event) => { setBody(event.target.value); setSendState("idle"); setSendError(null); }}
+                        onKeyDown={handleTextKeyDown}
+                        dir="rtl"
+                        placeholder="پیام خود را بنویسید..."
+                        aria-label="متن پیام"
+                        disabled={isSending || isDisabled}
+                        // ارتفاع، فاصله و اندازه‌ی متن از ChatTextarea پایه
+                        // می‌آید؛ اینجا فقط flex-1 برای پر کردن عرض باقی‌مانده
+                        // و رنگ سطحِ متفاوت از فرم‌های دیگر لازم است.
+                        className="max-h-36 flex-1 bg-surface-2"
+                    />
                 </div>
-            ) : null}
+            )}
 
-            {/* موبایل: ابزارها بالا، ورودی و ارسال پایین. دسکتاپ: یک ردیف.
-                این عنصر خودش شکست را مدیریت می‌کند، پس نباید sm:contents داشته باشد. */}
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {/* یک ردیف در همه‌ی اندازه‌ها: چیدمان ستونیِ قبلی روی گوشی ارتفاع
+                زیادی می‌گرفت. shrink-0 از فشرده شدن دکمه‌ها در عرض کم
+                جلوگیری می‌کند. */}
+            <div className="flex items-center justify-between gap-2">
                 <input
                     ref={imageInputRef}
                     type="file"
@@ -175,78 +223,40 @@ export function ChatComposer({
                     className="hidden"
                     onChange={() => pickFile(fileInputRef.current)}
                 />
-
-                {/* دکمه‌های پیوست: هم‌اندازه، لنگر راست در RTL */}
-                <div className="composer-toolbar">
-                    <button
-                        type="button"
-                        className="composer-tool"
-                        onClick={() => imageInputRef.current?.click()}
-                        disabled={isSending || disabled}
-                        aria-label="پیوست تصویر"
-                        title="پیوست تصویر"
-                    >
+                <div className="composer-toolbar shrink-0">
+                    <button type="button" className="composer-tool" onClick={() => imageInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست تصویر" title="پیوست تصویر">
                         <ImageIcon className="size-4" aria-hidden="true" />
                     </button>
-                    <button
-                        type="button"
-                        className="composer-tool"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isSending || disabled}
-                        aria-label="پیوست فایل"
-                        title="پیوست فایل"
-                    >
-                        <Paperclip
-                            className="size-4"
-                            aria-hidden="true"
-                        />
+                    <button type="button" className="composer-tool" onClick={() => fileInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست فایل" title="پیوست فایل">
+                        <Paperclip className="size-4" aria-hidden="true" />
                     </button>
-                    <button
-                        type="button"
-                        className="composer-tool"
-                        onClick={() => setIsRecording(true)}
-                        disabled={isSending || disabled}
-                        aria-label="ضبط پیام صوتی"
-                        title="ضبط پیام صوتی"
-                    >
+                    <button type="button" className="composer-tool" onClick={() => setVoiceState("recording")} disabled={isSending || isDisabled} aria-label="ضبط پیام صوتی" title="ضبط پیام صوتی">
                         <Mic className="size-4" aria-hidden="true" />
                     </button>
+                    <span className="sr-only" aria-live="polite">{isSending ? "در حال ارسال پیام" : ""}</span>
                 </div>
-
-                <ChatTextarea
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    dir={codeMode ? "ltr" : "rtl"}
-                    placeholder={
-                        codeMode
-                            ? "کد خود را بنویسید..."
-                            : "پیام خود را بنویسید..."
-                    }
-                    className={
-                        codeMode
-                            ? "w-full min-h-12 sm:flex-1 sm:font-mono sm:text-left"
-                            : "w-full min-h-12 sm:flex-1"
-                    }
-                    disabled={isSending}
-                />
-
-                <MagneticSendButton
-                    disabled={!canSend}
-                    aria-label="ارسال پیام"
-                    className="self-end sm:self-auto"
-                >
-                    {isSending ? (
-                        <Loader2 className="animate-spin" />
+                {/* shrink + truncate: برچسب «ارسال پیام صوتی» در عرض کم نباید
+                    دکمه را از کادر بیرون بزند. */}
+                <div className="flex min-w-0 shrink items-center justify-end">
+                    {attachment ? (
+                        <Button type="submit" disabled={!canSend} className="min-w-0 shrink">
+                        {sendState === "sending" || isSending ? <Loader2 className="animate-spin" /> : sendState === "sent" ? <Check /> : <Send />}
+                            <span className="truncate">
+                                {isSending
+                                    ? "در حال ارسال..."
+                                    : attachment.durationSeconds !== undefined
+                                      ? "ارسال پیام صوتی"
+                                      : "ارسال فایل"}
+                            </span>
+                        </Button>
                     ) : (
-                        <Send />
+                        <SendButton disabled={!canSend} aria-label={codeMode ? "ارسال کد" : "ارسال پیام"}>
+                            {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+                        </SendButton>
                     )}
-                </MagneticSendButton>
+                </div>
             </div>
-
-            <p className="hidden text-[11px] text-ink-3 sm:block">
-                برای ارسال پیام Enter و برای شروع خط جدید Shift+Enter را بزنید.
-            </p>
+            {!codeMode ? <p className="hidden text-[11px] text-ink-3 sm:block">برای ارسال پیام Enter و برای خط جدید Shift+Enter را بزنید.</p> : null}
         </form>
     );
 }

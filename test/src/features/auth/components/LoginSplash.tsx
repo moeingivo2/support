@@ -26,7 +26,7 @@ export default function LoginSplash({ onComplete }: LoginSplashProps) {
         setProgress(100);
         setLeaving(true);
         timers.current.push(
-            window.setTimeout(onComplete, SPLASH_LEAVE_MS + 240),
+            window.setTimeout(onComplete, SPLASH_LEAVE_MS),
         );
     };
 
@@ -83,7 +83,7 @@ export default function LoginSplash({ onComplete }: LoginSplashProps) {
             <div className="login-splash__glow login-splash__glow--two" />
             <div className="login-splash__grid" />
 
-            <div className="login-splash__content">
+            <div className="login-splash__content motion-enter">
                 <p className="login-splash__eyebrow">WELCOME BACK</p>
                 <button
                     className="login-splash__mark"
@@ -109,7 +109,7 @@ export default function LoginSplash({ onComplete }: LoginSplashProps) {
                     <span className="login-splash__track">
                         <span
                             className="login-splash__fill"
-                            style={{ width: `${progress}%` }}
+                            style={{ transform: `scaleX(${progress / 100})` }}
                         />
                     </span>
                     <span className="login-splash__meta">

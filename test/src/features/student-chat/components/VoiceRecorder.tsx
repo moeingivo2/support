@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Square, Trash2 } from "lucide-react";
+import { Loader2, Square, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { useMicLevelFrame, VoiceWaveform } from "@/shared/ui/voice-waveform";
 import { formatDuration } from "../utils/format";
@@ -65,6 +65,22 @@ function describeRecording(
 }
 
 /**
+ * OGG را برای ضبط انتخاب می‌کند، اگر مرورگر واقعاً آن را پشتیبانی کند.
+ * در غیر این صورت، MediaRecorder با قالب بومی مرورگر ساخته می‌شود تا فایل
+ * معتبر بماند و پسوند از MIME واقعی خروجی تعیین شود.
+ */
+function createMediaRecorder(stream: MediaStream): MediaRecorder {
+    const oggMimeTypes = ["audio/ogg;codecs=opus", "audio/ogg"];
+    const supportedOggMimeType = oggMimeTypes.find((mimeType) =>
+        MediaRecorder.isTypeSupported(mimeType),
+    );
+
+    return supportedOggMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedOggMimeType })
+        : new MediaRecorder(stream);
+}
+
+/**
  * علت واقعی شکست دسترسی به میکروفون را به فارسی برمی‌گرداند.
  *
  * پیام یکسان برای همه‌ی حالت‌ها بی‌فایده بود: کاربر نمی‌فهمید باید از
@@ -109,21 +125,68 @@ export function VoiceRecorder({
 }: VoiceRecorderProps) {
     const [elapsed, setElapsed] = useState(0);
     const [isRecording, setIsRecording] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const startedAtRef = useRef(0);
     const timerRef = useRef<number | null>(null);
+    const requestIdRef = useRef(0);
+    const isMountedRef = useRef(true);
     const levelsRef = useMicLevelFrame(stream);
 
     useEffect(() => {
+        isMountedRef.current = true;
         return () => {
-            if (timerRef.current) window.clearInterval(timerRef.current);
-            if (recorderRef.current?.state === "recording")
-                recorderRef.current.stop();
+            isMountedRef.current = false;
+            requestIdRef.current += 1;
+            if (timerRef.current !== null) {
+                window.clearInterval(timerRef.current);
+            }
+            const recorder = recorderRef.current;
+            if (recorder) {
+                recorder.ondataavailable = null;
+                recorder.onstop = null;
+                if (recorder.state === "recording") recorder.stop();
+            }
+            streamRef.current?.getTracks().forEach((track) => track.stop());
         };
     }, []);
+
+    const stop = useCallback(() => {
+        if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+        const recorder = recorderRef.current;
+        if (recorder?.state === "recording") recorder.stop();
+        setIsRecording(false);
+        setStream(null);
+    }, []);
+
+    const cancel = useCallback(() => {
+        requestIdRef.current += 1;
+        if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+        const recorder = recorderRef.current;
+        if (recorder) {
+            recorder.ondataavailable = null;
+            recorder.onstop = null;
+            if (recorder.state === "recording") recorder.stop();
+            recorder.stream.getTracks().forEach((track) => track.stop());
+        }
+        recorderRef.current = null;
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        setStream(null);
+        setIsRecording(false);
+        setIsStarting(false);
+        onCancel();
+    }, [onCancel]);
 
     const start = useCallback(async () => {
         setError(null);
@@ -136,11 +199,19 @@ export function VoiceRecorder({
             return;
         }
 
+        const requestId = ++requestIdRef.current;
+        setIsStarting(true);
+        let acquiredStream: MediaStream | null = null;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
             });
-            const recorder = new MediaRecorder(stream);
+            acquiredStream = stream;
+            if (!isMountedRef.current || requestId !== requestIdRef.current) {
+                stream.getTracks().forEach((track) => track.stop());
+                return;
+            }
+            const recorder = createMediaRecorder(stream);
             chunksRef.current = [];
             recorderRef.current = recorder;
 
@@ -150,6 +221,9 @@ export function VoiceRecorder({
 
             recorder.onstop = () => {
                 stream.getTracks().forEach((track) => track.stop());
+                streamRef.current = null;
+                recorderRef.current = null;
+                setIsStarting(false);
                 const { mime, extension } = describeRecording(
                     recorder.mimeType,
                     chunksRef.current[0]?.type,
@@ -169,8 +243,10 @@ export function VoiceRecorder({
 
             startedAtRef.current = Date.now();
             setElapsed(0);
+            streamRef.current = stream;
             setStream(stream);
             setIsRecording(true);
+            setIsStarting(false);
             recorder.start();
 
             timerRef.current = window.setInterval(() => {
@@ -181,39 +257,40 @@ export function VoiceRecorder({
                 if (seconds >= MAX_SECONDS) stop();
             }, 250);
         } catch (error) {
+            if (!isMountedRef.current || requestId !== requestIdRef.current) {
+                return;
+            }
             setError(describeMicFailure(error));
             setIsRecording(false);
+            setIsStarting(false);
+            acquiredStream?.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
             setStream(null);
         }
-    }, []);
+    }, [stop]);
 
-    const stop = useCallback(() => {
-        if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
-        if (recorderRef.current?.state === "recording")
-            recorderRef.current.stop();
-        setIsRecording(false);
-        setStream(null);
-    }, []);
-
-    // شروع خودکار؛ فقط بار اول تا ضبط دوباره از نو آغاز نشود.
-    const startedRef = useRef(false);
     useEffect(() => {
-        if (!autoStart || startedRef.current) return;
-        startedRef.current = true;
-        void start();
+        if (autoStart) void start();
     }, [autoStart, start]);
 
     return (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-danger-line bg-danger-soft px-3 py-2">
             {isRecording ? (
                 <>
-                    <span className="flex items-center gap-2 text-xs font-bold text-err-text">
-                        {/* حلقه‌ی تپش هنگام ضبط */}
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={cancel}
+                        aria-label="حذف و لغو ضبط"
+                    >
+                        <Trash2 />
+                    </Button>
+                    <span
+                        className="flex items-center gap-2 text-xs font-bold text-err-text"
+                        aria-label="در حال ضبط"
+                    >
                         <span className="composer-tool is-recording size-2 border-0 p-0" />
-                        در حال ضبط
                     </span>
                     <span dir="ltr" className="text-xs font-bold text-ink">
                         {toPersianDigits(formatDuration(elapsed))}
@@ -226,9 +303,6 @@ export function VoiceRecorder({
                         idleClassName="bg-err-text/30"
                         ariaLabel="موج زنده‌ی صدای ضبط‌شده"
                     />
-                    <span className="text-[11px] text-ink-2">
-                        حداکثر {toPersianDigits(MAX_SECONDS)} ثانیه
-                    </span>
                     <Button
                         type="button"
                         size="icon"
@@ -244,24 +318,25 @@ export function VoiceRecorder({
                     type="button"
                     variant="ghost"
                     onClick={start}
-                    disabled={disabled}
-                    aria-label="شروع ضبط"
+                    disabled={disabled || isStarting}
+                    aria-label="شروع دوباره ضبط"
                 >
-                    {disabled ? <Loader2 className="animate-spin" /> : <Mic />}
-                    شروع ضبط
+                    {isStarting ? <Loader2 className="animate-spin" /> : <Square />}
+                    {isStarting ? "در حال اتصال به میکروفون" : "تلاش دوباره"}
                 </Button>
             )}
 
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={onCancel}
-                disabled={isRecording}
-                aria-label="انصراف از ضبط"
-            >
-                <Trash2 />
-                انصراف
-            </Button>
+            {!isRecording ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={cancel}
+                    aria-label="لغو ضبط"
+                >
+                    <Trash2 />
+                    لغو
+                </Button>
+            ) : null}
 
             {error ? (
                 <p className="text-xs font-medium text-err-text">{error}</p>

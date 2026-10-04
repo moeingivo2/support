@@ -232,7 +232,7 @@ function NavigationLink({
             to={item.path}
             onClick={onNavigate}
             className={cn(
-                "group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-transparent px-4 py-2.5 text-sm font-medium transition-all duration-[320ms] ease-spring-smooth before:absolute before:right-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-active-blue before:opacity-0 before:shadow-[0_0_14px_var(--c-glow-accent)] before:transition-opacity",
+                "group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-transparent px-4 py-2.5 text-sm font-medium transition-colors duration-150 ease-out before:absolute before:right-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-active-blue before:opacity-0 before:shadow-[0_0_14px_var(--c-glow-accent)] before:transition-opacity",
                 active
                     ? "border-primary-line bg-primary-soft text-accent-ink shadow-[0_10px_25px_-22px_var(--c-glow-accent)] before:opacity-100"
                     : "text-ink-2 hover:border-hairline hover:bg-surface-2 hover:text-ink",

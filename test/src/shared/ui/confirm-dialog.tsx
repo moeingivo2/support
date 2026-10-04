@@ -27,7 +27,7 @@ export function ConfirmDialog({
             onOpenChange={(next) => !next && onClose()}
         >
             <DialogPrimitive.Portal>
-                <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+                <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" />
                 <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 rounded-4xl border border-hairline dialog-surface p-6 md:p-7">
                     <div className="flex items-start justify-between gap-4">
                         <span className="grid size-12 place-items-center rounded-2xl bg-danger-soft text-err-text ring-1 ring-danger-ring">

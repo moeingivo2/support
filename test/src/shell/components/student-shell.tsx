@@ -148,7 +148,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                                                     className={
                                                                         active
                                                                             ? "flex w-full items-center gap-2 rounded-2xl border border-primary-line bg-primary-soft px-3 py-2.5 text-start text-sm font-bold text-accent-ink"
-                                                                            : "flex w-full items-center gap-2 rounded-2xl border border-hairline bg-surface-2 px-3 py-2.5 text-start text-sm font-medium text-ink transition-colors duration-[320ms] ease-spring-smooth hover:bg-surface-3"
+                                                                            : "flex w-full items-center gap-2 rounded-2xl border border-hairline bg-surface-2 px-3 py-2.5 text-start text-sm font-medium text-ink transition-colors duration-150 ease-out hover:bg-surface-3"
                                                                     }
                                                                 >
                                                                     <span className="shrink-0 text-xs font-bold text-ink-2">
@@ -181,7 +181,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                             onClick={() =>
                                                 setIsMenuOpen(false)
                                             }
-                                            className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 transition-colors duration-[320ms] ease-spring-smooth hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                                            className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 transition-colors duration-150 ease-out hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                                         >
                                             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-bold text-accent-ink">
                                                 {user?.name.trim().charAt(0) ??

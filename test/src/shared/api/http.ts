@@ -20,13 +20,14 @@ type RequestOptions = {
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     payload?: unknown;
     query?: Record<string, string | number | undefined>;
+    signal?: AbortSignal;
 };
 
 export async function request<TResponse>(
     url: string,
     options: RequestOptions = {},
 ): Promise<TResponse> {
-    const { method = "GET", payload, query } = options;
+    const { method = "GET", payload, query, signal } = options;
 
     const headers: Record<string, string> = { Accept: "application/json" };
     const token = getToken();
@@ -40,7 +41,7 @@ export async function request<TResponse>(
         body = JSON.stringify(payload);
     }
 
-    return sendRequest<TResponse>(url, { method, headers, body, query });
+    return sendRequest<TResponse>(url, { method, headers, body, query, signal });
 }
 
 /**
@@ -49,6 +50,7 @@ export async function request<TResponse>(
 export async function postMultipart<TResponse>(
     url: string,
     formData: FormData,
+    signal?: AbortSignal,
 ): Promise<TResponse> {
     const headers: Record<string, string> = { Accept: "application/json" };
     const token = getToken();
@@ -60,6 +62,7 @@ export async function postMultipart<TResponse>(
         method: "POST",
         headers,
         body: formData,
+        signal,
     });
 }
 
@@ -68,6 +71,7 @@ type SendOptions = {
     headers: Record<string, string>;
     body: BodyInit | undefined;
     query?: Record<string, string | number | undefined>;
+    signal?: AbortSignal;
 };
 
 async function sendRequest<TResponse>(
@@ -82,6 +86,7 @@ async function sendRequest<TResponse>(
             method: options.method,
             headers: options.headers,
             body: options.body,
+            signal: options.signal,
         });
     } catch {
         throw new HttpApiError(
@@ -119,8 +124,9 @@ export function getJson<TResponse>(
 export function postJson<TRequest, TResponse>(
     url: string,
     payload: TRequest,
+    signal?: AbortSignal,
 ): Promise<TResponse> {
-    return request<TResponse>(url, { method: "POST", payload });
+    return request<TResponse>(url, { method: "POST", payload, signal });
 }
 
 export function putJson<TRequest, TResponse>(

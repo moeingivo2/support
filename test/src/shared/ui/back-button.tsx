@@ -39,10 +39,10 @@ export function BackButton({
             aria-label={label}
             className={cn(
                 "inline-flex h-11 shrink-0 items-center gap-1 rounded-full border border-hairline bg-surface-2 px-3 text-sm font-semibold",
-                "text-ink-2 transition-[transform,background-color,border-color] duration-[220ms] ease-spring-snappy",
-                "hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 hover:text-ink",
+                "text-ink-2 transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out",
+                " hover:border-hairline-strong hover:bg-surface-3 hover:text-ink",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
-                "active:scale-95",
+                "",
                 className,
             )}
         >

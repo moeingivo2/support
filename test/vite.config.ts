@@ -3,7 +3,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:8000'
+// API target for dev proxy.
+//
+// This must be the nginx gateway (port 5173), NOT the php-fpm port 9000.
+// Port 9000 speaks FastCGI, a binary protocol, so an HTTP proxy cannot
+// forward to it — nginx is what translates HTTP into FastCGI via
+// `fastcgi_pass api:9000` in test/nginx.conf. Pointing Vite at 9000
+// directly fails with an empty reply.
+const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:5173'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,8 +21,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: Number(process.env.PORT) || 5173,
-    strictPort: false,
+    port: Number(process.env.PORT) || 5174,
+    strictPort: true,
     open: false,
     proxy: {
       '/api': {

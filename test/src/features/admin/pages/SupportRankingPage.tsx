@@ -154,7 +154,7 @@ export default function SupportRankingPage() {
                                             )
                                         }
                                         aria-expanded={isExpanded}
-                                        className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-4 py-3 text-right transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.99]"
+                                        className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-4 py-3 text-right transition-colors  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 "
                                     >
                                         <span
                                             className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold ${rankTone(row.rank)}`}

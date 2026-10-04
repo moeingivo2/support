@@ -29,7 +29,6 @@ import {
 import { AuthProvider, useAuth } from "@/shared/services/auth-context";
 import { ThemeProvider } from "@/shared/services/theme-context";
 import { ToastProvider } from "@/shared/ui/toast";
-import RouteTransitionSplash from "@/shared/ui/route-transition-splash";
 import LoginSplash from "@/features/auth/components/LoginSplash";
 
 const supportOnlyPaths = new Set([
@@ -162,7 +161,6 @@ function AppRoutes() {
             {showLoginSplash ? (
                 <LoginSplash onComplete={completeLoginSplash} />
             ) : null}
-            <RouteTransitionSplash />
         </>
     );
 }

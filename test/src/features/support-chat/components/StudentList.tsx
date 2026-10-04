@@ -1,5 +1,7 @@
-import { ChevronLeft, MessageSquare, Search } from "lucide-react";
+import { ChevronLeft, MessageSquare, RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
 import type { SupportStudentRow } from "../types/support-chat";
 
@@ -13,10 +15,14 @@ import type { SupportStudentRow } from "../types/support-chat";
 export function StudentList({
     students,
     isPending,
+    isError,
+    onRetry,
     onSelect,
 }: {
     students: SupportStudentRow[];
     isPending: boolean;
+    isError: boolean;
+    onRetry: () => void;
     onSelect: (studentId: number) => void;
 }) {
     const [query, setQuery] = useState("");
@@ -30,6 +36,18 @@ export function StudentList({
                       .toLowerCase()
                       .includes(normalised),
               );
+
+    if (isError) {
+        return (
+            <Alert tone="danger" className="space-y-3">
+                <p>دریافت فهرست دانشجویان ناموفق بود.</p>
+                <Button variant="danger" onClick={onRetry}>
+                    <RefreshCw />
+                    تلاش مجدد
+                </Button>
+            </Alert>
+        );
+    }
 
     if (students.length === 0 && !isPending) {
         return (
@@ -52,7 +70,7 @@ export function StudentList({
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="جستجوی دانشجو"
                     aria-label="جستجوی دانشجو"
-                    className="h-11 w-full rounded-2xl border border-hairline bg-sunken pr-9 pl-3 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-[320ms] ease-spring-smooth placeholder:text-ink-3 focus-visible:border-primary-line-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent)]"
+                    className="h-11 w-full rounded-2xl border border-hairline bg-sunken pr-9 pl-3 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-ink-3 focus-visible:border-primary-line-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent)]"
                 />
             </div>
 
@@ -76,7 +94,7 @@ export function StudentList({
                             <button
                                 type="button"
                                 onClick={() => onSelect(row.student.id)}
-                                className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-right transition-[transform,border-color,background-color] duration-[320ms] ease-spring-smooth hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.99]"
+                                className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-right transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out  hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 "
                             >
                                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-bold text-accent-ink">
                                     {row.student.name.trim().charAt(0) || "؟"}

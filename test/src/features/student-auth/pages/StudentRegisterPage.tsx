@@ -359,10 +359,10 @@ export default function StudentRegisterPage() {
                                                     }}
                                                     aria-pressed={selected}
                                                     className={cn(
-                                                        "group flex flex-col items-start gap-2 rounded-3xl border p-4 text-right transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                        "group flex flex-col items-start gap-2 rounded-3xl border p-4 text-right transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                                         selected
                                                             ? "border-primary-line-2 bg-primary-soft shadow-[0_14px_34px_-22px_var(--c-glow-accent)]"
-                                                            : "border-hairline bg-surface-2 hover:-translate-y-0.5 hover:border-hairline hover:bg-surface-2",
+                                                            : "border-hairline bg-surface-2  hover:border-hairline hover:bg-surface-2",
                                                     )}
                                                 >
                                                     <span
@@ -419,10 +419,10 @@ export default function StudentRegisterPage() {
                                                         }
                                                         aria-pressed={selected}
                                                         className={cn(
-                                                            "flex items-center gap-3 rounded-2xl border p-4 text-right transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                            "flex items-center gap-3 rounded-2xl border p-4 text-right transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                                             selected
                                                                 ? "border-warn-line bg-warn-soft"
-                                                                : "border-hairline bg-surface-2 hover:-translate-y-0.5 hover:border-hairline hover:bg-surface-2",
+                                                                : "border-hairline bg-surface-2  hover:border-hairline hover:bg-surface-2",
                                                         )}
                                                     >
                                                         <span
@@ -485,10 +485,10 @@ export default function StudentRegisterPage() {
                                                             }
                                                             aria-label={`جلسه ${session}`}
                                                             className={cn(
-                                                                "grid aspect-square place-items-center rounded-2xl border text-sm font-bold transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                                "grid aspect-square place-items-center rounded-2xl border text-sm font-bold transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                                                 selected
                                                                     ? "border-primary-line-2 bg-primary-soft-2 text-accent-ink shadow-[0_10px_24px_-16px_var(--c-glow-accent)]"
-                                                                    : "border-hairline bg-surface-2 text-ink-2 hover:-translate-y-0.5 hover:border-hairline hover:text-ink",
+                                                                    : "border-hairline bg-surface-2 text-ink-2  hover:border-hairline hover:text-ink",
                                                             )}
                                                         >
                                                             {session}
@@ -595,7 +595,7 @@ function StepBadge({
     return (
         <span
             className={cn(
-                "rounded-full px-3 py-1 text-xs font-bold ring-1 transition-colors duration-300",
+                "rounded-full px-3 py-1 text-xs font-bold ring-1 transition-colors duration-150",
                 active && "bg-primary-soft text-accent-ink ring-primary-ring",
                 done && "bg-succ-btn text-succ-txt ring-success-line",
                 !active && !done && "bg-surface-2 text-ink-2 ring-hairline",

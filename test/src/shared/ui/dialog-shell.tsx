@@ -50,7 +50,7 @@ export function DialogShell({
                 صفحه‌کلید باز است) دکمه‌های پایین نباید بریده شوند. */}
             <div
                 className={cn(
-                    "spring-in relative my-auto w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-3xl border bg-surface p-6 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl",
+                    "motion-enter relative my-auto w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-3xl border bg-surface p-6 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl",
                     tone === "danger"
                         ? "border-danger-line"
                         : tone === "warning"

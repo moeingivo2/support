@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Pause, Play } from "lucide-react";
-import { fetchAuthenticatedBlob } from "@/shared/api/http";
+import { AlertTriangle, Loader2, Pause, Play } from "lucide-react";
+import { fetchAuthenticatedBlob, HttpApiError } from "@/shared/api/http";
 import { VoiceWaveform } from "@/shared/ui/voice-waveform";
 import { formatDuration } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
@@ -27,6 +27,8 @@ export function VoicePlayer({
     const [duration, setDuration] = useState(durationSeconds ?? 0);
     const [objectUrl, setObjectUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     useEffect(() => {
@@ -34,17 +36,27 @@ export function VoicePlayer({
         let created: string | null = null;
 
         setError(null);
+        setIsLoading(true);
         setObjectUrl(null);
+        setCurrentTime(0);
+        setDuration(durationSeconds ?? 0);
 
         fetchAuthenticatedBlob(src, mimeType)
             .then((blob) => {
                 if (cancelled) return;
                 created = URL.createObjectURL(blob);
                 setObjectUrl(created);
+                setIsLoading(false);
             })
-            .catch(() => {
+            .catch((failure: unknown) => {
                 if (cancelled) return;
-                setError("دریافت پیام صوتی ناموفق بود.");
+                setError(
+                    navigator.onLine === false ||
+                        (failure instanceof HttpApiError && failure.status === 0)
+                        ? "اتصال اینترنت برقرار نیست."
+                        : "دریافت پیام صوتی ناموفق بود.",
+                );
+                setIsLoading(false);
             });
 
         return () => {
@@ -52,19 +64,35 @@ export function VoicePlayer({
             // نشتی object URL در لیست پیام‌های طولانی انباشته می‌شد.
             if (created) URL.revokeObjectURL(created);
         };
-    }, [src, mimeType]);
+    }, [src, mimeType, retryCount]);
 
     if (error) {
         return (
-            <div className="flex items-center gap-2 text-xs text-err-text" role="alert">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-err-text" role="alert">
                 <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-                {error}
+                <span>{error}</span>
+                <button type="button" className="font-bold underline underline-offset-2" onClick={() => setRetryCount((current) => current + 1)}>تلاش مجدد</button>
             </div>
         );
     }
 
+    async function togglePlayback() {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (!audio.paused) {
+            audio.pause();
+            return;
+        }
+        try {
+            await audio.play();
+            setError(null);
+        } catch {
+            setError("پخش پیام صوتی ناموفق بود.");
+        }
+    }
+
     return (
-        <div className="flex w-full min-w-0 items-center gap-2.5" dir="rtl">
+        <div className="flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-hairline bg-sunken p-2.5" dir="rtl">
             <audio
                 ref={audioRef}
                 src={objectUrl ?? undefined}
@@ -78,20 +106,20 @@ export function VoicePlayer({
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onEnded={() => setPlaying(false)}
+                onError={() => {
+                    if (objectUrl) setError("پخش پیام صوتی ناموفق بود.");
+                }}
             />
             <button
                 type="button"
                 aria-label={playing ? "مکث پیام صوتی" : "پخش پیام صوتی"}
                 disabled={!objectUrl}
-                onClick={() => {
-                    const audio = audioRef.current;
-                    if (!audio) return;
-                    if (audio.paused) void audio.play();
-                    else audio.pause();
-                }}
+                onClick={() => void togglePlayback()}
                 className="grid size-10 shrink-0 place-items-center rounded-full bg-active-blue text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 disabled:opacity-50"
             >
-                {playing ? (
+                {isLoading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                ) : playing ? (
                     <Pause className="size-4 fill-current" />
                 ) : (
                     <Play className="size-4 fill-current" />

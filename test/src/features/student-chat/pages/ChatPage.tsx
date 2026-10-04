@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Code2, Lock, MessagesSquare, Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
+import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { useToast } from "@/shared/ui/toast";
@@ -35,9 +36,9 @@ export default function ChatPage() {
     const toast = useToast();
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const isOnline = useOnlineStatus();
     const [searchParams, setSearchParams] = useSearchParams();
     const [codeMode, setCodeMode] = useState(false);
-    const [sendError, setSendError] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<LifecycleDialogMode>(null);
     const [dialogError, setDialogError] = useState<string | null>(null);
@@ -51,7 +52,6 @@ export default function ChatPage() {
     const isClosed = activeConversation?.status === "closed";
 
     const selectConversation = (id: number) => {
-        setSendError(null);
         setDialogMode(null);
         setDialogError(null);
         setIsSidebarOpen(false);
@@ -95,11 +95,13 @@ export default function ChatPage() {
             codeMode: asCode,
             language,
             attachment,
+            signal,
         }: {
             body: string;
             codeMode: boolean;
             language: string;
             attachment?: OutgoingAttachment;
+            signal?: AbortSignal;
         }) => {
             if (activeId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
@@ -109,10 +111,10 @@ export default function ChatPage() {
                 codeMode: asCode,
                 language,
                 attachment,
+                signal,
             });
         },
         onSuccess: (response) => {
-            setSendError(null);
             if (activeId !== null) {
                 void queryClient.invalidateQueries({
                     queryKey: ["student", "conversations", activeId],
@@ -126,16 +128,6 @@ export default function ChatPage() {
                     data: response.profile,
                 });
             }
-        },
-        onError: (error: unknown) => {
-            const message =
-                error instanceof HttpApiError
-                    ? error.message
-                    : error instanceof Error
-                      ? error.message
-                      : "ارسال پیام ناموفق بود.";
-            setSendError(message);
-            toast.error(message);
         },
     });
 
@@ -192,6 +184,8 @@ export default function ChatPage() {
             conversations={conversationsQuery.data?.data ?? []}
             activeId={activeId}
             isPending={conversationsQuery.isPending}
+            isError={conversationsQuery.isError}
+            onRetry={() => void conversationsQuery.refetch()}
             isCreating={createMutation.isPending}
             onSelect={selectConversation}
             onCreate={() => createMutation.mutate()}
@@ -315,6 +309,7 @@ export default function ChatPage() {
                             isPending={messagesQuery.isPending}
                             isError={messagesQuery.isError}
                             emptyHint={EMPTY_HINT}
+                            conversationId={activeId}
                         />
                         {isClosed ? (
                             <div className="space-y-3 border-t border-hairline bg-sunken px-4 py-5 text-center">
@@ -383,11 +378,11 @@ export default function ChatPage() {
                         ) : (
                             <ChatComposer
                                 onSend={(body, options) =>
-                                    sendMutation.mutate({ body, ...options })
+                                    sendMutation.mutateAsync({ body, ...options })
                                 }
                                 codeMode={codeMode}
                                 isSending={sendMutation.isPending}
-                                error={sendError}
+                                isOnline={isOnline}
                             />
                         )}
                     </>

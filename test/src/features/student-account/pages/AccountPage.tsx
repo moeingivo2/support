@@ -42,7 +42,7 @@ export default function AccountPage() {
             <div className="flex justify-start">
                 <Link
                     to="/chat"
-                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[transform,background-color,border-color] duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-95 md:hidden"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out  hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2  md:hidden"
                 >
                     <ChevronRight className="size-4" aria-hidden="true" />
                     بازگشت به گفتگو

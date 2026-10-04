@@ -38,7 +38,7 @@ export function StarRating({
         >
             <div
                 className="flex justify-center gap-1.5"
-                dir="rtl"
+                dir="ltr"
                 onMouseLeave={() => setHovered(null)}
             >
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -54,18 +54,18 @@ export function StarRating({
                         aria-label={`${star} ستاره — ${RATING_LABELS[star]}`}
                         aria-pressed={selected === star}
                         className={cn(
-                            "rounded-lg p-1 transition-transform",
-                            "duration-[220ms] ease-spring-snappy",
-                            "hover:scale-115 hover:-translate-y-0.5",
+                            "rounded-lg p-1 transition-colors",
+                            "duration-150 ease-out",
+                            " ",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
-                            "active:scale-95",
+                            "",
                             "disabled:pointer-events-none disabled:opacity-45",
                         )}
                     >
                         <Star
                             aria-hidden="true"
                             className={cn(
-                                "size-9 transition-colors duration-[220ms]",
+                                "size-9 transition-colors duration-150",
                                 star <= shown
                                     ? "fill-alret-gold text-alret-gold"
                                     : "text-ink-3",

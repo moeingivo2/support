@@ -32,7 +32,7 @@ export function Tooltip({
                         sideOffset={8}
                         className={cn(
                             "z-[110] rounded-2xl border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold",
-                            "text-ink shadow-[var(--c-shadow-soft)] animate-[toast-in_.2s_cubic-bezier(.16,1,.3,1)]",
+                            "text-ink shadow-[var(--c-shadow-soft)] animate-[toast-in_180ms_var(--motion-ease)]",
                         )}
                     >
                         {label}

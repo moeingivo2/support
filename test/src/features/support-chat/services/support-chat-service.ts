@@ -56,6 +56,7 @@ export type SendReplyInput = {
     codeMode: boolean;
     language?: string;
     attachment?: OutgoingAttachment;
+    signal?: AbortSignal;
 };
 
 export function sendReply({
@@ -64,6 +65,7 @@ export function sendReply({
     codeMode,
     language,
     attachment,
+    signal,
 }: SendReplyInput): Promise<{ message: string; data: ChatMessage }> {
     const url = `/api/support/conversations/${conversationId}/messages`;
 
@@ -80,14 +82,18 @@ export function sendReply({
         }
         formData.append("attachment", attachment.file);
 
-        return postMultipart(url, formData);
+        return postMultipart(url, formData, signal);
     }
 
-    return postJson(url, {
-        body,
-        code_mode: codeMode,
-        language: language ?? null,
-    });
+    return postJson(
+        url,
+        {
+            body,
+            code_mode: codeMode,
+            language: language ?? null,
+        },
+        signal,
+    );
 }
 
 /**

@@ -113,7 +113,7 @@ export function VoiceWaveform({
                             barsRef.current[index] = node;
                         }}
                         className={cn(
-                            "min-h-[3px] flex-1 rounded-full transition-colors duration-200",
+                            "min-h-[3px] flex-1 rounded-full transition-colors duration-150",
                             played || (progress === null && animateWhilePlaying)
                                 ? activeClassName
                                 : idleClassName,

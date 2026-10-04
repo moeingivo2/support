@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
+import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
 import { Card } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { StatusPill } from "@/shared/ui/status-pill";
@@ -47,8 +48,8 @@ export default function SupportInboxPage() {
     const toast = useToast();
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const isOnline = useOnlineStatus();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [sendError, setSendError] = useState<string | null>(null);
     const [isListOpen, setIsListOpen] = useState(false);
     const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
     const [dialogError, setDialogError] = useState<string | null>(null);
@@ -81,7 +82,6 @@ export default function SupportInboxPage() {
     const isClosed = activeConversation?.is_closed ?? false;
 
     function selectConversation(id: number) {
-        setSendError(null);
         setIsListOpen(false);
         setIsCloseDialogOpen(false);
         setDialogError(null);
@@ -90,14 +90,12 @@ export default function SupportInboxPage() {
 
     /** باز کردن پروفایل یک دانشجو: فقط گفتگوهای همان نفر. */
     function selectStudent(id: number) {
-        setSendError(null);
         setIsListOpen(false);
         setSearchParams({ s: String(id) }, { replace: true });
     }
 
     /** برگشت به فهرست همه‌ی دانشجویان. */
     function backToStudents() {
-        setSendError(null);
         setIsListOpen(false);
         setSearchParams({}, { replace: true });
     }
@@ -108,11 +106,13 @@ export default function SupportInboxPage() {
             codeMode,
             language,
             attachment,
+            signal,
         }: {
             body: string;
             codeMode: boolean;
             language: string;
             attachment?: OutgoingAttachment;
+            signal?: AbortSignal;
         }) => {
             if (activeId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
@@ -122,10 +122,10 @@ export default function SupportInboxPage() {
                 codeMode,
                 language,
                 attachment,
+                signal,
             });
         },
         onSuccess: () => {
-            setSendError(null);
             if (activeId !== null) {
                 void queryClient.invalidateQueries({
                     queryKey: supportChatKeys.conversation(activeId),
@@ -134,15 +134,6 @@ export default function SupportInboxPage() {
             void queryClient.invalidateQueries({
                 queryKey: supportChatKeys.inbox(studentId),
             });
-        },
-        onError: (error: unknown) => {
-            const message =
-                error instanceof HttpApiError
-                    ? error.message
-                    : error instanceof Error
-                      ? error.message
-                      : "ارسال پاسخ ناموفق بود.";
-            setSendError(message);
         },
     });
 
@@ -184,6 +175,8 @@ export default function SupportInboxPage() {
             <StudentList
                 students={students}
                 isPending={studentsQuery.isPending}
+                isError={studentsQuery.isError}
+                onRetry={() => void studentsQuery.refetch()}
                 onSelect={selectStudent}
             />
         ) : (
@@ -193,7 +186,7 @@ export default function SupportInboxPage() {
                 <button
                     type="button"
                     onClick={backToStudents}
-                    className="flex w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-sm font-semibold text-ink transition-[background-color,border-color,transform] duration-[220ms] ease-spring-snappy hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-[.99]"
+                    className="flex w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-sm font-semibold text-ink transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 "
                 >
                     <ChevronRight className="size-4" aria-hidden="true" />
                     بازگشت به همه‌ی دانشجویان
@@ -217,6 +210,8 @@ export default function SupportInboxPage() {
                     conversations={conversations}
                     activeId={activeId}
                     isPending={inboxQuery.isPending}
+                    isError={inboxQuery.isError}
+                    onRetry={() => void inboxQuery.refetch()}
                     onSelect={selectConversation}
                 />
             </div>
@@ -256,7 +251,7 @@ export default function SupportInboxPage() {
                             type="button"
                             onClick={() => setSearchParams({}, { replace: true })}
                             aria-label="بازگشت به فهرست گفتگوها"
-                            className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink-2 transition-transform duration-[220ms] ease-spring-snappy hover:-translate-y-0.5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 active:scale-95 xl:hidden"
+                            className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink-2 transition-colors duration-150 ease-out  hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2  xl:hidden"
                         >
                             <ChevronRight className="size-4" aria-hidden="true" />
                             فهرست
@@ -393,6 +388,7 @@ export default function SupportInboxPage() {
                             isPending={conversationQuery.isPending}
                             isError={conversationQuery.isError}
                             emptyHint={EMPTY_HINT}
+                            conversationId={activeId}
                             // ناظر باید ببیند هر پیام را چه کسی و با چه نقشی فرستاده
                             showAttribution={isObserver}
                         />
@@ -447,10 +443,10 @@ export default function SupportInboxPage() {
                         ) : (
                             <SupportComposer
                                 onSend={(body, options) =>
-                                    replyMutation.mutate({ body, ...options })
+                                    replyMutation.mutateAsync({ body, ...options })
                                 }
                                 isSending={replyMutation.isPending}
-                                error={sendError}
+                                isOnline={isOnline}
                             />
                         )}
                     </>

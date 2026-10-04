@@ -34,6 +34,7 @@ export type SendMessageInput = {
     codeMode: boolean;
     language?: string;
     attachment?: OutgoingAttachment;
+    signal?: AbortSignal;
 };
 
 export function sendMessage({
@@ -42,6 +43,7 @@ export function sendMessage({
     codeMode,
     language,
     attachment,
+    signal,
 }: SendMessageInput): Promise<SendMessageResponse> {
     const url = `/api/conversations/${conversationId}/messages`;
 
@@ -58,14 +60,18 @@ export function sendMessage({
         }
         formData.append("attachment", attachment.file);
 
-        return postMultipart<SendMessageResponse>(url, formData);
+        return postMultipart<SendMessageResponse>(url, formData, signal);
     }
 
-    return postJson<Record<string, unknown>, SendMessageResponse>(url, {
-        body,
-        code_mode: codeMode,
-        language: language ?? null,
-    });
+    return postJson<Record<string, unknown>, SendMessageResponse>(
+        url,
+        {
+            body,
+            code_mode: codeMode,
+            language: language ?? null,
+        },
+        signal,
+    );
 }
 
 export type CloseConversationResponse = {

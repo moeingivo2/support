@@ -1,5 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { MessageSquarePlus, MessagesSquare, UserRound } from "lucide-react";
+import {
+    MessageSquarePlus,
+    MessagesSquare,
+    RefreshCw,
+    UserRound,
+} from "lucide-react";
+import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { cn } from "@/shared/lib/utils";
@@ -12,6 +18,8 @@ type ChatSidebarProps = {
     conversations: ConversationSummary[];
     activeId: number | null;
     isPending: boolean;
+    isError: boolean;
+    onRetry: () => void;
     onSelect: (id: number) => void;
     onCreate: () => void;
     isCreating: boolean;
@@ -21,6 +29,8 @@ export function ChatSidebar({
     conversations,
     activeId,
     isPending,
+    isError,
+    onRetry,
     onSelect,
     onCreate,
     isCreating,
@@ -54,7 +64,17 @@ export function ChatSidebar({
                       ))
                     : null}
 
-                {!isPending && conversations.length === 0 ? (
+                {!isPending && isError ? (
+                    <Alert tone="danger" className="space-y-3">
+                        <p>دریافت گفتگوها ناموفق بود.</p>
+                        <Button variant="danger" onClick={onRetry}>
+                            <RefreshCw />
+                            تلاش مجدد
+                        </Button>
+                    </Alert>
+                ) : null}
+
+                {!isPending && !isError && conversations.length === 0 ? (
                     <div className="grid place-content-center gap-2 rounded-3xl border border-dashed border-hairline p-6 text-center">
                         <MessagesSquare className="mx-auto size-6 text-ink-3" />
                         <p className="text-xs leading-6 text-ink-2">
@@ -77,7 +97,7 @@ export function ChatSidebar({
                                 // ردیف‌ها بزرگ‌تر و خواناتر می‌شوند؛ روی گوشی
                                 // همین فهرست داخل منوی همبرگری است و فشرده
                                 // می‌ماند.
-                                "group flex w-full flex-col gap-1 rounded-2xl border p-3 text-right transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 md:gap-1.5 md:p-4",
+                                "group flex w-full flex-col gap-1 rounded-2xl border p-3 text-right transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 md:gap-1.5 md:p-4",
                                 active
                                     ? "border-primary-line bg-primary-soft"
                                     : "border-transparent hover:border-hairline hover:bg-surface-2",
@@ -93,7 +113,7 @@ export function ChatSidebar({
                                     {conversation.title}
                                 </span>
                                 {conversation.unread_count > 0 ? (
-                                    <span className="pop-in grid min-w-5 shrink-0 place-items-center rounded-full bg-err-text px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                    <span className="motion-enter grid min-w-5 shrink-0 place-items-center rounded-full bg-err-text px-1.5 py-0.5 text-[10px] font-bold text-ink">
                                         {toPersianDigits(
                                             conversation.unread_count,
                                         )}

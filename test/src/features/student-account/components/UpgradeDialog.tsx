@@ -123,10 +123,10 @@ export function UpgradeDialog({ open, onClose, profile }: UpgradeDialogProps) {
                                         }}
                                         aria-pressed={course === option.value}
                                         className={cn(
-                                            "rounded-2xl border px-4 py-3 text-sm font-bold transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                            "rounded-2xl border px-4 py-3 text-sm font-bold transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                             course === option.value
                                                 ? "border-primary-line-2 bg-primary-soft text-accent-ink"
-                                                : "border-hairline bg-surface-2 text-ink hover:-translate-y-0.5 hover:border-hairline hover:bg-surface-2",
+                                                : "border-hairline bg-surface-2 text-ink  hover:border-hairline hover:bg-surface-2",
                                         )}
                                     >
                                         {option.label}
@@ -153,10 +153,10 @@ export function UpgradeDialog({ open, onClose, profile }: UpgradeDialogProps) {
                                                     track === option.value
                                                 }
                                                 className={cn(
-                                                    "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                    "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                                     track === option.value
                                                         ? "border-warn-line bg-warn-soft text-alret-gold"
-                                                        : "border-hairline bg-surface-2 text-ink hover:-translate-y-0.5 hover:border-hairline",
+                                                        : "border-hairline bg-surface-2 text-ink  hover:border-hairline",
                                                 )}
                                             >
                                                 <span
@@ -214,7 +214,7 @@ export function UpgradeDialog({ open, onClose, profile }: UpgradeDialogProps) {
                                                     aria-pressed={selected}
                                                     aria-label={`جلسه ${session}`}
                                                     className={cn(
-                                                        "grid aspect-square place-items-center rounded-2xl border text-sm font-bold transition-all duration-[320ms] ease-spring-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                        "grid aspect-square place-items-center rounded-2xl border text-sm font-bold transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
                                                         selected
                                                             ? "border-primary-line-2 bg-primary-soft-2 text-accent-ink"
                                                             : "border-hairline bg-surface-2 text-ink-2 hover:border-hairline",
