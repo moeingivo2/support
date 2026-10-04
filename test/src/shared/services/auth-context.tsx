@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<PanelUser | null>(() =>
         getToken() ? getStoredUser() : null,
     );
-    const [showLoginSplash, setShowLoginSplash] = useState(false);
+    const [showLoginSplash, setShowLoginSplash] = useState(true);
 
     const loginAction = useCallback(
         async (loginValue: string, password: string) => {
@@ -57,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             setAuth(token, authenticatedUser);
             setUser(authenticatedUser);
-            setShowLoginSplash(true);
             return authenticatedUser;
         },
         [],
@@ -71,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             setAuth(token, authenticatedUser);
             setUser(authenticatedUser);
-            setShowLoginSplash(true);
             return authenticatedUser;
         },
         [],
