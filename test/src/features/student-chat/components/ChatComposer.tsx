@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Check, Image as ImageIcon, Loader2, Mic, Paperclip, RotateCcw, Send } from "lucide-react";
+import { Check, Code2, Image as ImageIcon, Loader2, Mic, Paperclip, RotateCcw, Send } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button, SendButton } from "@/shared/ui/button";
 import { ChatTextarea } from "@/shared/ui/textarea";
@@ -22,6 +22,7 @@ type ChatComposerProps = {
             signal?: AbortSignal;
         },
     ) => Promise<unknown>;
+    onCodeModeChange: (codeMode: boolean) => void;
     codeMode: boolean;
     isSending: boolean;
     isOnline: boolean;
@@ -30,6 +31,7 @@ type ChatComposerProps = {
 
 export function ChatComposer({
     onSend,
+    onCodeModeChange,
     codeMode,
     isSending,
     isOnline,
@@ -130,10 +132,9 @@ export function ChatComposer({
     return (
         <form
             onSubmit={(event) => void handleSubmit(event)}
-            className="space-y-3 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:p-4"
+            className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:px-4 md:py-3"
         >
             {!isOnline && sendState !== "failed" ? <Alert tone="danger">اتصال اینترنت برقرار نیست. پیام یا فایل را پس از بازگشت اتصال می‌توانید ارسال کنید.</Alert> : null}
-            {isOnline ? <p className="text-xs text-succ-txt" role="status">● آنلاین</p> : null}
             {sendState === "failed" && sendError ? (
                 <Alert tone="danger">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -186,10 +187,13 @@ export function ChatComposer({
                     language={language}
                     onLanguageChange={setLanguage}
                     disabled={isSending || isDisabled}
+                    canSubmit={canSend}
+                    isSubmitting={isSending}
                     onSubmit={() => void handleSubmit()}
+                    onClose={() => onCodeModeChange(false)}
                 />
             ) : (
-                <div className="flex min-w-0 items-end gap-2">
+                <div className="chat-composer-shell min-w-0 rounded-2xl border border-hairline bg-surface-2 transition-colors focus-within:border-primary-line-2 focus-within:ring-2 focus-within:ring-primary-ring-2">
                     <ChatTextarea
                         value={body}
                         onChange={(event) => { setBody(event.target.value); setSendState("idle"); setSendError(null); }}
@@ -198,64 +202,64 @@ export function ChatComposer({
                         placeholder="پیام خود را بنویسید..."
                         aria-label="متن پیام"
                         disabled={isSending || isDisabled}
-                        // ارتفاع، فاصله و اندازه‌ی متن از ChatTextarea پایه
-                        // می‌آید؛ اینجا فقط flex-1 برای پر کردن عرض باقی‌مانده
-                        // و رنگ سطحِ متفاوت از فرم‌های دیگر لازم است.
-                        className="max-h-36 flex-1 bg-surface-2"
+                        minHeight={48}
+                        maxHeight={136}
+                        className="max-h-[136px] min-h-12 resize-none rounded-b-none rounded-t-2xl border-0 bg-transparent px-4 py-3 shadow-none focus-visible:bg-transparent focus-visible:shadow-none sm:min-h-12 sm:py-3"
                     />
+                    <div className="flex items-left gap-8 border-t border-hairline/70 px-2 py-1.5">
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={() => pickFile(imageInputRef.current)}
+                        />
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            onChange={() => pickFile(fileInputRef.current)}
+                        />
+                        {/* دکمه‌ی ارسال در سمت چپ کادر می‌نشیند (انتهای بصری
+                            در RTL) و ابزارها سمت راست می‌مانند. */}
+                        <div className="flex w-full items-center justify-between gap-2 justify-between" dir="rtl">
+                            <div className="composer-toolbar chat-composer-toolbar shrink-0">
+                                <button type="button" className="composer-tool" onClick={() => imageInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست تصویر" title="پیوست تصویر">
+                                    <ImageIcon className="size-4" aria-hidden="true" />
+                                </button>
+                                <button type="button" className="composer-tool" onClick={() => fileInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست فایل" title="پیوست فایل">
+                                    <Paperclip className="size-4" aria-hidden="true" />
+                                </button>
+                                <button type="button" className="composer-tool" onClick={() => setVoiceState("recording")} disabled={isSending || isDisabled} aria-label="ضبط پیام صوتی" title="ضبط پیام صوتی">
+                                    <Mic className="size-4" aria-hidden="true" />
+                                </button>
+                                <button type="button" className="composer-tool" onClick={() => onCodeModeChange(true)} disabled={isSending || isDisabled} aria-pressed={false} aria-label="حالت کد" title="ویرایش و ارسال کد">
+                                    <Code2 className="size-4" aria-hidden="true" />
+                                </button>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                                {attachment ? (
+                                <Button type="submit" disabled={!canSend} className="min-w-0 shrink md:h-9 md:px-3 md:text-xs md:shadow-none">
+                                    {sendState === "sending" || isSending ? <Loader2 className="animate-spin" /> : sendState === "sent" ? <Check /> : <Send />}
+                                    <span className="truncate">
+                                        {isSending
+                                            ? "در حال ارسال..."
+                                            : attachment.durationSeconds !== undefined
+                                              ? "ارسال پیام صوتی"
+                                              : "ارسال فایل"}
+                                    </span>
+                                </Button>
+                                ) : (
+                                    <SendButton disabled={!canSend} aria-label={codeMode ? "ارسال کد" : "ارسال پیام"} className="md:size-9 md:rounded-xl md:shadow-none">
+                                        {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+                                    </SendButton>
+                                )}
+                            </div>
+                            <span className="sr-only" aria-live="polite">{isSending ? "در حال ارسال پیام" : ""}</span>
+                        </div>
+                    </div>
                 </div>
             )}
-
-            {/* یک ردیف در همه‌ی اندازه‌ها: چیدمان ستونیِ قبلی روی گوشی ارتفاع
-                زیادی می‌گرفت. shrink-0 از فشرده شدن دکمه‌ها در عرض کم
-                جلوگیری می‌کند. */}
-            <div className="flex items-center justify-between gap-2">
-                <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={() => pickFile(imageInputRef.current)}
-                />
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    onChange={() => pickFile(fileInputRef.current)}
-                />
-                <div className="composer-toolbar shrink-0">
-                    <button type="button" className="composer-tool" onClick={() => imageInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست تصویر" title="پیوست تصویر">
-                        <ImageIcon className="size-4" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="composer-tool" onClick={() => fileInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست فایل" title="پیوست فایل">
-                        <Paperclip className="size-4" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="composer-tool" onClick={() => setVoiceState("recording")} disabled={isSending || isDisabled} aria-label="ضبط پیام صوتی" title="ضبط پیام صوتی">
-                        <Mic className="size-4" aria-hidden="true" />
-                    </button>
-                    <span className="sr-only" aria-live="polite">{isSending ? "در حال ارسال پیام" : ""}</span>
-                </div>
-                {/* shrink + truncate: برچسب «ارسال پیام صوتی» در عرض کم نباید
-                    دکمه را از کادر بیرون بزند. */}
-                <div className="flex min-w-0 shrink items-center justify-end">
-                    {attachment ? (
-                        <Button type="submit" disabled={!canSend} className="min-w-0 shrink">
-                        {sendState === "sending" || isSending ? <Loader2 className="animate-spin" /> : sendState === "sent" ? <Check /> : <Send />}
-                            <span className="truncate">
-                                {isSending
-                                    ? "در حال ارسال..."
-                                    : attachment.durationSeconds !== undefined
-                                      ? "ارسال پیام صوتی"
-                                      : "ارسال فایل"}
-                            </span>
-                        </Button>
-                    ) : (
-                        <SendButton disabled={!canSend} aria-label={codeMode ? "ارسال کد" : "ارسال پیام"}>
-                            {isSending ? <Loader2 className="animate-spin" /> : <Send />}
-                        </SendButton>
-                    )}
-                </div>
-            </div>
             {!codeMode ? <p className="hidden text-[11px] text-ink-3 sm:block">برای ارسال پیام Enter و برای خط جدید Shift+Enter را بزنید.</p> : null}
         </form>
     );

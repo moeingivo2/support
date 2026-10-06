@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code2, Lock, MessagesSquare, Star } from "lucide-react";
+import { Lock, MessagesSquare, Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
@@ -245,25 +245,17 @@ export default function ChatPage() {
                         </p>
                     </div>
 
-                    {/* کنش‌ها سمت چپ هدر می‌نشینند تا بالا خلوت بماند. */}
+                    {/* کنش‌ها سمت چپ هدر می‌نشینند تا بالا خلوت بماند.
+                        دکمه‌ی «حالت کد» به نوار ابزار کاپوزر رفته است. */}
                     <div className="flex shrink-0 items-center gap-1.5">
-                        <Button
-                            type="button"
-                            variant={codeMode ? "primary" : "ghost"}
-                            onClick={() => setCodeMode((current) => !current)}
-                            aria-pressed={codeMode}
-                            title="پیام را داخل بلوک کد ارسال کن"
-                            disabled={isClosed}
-                            className="max-sm:px-2.5"
-                        >
-                            <Code2 />
-                            <span className="max-sm:hidden">
-                                {codeMode
-                                    ? "حالت کد: فعال"
-                                    : "حالت کد"}
+                        {isOnline ? (
+                            <span
+                                className="inline-flex items-center gap-1 text-[11px] text-succ-txt"
+                                role="status"
+                            >
+                                <span aria-hidden="true">●</span> آنلاین
                             </span>
-                        </Button>
-
+                        ) : null}
                         {activeId !== null && !isClosed ? (
                             <Button
                                 type="button"
@@ -380,6 +372,7 @@ export default function ChatPage() {
                                 onSend={(body, options) =>
                                     sendMutation.mutateAsync({ body, ...options })
                                 }
+                                onCodeModeChange={setCodeMode}
                                 codeMode={codeMode}
                                 isSending={sendMutation.isPending}
                                 isOnline={isOnline}
