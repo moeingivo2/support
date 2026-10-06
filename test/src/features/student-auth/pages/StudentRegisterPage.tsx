@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import {
     Check,
+    FileUp,
     GraduationCap,
     Loader2,
     School,
@@ -48,6 +49,7 @@ export default function StudentRegisterPage() {
     const { registerStudentAccount } = useAuth();
     const [mode, setMode] = useState<RegisterMode>("account");
     const [serverError, setServerError] = useState<string | null>(null);
+    const roadmapInputRef = useRef<HTMLInputElement | null>(null);
 
     const {
         formState: { errors, isSubmitting },
@@ -66,6 +68,7 @@ export default function StudentRegisterPage() {
             course: "offline",
             track: null,
             sessions: [],
+            roadmap: null,
         },
         mode: "onSubmit",
         resolver: zodResolver(studentRegisterSchema),
@@ -101,6 +104,7 @@ export default function StudentRegisterPage() {
                 course: values.course,
                 track: isOffline ? (values.track ?? null) : null,
                 sessions: isOffline ? values.sessions : [],
+                roadmap: isOffline ? (values.roadmap ?? null) : null,
             });
             navigate("/chat", { replace: true });
         } catch (error) {
@@ -347,6 +351,7 @@ export default function StudentRegisterPage() {
                                                             option.value !==
                                                             "offline"
                                                         ) {
+                                                            setValue("roadmap", null);
                                                             setValue(
                                                                 "track",
                                                                 null,
@@ -520,11 +525,23 @@ export default function StudentRegisterPage() {
                                                     شده
                                                 </span>
                                             </div>
-                                            {errors.sessions ? (
+                                        {errors.sessions ? (
                                                 <p className="text-xs font-medium text-err-text">
                                                     {errors.sessions.message}
                                                 </p>
-                                            ) : null}
+                                        ) : null}
+
+                                        <div className="space-y-2 rounded-2xl border border-dashed border-primary-line bg-primary-soft/40 p-4">
+                                            <Label htmlFor="student-roadmap">رودمپ دوره (اختیاری)</Label>
+                                            <p className="text-xs leading-6 text-ink-2">فایل رودمپ خریداری‌شده را بارگذاری کنید تا پشتیبان هنگام مشاهده حساب دانشجو به آن دسترسی داشته باشد. فرمت PDF یا تصویر، حداکثر ۱۰ مگابایت.</p>
+                                            <input ref={roadmapInputRef} id="student-roadmap" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" onChange={(event) => setValue("roadmap", event.target.files?.[0] ?? null, { shouldValidate: true })} />
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <Button type="button" variant="ghost" onClick={() => roadmapInputRef.current?.click()}><FileUp />انتخاب فایل رودمپ</Button>
+                                                <span className="max-w-full truncate text-xs text-ink-2">{watch("roadmap")?.name ?? "فایلی انتخاب نشده"}</span>
+                                                {watch("roadmap") ? <Button type="button" variant="ghost" onClick={() => { setValue("roadmap", null); if (roadmapInputRef.current) roadmapInputRef.current.value = ""; }}>حذف فایل</Button> : null}
+                                            </div>
+                                            {errors.roadmap ? <p className="text-xs font-medium text-err-text">{errors.roadmap.message}</p> : null}
+                                        </div>
                                         </div>
                                     </div>
                                 ) : (

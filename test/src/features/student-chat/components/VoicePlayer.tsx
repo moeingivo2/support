@@ -6,11 +6,7 @@ import { formatDuration } from "../utils/format";
 import { toPersianDigits } from "../utils/persian";
 
 /**
- * پخش پیام صوتی.
- *
- * فایل با هدر Authorization گرفته می‌شود، چون `<audio src>` نمی‌تواند توکن
- * بفرستد و پیوست‌ها پشت احراز هویت هستند. نوع فایل از خود پیام می‌آید چون
- * سرور عمداً همه‌چیز را octet-stream می‌فرستد.
+ * پخش پیام صوتی با دریافت فایل احراز هویت‌شده و آزادسازی object URL.
  */
 export function VoicePlayer({
     src,
@@ -34,14 +30,13 @@ export function VoicePlayer({
     useEffect(() => {
         let cancelled = false;
         let created: string | null = null;
-
         setError(null);
         setIsLoading(true);
         setObjectUrl(null);
         setCurrentTime(0);
         setDuration(durationSeconds ?? 0);
 
-        fetchAuthenticatedBlob(src, mimeType)
+        void fetchAuthenticatedBlob(src, mimeType)
             .then((blob) => {
                 if (cancelled) return;
                 created = URL.createObjectURL(blob);
@@ -50,35 +45,21 @@ export function VoicePlayer({
             })
             .catch((failure: unknown) => {
                 if (cancelled) return;
-                setError(
-                    navigator.onLine === false ||
-                        (failure instanceof HttpApiError && failure.status === 0)
-                        ? "اتصال اینترنت برقرار نیست."
-                        : "دریافت پیام صوتی ناموفق بود.",
-                );
+                setError(navigator.onLine === false || (failure instanceof HttpApiError && failure.status === 0)
+                    ? "اتصال اینترنت برقرار نیست."
+                    : "دریافت پیام صوتی ناموفق بود.");
                 setIsLoading(false);
             });
 
         return () => {
             cancelled = true;
-            // نشتی object URL در لیست پیام‌های طولانی انباشته می‌شد.
             if (created) URL.revokeObjectURL(created);
         };
-    }, [src, mimeType, retryCount]);
+    }, [src, mimeType, retryCount, durationSeconds]);
 
-    if (error) {
-        return (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-err-text" role="alert">
-                <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-                <span>{error}</span>
-                <button type="button" className="font-bold underline underline-offset-2" onClick={() => setRetryCount((current) => current + 1)}>تلاش مجدد</button>
-            </div>
-        );
-    }
-
-    async function togglePlayback() {
+    async function togglePlayback(): Promise<void> {
         const audio = audioRef.current;
-        if (!audio) return;
+        if (!audio || isLoading) return;
         if (!audio.paused) {
             audio.pause();
             return;
@@ -91,6 +72,16 @@ export function VoicePlayer({
         }
     }
 
+    if (error) {
+        return (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-err-text" role="alert">
+                <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+                <span>{error}</span>
+                <button type="button" className="font-bold underline underline-offset-2" onClick={() => setRetryCount((current) => current + 1)}>تلاش مجدد</button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-hairline bg-sunken p-2.5" dir="rtl">
             <audio
@@ -98,62 +89,25 @@ export function VoicePlayer({
                 src={objectUrl ?? undefined}
                 preload="metadata"
                 onLoadedMetadata={(event) => {
-                    if (Number.isFinite(event.currentTarget.duration)) {
-                        setDuration(event.currentTarget.duration);
-                    }
+                    if (Number.isFinite(event.currentTarget.duration)) setDuration(event.currentTarget.duration);
                 }}
                 onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onEnded={() => setPlaying(false)}
-                onError={() => {
-                    if (objectUrl) setError("پخش پیام صوتی ناموفق بود.");
-                }}
+                onError={() => { if (objectUrl) setError("پخش پیام صوتی ناموفق بود."); }}
             />
-            <button
-                type="button"
-                aria-label={playing ? "مکث پیام صوتی" : "پخش پیام صوتی"}
-                disabled={!objectUrl}
-                onClick={() => void togglePlayback()}
-                className="grid size-10 shrink-0 place-items-center rounded-full bg-active-blue text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 disabled:opacity-50"
-            >
-                {isLoading ? (
-                    <Loader2 className="size-4 animate-spin" />
-                ) : playing ? (
-                    <Pause className="size-4 fill-current" />
-                ) : (
-                    <Play className="size-4 fill-current" />
-                )}
+            <button type="button" aria-label={playing ? "مکث پیام صوتی" : "پخش پیام صوتی"} disabled={!objectUrl || isLoading} onClick={() => void togglePlayback()} className="grid size-10 shrink-0 place-items-center rounded-full bg-active-blue text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 disabled:opacity-50">
+                {isLoading ? <Loader2 className="size-4 animate-spin" /> : playing ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
             </button>
             <div className="relative min-w-0 flex-1">
-                <VoiceWaveform
-                    progress={progress}
-                    animateWhilePlaying={playing}
-                    className="h-8 w-full"
-                    activeClassName="bg-active-blue"
-                    idleClassName="bg-ink-3/50"
-                    ariaLabel="موج پیام صوتی"
-                />
-                <input
-                    type="range"
-                    min={0}
-                    max={duration || 1}
-                    step={0.1}
-                    value={currentTime}
-                    onChange={(event) => {
-                        if (audioRef.current) {
-                            audioRef.current.currentTime = Number(event.target.value);
-                        }
-                        setCurrentTime(Number(event.target.value));
-                    }}
-                    aria-label="موقعیت پخش پیام صوتی"
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                />
+                <VoiceWaveform progress={progress} animateWhilePlaying={playing} className="h-8 w-full" activeClassName="bg-active-blue" idleClassName="bg-ink-3/50" ariaLabel="موج پیام صوتی" />
+                <input type="range" min={0} max={duration || 1} step={0.1} value={currentTime} onChange={(event) => {
+                    if (audioRef.current && objectUrl) audioRef.current.currentTime = Number(event.target.value);
+                    setCurrentTime(Number(event.target.value));
+                }} aria-label="موقعیت پخش پیام صوتی" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </div>
-            <span className="shrink-0 text-xs text-ink-2" dir="ltr">
-                {toPersianDigits(formatDuration(Math.floor(currentTime)))} /{" "}
-                {toPersianDigits(formatDuration(Math.floor(duration)))}
-            </span>
+            <span className="shrink-0 text-xs text-ink-2" dir="ltr">{toPersianDigits(formatDuration(Math.floor(currentTime)))} / {toPersianDigits(formatDuration(Math.floor(duration)))}</span>
         </div>
     );
 }

@@ -10,12 +10,15 @@ import {
     clearAuth,
     getStoredUser,
     getToken,
+    setStoredUser,
     setAuth,
+    setToken,
     type PanelUser,
 } from "@/shared/lib/auth-storage";
 import {
     login,
     loginStudent,
+    impersonateObserverSupport,
     logout as apiLogout,
     registerStudent,
     registerSupport,
@@ -24,6 +27,10 @@ import {
 
 type AuthContextValue = {
     user: PanelUser | null;
+    actingAsSupport: PanelUser | null;
+    actAsSupport: (supportId: number) => Promise<void>;
+    returnToObserverAccount: () => void;
+    observerUser: PanelUser | null;
     isAuthenticated: boolean;
     showLoginSplash: boolean;
     login: (loginValue: string, password: string) => Promise<PanelUser>;
@@ -47,6 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<PanelUser | null>(() =>
         getToken() ? getStoredUser() : null,
     );
+    const [actingAsSupport, setActingAsSupport] = useState<PanelUser | null>(null);
+    const [observerUser, setObserverUser] = useState<PanelUser | null>(null);
+    const [observerToken, setObserverToken] = useState<string | null>(null);
     const [showLoginSplash, setShowLoginSplash] = useState(false);
 
     const loginAction = useCallback(
@@ -96,8 +106,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void apiLogout();
         clearAuth();
         setUser(null);
+        setActingAsSupport(null);
         setShowLoginSplash(false);
     }, []);
+
+    const actAsSupport = useCallback(async (supportId: number): Promise<void> => {
+        if (user?.role !== "account_observer") return;
+        const observerTokenValue = getToken();
+        const response = await impersonateObserverSupport(supportId);
+        if (observerTokenValue) setObserverToken(observerTokenValue);
+        setObserverUser(user);
+        setToken(response.token);
+        setStoredUser(response.user);
+        setUser(response.user);
+        setActingAsSupport(response.user);
+    }, [user]);
+    const returnToObserverAccount = useCallback(() => {
+        if (!observerUser || !observerToken) return;
+        setToken(observerToken);
+        setStoredUser(observerUser);
+        setUser(observerUser);
+        setObserverUser(null);
+        setObserverToken(null);
+        setActingAsSupport(null);
+    }, [observerToken, observerUser]);
 
     const completeLoginSplash = useCallback(
         () => setShowLoginSplash(false),
@@ -107,6 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const value = useMemo<AuthContextValue>(
         () => ({
             user,
+            actingAsSupport,
+            observerUser,
+            actAsSupport,
+            returnToObserverAccount,
             isAuthenticated: user !== null,
             showLoginSplash,
             login: loginAction,
@@ -118,6 +154,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
         [
             user,
+            actingAsSupport,
+            observerUser,
+            actAsSupport,
+            returnToObserverAccount,
             showLoginSplash,
             loginAction,
             loginStudentAction,

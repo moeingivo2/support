@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     Bell,
     ChevronRight,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
+import { fetchAuthenticatedBlob } from "@/shared/api/http";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
 import { Card } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
@@ -23,6 +24,7 @@ import { toPersianDigits } from "@/features/student-chat/utils/persian";
 import { MessageList } from "@/features/student-chat/components/MessageList";
 import type { OutgoingAttachment } from "@/features/student-chat/types/chat";
 import { useAuth } from "@/shared/services/auth-context";
+import { useNavigate } from "react-router-dom";
 import { rankKeys } from "@/features/student-chat/services/rank-invalidation";
 import {
     useNewMessageAlert,
@@ -30,6 +32,7 @@ import {
     useSupportInbox,
     useSupportStudents,
 } from "../hooks/useSupportChat";
+import { getObserverSupports } from "../services/support-chat-service";
 import {
     closeSupportConversation,
     sendReply,
@@ -47,19 +50,32 @@ const EMPTY_HINT =
 export default function SupportInboxPage() {
     const toast = useToast();
     const queryClient = useQueryClient();
-    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { user, actAsSupport, observerUser } = useAuth();
     const isOnline = useOnlineStatus();
     const [searchParams, setSearchParams] = useSearchParams();
+    const [messageSearch, setMessageSearch] = useState("");
     const [isListOpen, setIsListOpen] = useState(false);
     const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
     const [dialogError, setDialogError] = useState<string | null>(null);
 
     // ناظر فقط‌خواندنی است: نه پاسخ می‌دهد و نه گفتگو را می‌بندد
     const isObserver = user?.role === "observer";
+    const isReadOnlyObserver = user?.role === "observer";
+    const isAccountObserver = user?.role === "account_observer";
+    const isImpersonatingSupport = Boolean(observerUser);
+    const managedSupportsQuery = useQuery({
+        queryKey: ["observer", "supports", user?.id],
+        queryFn: () => getObserverSupports(),
+        enabled: isAccountObserver,
+    });
 
     const activeId = searchParams.get("c")
         ? Number(searchParams.get("c"))
         : null;
+    // حین impersonation، نشست جاری پشتیبان است؛ owner_id باید همان پشتیبان
+    // باشد تا صندوق ورودی به گفتگوهای همان اکانت محدود بماند.
+    const ownerId = isImpersonatingSupport ? user?.id : undefined;
 
     // ?s=<studentId> یعنی فقط گفتگوهای همان دانشجو باز است؛ بدون آن
     // پنل روی فهرست دانشجویان می‌نشیند.
@@ -67,13 +83,14 @@ export default function SupportInboxPage() {
         ? Number(searchParams.get("s"))
         : null;
 
-    const studentsQuery = useSupportStudents();
-    const inboxQuery = useSupportInbox(studentId);
-    const notificationsQuery = useNewMessageAlert(activeId);
-    const conversationQuery = useSupportConversation(activeId);
-
+    const studentsQuery = useSupportStudents(ownerId);
+    const inboxQuery = useSupportInbox(studentId, ownerId);
+    const notificationsQuery = useNewMessageAlert(activeId, ownerId);
+    const conversationQuery = useSupportConversation(activeId, ownerId);
     const students = studentsQuery.data?.data ?? [];
     const conversations = inboxQuery.data?.data ?? [];
+    const managedSupports = managedSupportsQuery.data?.data ?? [];
+    const showManagedTeam = isAccountObserver && !ownerId;
     const selectedStudent =
         students.find((row) => row.student.id === studentId) ?? null;
     const profile = conversationQuery.data?.data.profile ?? null;
@@ -82,6 +99,7 @@ export default function SupportInboxPage() {
     const isClosed = activeConversation?.is_closed ?? false;
 
     function selectConversation(id: number) {
+        setMessageSearch("");
         setIsListOpen(false);
         setIsCloseDialogOpen(false);
         setDialogError(null);
@@ -90,6 +108,7 @@ export default function SupportInboxPage() {
 
     /** باز کردن پروفایل یک دانشجو: فقط گفتگوهای همان نفر. */
     function selectStudent(id: number) {
+        setMessageSearch("");
         setIsListOpen(false);
         setSearchParams({ s: String(id) }, { replace: true });
     }
@@ -123,6 +142,8 @@ export default function SupportInboxPage() {
                 language,
                 attachment,
                 signal,
+                actingSupportId: ownerId,
+        observerActorName: isAccountObserver ? user?.name : undefined,
             });
         },
         onSuccess: () => {
@@ -303,7 +324,7 @@ export default function SupportInboxPage() {
                         </StatusPill>
                     ) : null}
 
-                    {activeId !== null && !isClosed && !isObserver ? (
+                    {activeId !== null && !isClosed && !isReadOnlyObserver ? (
                         <Button
                             type="button"
                             variant="danger"
@@ -318,9 +339,13 @@ export default function SupportInboxPage() {
                         </Button>
                     ) : null}
 
-                    {isObserver ? null : (
+                    {isReadOnlyObserver ? null : (
                         <NotificationSoundToggle />
                     )}
+
+                    {isImpersonatingSupport ? (
+                        <StatusPill tone="warning">در حال مشاهدهٔ حساب پشتیبان</StatusPill>
+                    ) : null}
 
                     {unreadTotal > 0 ? (
                         <StatusPill tone="danger">
@@ -331,6 +356,17 @@ export default function SupportInboxPage() {
                 </header>
 
                 {activeId === null ? (
+                    showManagedTeam && managedSupports.length > 0 ? (
+                    <div className="grid flex-1 content-start gap-4 overflow-y-auto p-5 sm:grid-cols-2">
+                        {managedSupports.filter((support) => support.id !== user?.id).map((support) => <Card key={support.id} className="p-5">
+                            <p className="font-bold text-ink">{support.name}</p>
+                            <p className="mt-1 text-xs text-ink-2">{support.support_type === "ai" ? "پشتیبان هوش مصنوعی" : "پشتیبان وب"}</p>
+                            <Button className="mt-4 w-full" onClick={async () => { await actAsSupport(support.id); navigate("/inbox", { replace: true }); }}>ورود به اکانت {support.name}</Button>
+                        </Card>)}
+                    </div>
+                    ) : showManagedTeam ? (
+                    <div className="grid flex-1 place-content-center gap-4 p-10 text-center"><MessagesSquare className="mx-auto size-8 text-ink-3"/><p className="text-sm text-ink-2">هنوز پشتیبانی به تیم شما منتسب نشده است. انتساب پشتیبان با مدیر کل سامان است.</p></div>
+                    ) : (
                     <div className="grid flex-1 place-content-center gap-4 p-10 text-center">
                         <span className="mx-auto grid size-16 place-items-center rounded-full bg-primary-soft text-accent-ink ring-1 ring-primary-ring">
                             <MessagesSquare className="size-7" />
@@ -340,9 +376,10 @@ export default function SupportInboxPage() {
                             پیام‌های دانشجو را ببینید و پاسخ دهید.
                         </p>
                     </div>
+                    )
                 ) : (
                     <>
-                        {profile && !isObserver ? (
+                        {profile && !isReadOnlyObserver ? (
                             <div className="flex flex-wrap items-center gap-2 border-b border-hairline bg-sunken px-4 py-2 text-[11px] text-ink-2">
                                 <span className="flex items-center gap-1">
                                     <GraduationCap className="size-3.5 text-alret-gold" />
@@ -380,6 +417,17 @@ export default function SupportInboxPage() {
                             </div>
                         ) : null}
 
+                        {profile?.roadmap_url && !isReadOnlyObserver ? (
+                            <div className="flex items-center justify-between gap-3 border-b border-hairline bg-primary-soft px-4 py-3">
+                                <div><p className="text-sm font-bold text-ink">رودمپ دوره آفلاین</p><p className="mt-1 text-xs text-ink-2">فایل بارگذاری‌شده هنگام ثبت‌نام دانشجو</p></div>
+                                <Button type="button" variant="ghost" onClick={async () => {
+                                    const blob = await fetchAuthenticatedBlob(profile.roadmap_url!, "application/pdf");
+                                    const url = URL.createObjectURL(blob);
+                                    window.open(url, "_blank", "noopener,noreferrer");
+                                }} className="inline-flex h-10 items-center rounded-xl border border-primary-line bg-surface px-3 text-sm font-semibold text-accent-ink hover:bg-surface-2">مشاهده رودمپ</Button>
+                            </div>
+                        ) : null}
+
                         <MessageList
                             messages={
                                 conversationQuery.data?.data.messages ?? []
@@ -389,11 +437,13 @@ export default function SupportInboxPage() {
                             isError={conversationQuery.isError}
                             emptyHint={EMPTY_HINT}
                             conversationId={activeId}
+                            search={messageSearch}
+                            onSearchChange={setMessageSearch}
                             // ناظر باید ببیند هر پیام را چه کسی و با چه نقشی فرستاده
-                            showAttribution={isObserver}
+                            showAttribution={isObserver || isAccountObserver}
                         />
 
-                        {isClosed || isObserver ? (
+                        {isClosed || isReadOnlyObserver ? (
                             <div className="space-y-2 border-t border-hairline bg-sunken px-4 py-4 text-center">
                                 {isClosed ? (
                                     <>
@@ -432,7 +482,7 @@ export default function SupportInboxPage() {
                                     </>
                                 ) : null}
 
-                                {isObserver ? (
+                                {isReadOnlyObserver ? (
                                     <p className="text-xs leading-6 text-ink-2">
                                         شما با نقش ناظر وارد شده‌اید؛ مشاهده‌ی
                                         گفتگو مجاز است اما پاسخ‌دادن یا بستن آن

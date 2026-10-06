@@ -74,19 +74,28 @@ class ConversationController extends Controller
     {
         $model = $this->ownedConversation($request, $conversation);
 
-        $model->update([
-            'unread_student_count' => 0,
-            'student_last_read_at' => now(),
-        ]);
+        if ($model->unread_student_count > 0 || $model->student_last_read_at === null
+            || $model->student_last_read_at->lt(now()->subMinute())) {
+            $model->update([
+                'unread_student_count' => 0,
+                'student_last_read_at' => now(),
+            ]);
 
-        $model->messages()->whereNull('read_at')->where('sender_id', '!=', $request->user()->id)
-            ->update(['read_at' => now()]);
+            $model->messages()->whereNull('read_at')->where('sender_id', '!=', $request->user()->id)
+                ->update(['read_at' => now()]);
+        }
+
+        $profile = StudentProfile::query()
+            ->with(['user', 'mentor'])
+            ->where('user_id', $request->user()->id)
+            ->first();
 
         return response()->json([
             'data' => [
                 'conversation' => $this->summary($model->fresh()),
                 'rating' => $this->ratingPayload($model->fresh()),
-                'messages' => $this->messages($model),
+                'profile' => $profile ? StudentProfilePayload::make($profile) : null,
+                'messages' => $this->messages($model, $request->integer('after_id')),
             ],
         ]);
     }
@@ -266,12 +275,15 @@ class ConversationController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function messages(Conversation $conversation): array
+    private function messages(Conversation $conversation, int $afterId = 0): array
     {
         return $conversation->messages()
+            ->when($afterId > 0, fn ($query) => $query->where('id', '>', $afterId))
             ->with('sender')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
+            ->limit(self::MESSAGE_PAGE)
+            ->limit(self::MESSAGE_PAGE)
             ->get()
             ->map(fn ($message): array => $this->messagePayload($message))
             ->all();
@@ -294,7 +306,7 @@ class ConversationController extends Controller
             'url' => $message->attachmentUrl(),
             'actor_role' => $message->actor_role->value,
             'actor_role_label' => $message->actor_role->label(),
-            'actor_name' => $message->sender?->name,
+            'actor_name' => $message->actor_name ?? $message->sender?->name,
             'is_edited' => (bool) $message->is_edited,
             'sender' => [
                 'id' => $message->sender?->id,

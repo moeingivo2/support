@@ -36,6 +36,7 @@ class RegisterStudentRequest extends FormRequest
             'track' => ['nullable', Rule::in(CourseTrack::values())],
             'sessions' => ['nullable', 'array', 'max:20'],
             'sessions.*' => ['integer', 'min:1', 'max:'.config('aiosupport.sessions_per_track')],
+            'roadmap' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:10240'],
         ];
     }
 
@@ -62,6 +63,10 @@ class RegisterStudentRequest extends FormRequest
 
                     if ($this->hasSessionSelection()) {
                         $validator->errors()->add('sessions', 'انتخاب جلسات فقط برای دوره آفلاین است.');
+                    }
+
+                    if ($this->hasFile('roadmap')) {
+                        $validator->errors()->add('roadmap', 'بارگذاری رودمپ فقط برای دوره آفلاین است.');
                     }
 
                     return;
@@ -139,6 +144,7 @@ class RegisterStudentRequest extends FormRequest
             'course' => 'دوره',
             'track' => 'رشته',
             'sessions' => 'جلسات',
+            'roadmap' => 'رودمپ',
         ];
     }
 }

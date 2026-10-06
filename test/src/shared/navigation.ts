@@ -12,6 +12,7 @@ import {
     PlayCircle,
     SquareChartGantt,
     Trophy,
+    UserRoundCog,
     UserCog,
     UserPlus,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const adminNavigation: NavItem[] = [
         path: "/student-complaints",
         icon: MessageSquareWarning,
     },
+    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
     { label: "ثبت پشتیبان جدید", path: "/register-support", icon: UserPlus },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
@@ -57,6 +59,7 @@ const supportNavigation: NavItem[] = [
         path: "/student-complaints",
         icon: MessageSquareWarning,
     },
+    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
     { label: "سوالات متداول", path: "/faq", icon: FileWarning },
@@ -76,14 +79,21 @@ const supportNavigation: NavItem[] = [
 const observerNavigation: NavItem[] = [
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
     { label: "نارضایتی دانشجویان", path: "/student-complaints", icon: MessageSquareWarning },
+    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
     { label: "سوالات متداول", path: "/faq", icon: FileWarning },
 ];
 
+const accountObserverNavigation: NavItem[] = [
+    ...supportNavigation.filter((item) => item.path !== "/end-shift-report" && item.path !== "/reports" && item.path !== "/mentor-feedback"),
+    { label: "تعیین شیفت تیم", path: "/observer-schedules", icon: UserRoundCog },
+];
+
 export function getNavigation(user: PanelUser | null): NavItem[] {
     if (user?.role === "admin") return adminNavigation;
     if (user?.role === "observer") return observerNavigation;
+    if (user?.role === "account_observer") return accountObserverNavigation;
     return supportNavigation;
 }
 

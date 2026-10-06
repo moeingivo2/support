@@ -22,6 +22,7 @@ class StudentProfile extends Model
         'used_chats',
         'mentor_id',
         'membership_date',
+        'roadmap_path',
     ];
 
     /**

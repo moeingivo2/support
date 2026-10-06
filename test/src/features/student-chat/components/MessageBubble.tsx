@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, FileCode2, FileText } from "lucide-react";
+import { Check, Clipboard, Download, FileCode2, FileText, Loader2 } from "lucide-react";
+import { downloadAuthenticatedBlob, fetchAuthenticatedBlob } from "@/shared/api/http";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { useToast } from "@/shared/ui/toast";
@@ -42,6 +43,12 @@ export function MessageBubble({
     const toast = useToast();
     const [copied, setCopied] = useState(false);
     const copiedTimeoutRef = useRef<number | null>(null);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [imageLoadFailed, setImageLoadFailed] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
+    const [imageNearViewport, setImageNearViewport] = useState(false);
+    const imagePlaceholderRef = useRef<HTMLDivElement | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const actorRole = message.actor_role ?? "student";
     const authorName =
         message.actor_name ?? message.sender.name ?? ROLE_LABEL[actorRole];
@@ -51,6 +58,54 @@ export function MessageBubble({
             window.clearTimeout(copiedTimeoutRef.current);
         }
     }, []);
+
+    useEffect(() => {
+        if (message.type !== "image" || !message.url) {
+            setImageUrl(null);
+            setImageLoading(false);
+            return;
+        }
+        if (!imageNearViewport) return;
+
+        let cancelled = false;
+        let objectUrl: string | null = null;
+        setImageLoading(true);
+        setImageLoadFailed(false);
+        void fetchAuthenticatedBlob(message.url, message.attachment_mime ?? "image/jpeg")
+            .then((blob) => {
+                if (cancelled) return;
+                objectUrl = URL.createObjectURL(blob);
+                setImageUrl(objectUrl);
+                setImageLoading(false);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setImageLoading(false);
+                    setImageLoadFailed(true);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [imageNearViewport, message.attachment_mime, message.type, message.url]);
+
+    useEffect(() => {
+        if (message.type !== "image" || !message.url || !imagePlaceholderRef.current) return;
+        if (!("IntersectionObserver" in window)) {
+            setImageNearViewport(true);
+            return;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+                setImageNearViewport(true);
+                observer.disconnect();
+            }
+        }, { rootMargin: "240px" });
+        observer.observe(imagePlaceholderRef.current);
+        return () => observer.disconnect();
+    }, [message.type, message.url]);
 
     async function handleCopyCode() {
         if (!message.body) return;
@@ -63,6 +118,22 @@ export function MessageBubble({
             copiedTimeoutRef.current = window.setTimeout(() => setCopied(false), 1800);
         } catch {
             toast.error("کپی کردن کد انجام نشد.");
+        }
+    }
+
+    async function downloadFile(): Promise<void> {
+        if (!message.url) return;
+        setIsDownloading(true);
+        try {
+            await downloadAuthenticatedBlob(
+                message.url,
+                message.attachment_mime ?? "application/octet-stream",
+                message.attachment_name ?? "attachment",
+            );
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "دریافت فایل ناموفق بود.");
+        } finally {
+            setIsDownloading(false);
         }
     }
 
@@ -126,7 +197,7 @@ export function MessageBubble({
                             </span>
                         ) : null}
                             <Button type="button" variant="ghost" onClick={() => void handleCopyCode()} className="h-8 shrink-0 rounded-lg px-2 text-[11px]" aria-label={copied ? "کد کپی شد" : "کپی کد"}>
-                                {copied ? <Check /> : <Copy />}
+                                {copied ? <Check /> : <Clipboard />}
                                 {copied ? "کپی شد" : "کپی"}
                             </Button>
                         </div>
@@ -137,19 +208,17 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "image" && message.url ? (
-                    <a
-                        href={message.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block overflow-hidden rounded-2xl border border-hairline transition-opacity hover:opacity-90"
-                    >
-                        <img
-                            src={message.url}
-                            alt={message.attachment_name ?? "تصویر ارسالی"}
-                            loading="lazy"
-                            className="max-h-72 w-full object-cover"
-                        />
-                    </a>
+                    <div ref={imagePlaceholderRef} className="min-h-12">
+                        {imageUrl ? (
+                            <a href={imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-hairline transition-opacity hover:opacity-90">
+                                <img src={imageUrl} alt={message.attachment_name ?? "تصویر ارسالی"} loading="lazy" className="max-h-72 w-full object-cover" />
+                            </a>
+                        ) : (
+                            <p className="rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-xs text-ink-2" role={imageLoadFailed ? "alert" : undefined}>
+                                {imageLoading ? "در حال دریافت تصویر…" : imageLoadFailed ? "دریافت تصویر ناموفق بود." : "تصویر هنگام نمایش دریافت می‌شود."}
+                            </p>
+                        )}
+                    </div>
                 ) : null}
 
                 {message.type === "voice" && message.url ? (
@@ -161,12 +230,7 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "file" ? (
-                    <a
-                        href={message.url ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3 transition-colors hover:border-primary-line hover:bg-primary-soft"
-                    >
+                    <div className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3">
                         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-warn-soft text-alret-gold">
                             {message.attachment_mime?.includes("pdf") ? (
                                 <FileText className="size-4" />
@@ -182,7 +246,10 @@ export function MessageBubble({
                                 {formatFileSize(message.attachment_size)}
                             </span>
                         </span>
-                    </a>
+                        <button type="button" onClick={() => void downloadFile()} disabled={isDownloading || !message.url} aria-label="دانلود پیوست" className="grid size-10 shrink-0 place-items-center rounded-xl text-ink-2 hover:bg-surface-3 hover:text-ink disabled:opacity-50">
+                            {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                        </button>
+                    </div>
                 ) : null}
 
                 {message.body &&

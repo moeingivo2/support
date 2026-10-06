@@ -24,8 +24,13 @@ export function createConversation(
 
 export function getConversation(
     id: number,
+    afterId?: number,
 ): Promise<{ data: ConversationDetail }> {
-    return getJson<{ data: ConversationDetail }>(`/api/conversations/${id}`);
+    return getJson<{ data: ConversationDetail }>(`/api/conversations/${id}`, { after_id: afterId || undefined });
+}
+
+export function submitMentorFeedback(payload: { mentor_name: string; description: string }): Promise<{ message: string }> {
+    return postJson("/api/mentor-feedback", payload);
 }
 
 export type SendMessageInput = {

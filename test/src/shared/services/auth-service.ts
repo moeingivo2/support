@@ -1,4 +1,4 @@
-import { getJson, postJson } from "@/shared/api/http";
+import { getJson, postJson, postMultipart } from "@/shared/api/http";
 import type { PanelUser } from "@/shared/lib/auth-storage";
 import type { StudentProfilePayload } from "@/features/student-account/types/student-profile";
 
@@ -26,6 +26,7 @@ export type StudentRegisterPayload = {
     course: "offline" | "in_person" | "school";
     track?: "ai" | "web" | null;
     sessions?: number[];
+    roadmap?: File | null;
 };
 
 export type StudentRegisterResponse = {
@@ -64,13 +65,29 @@ export function loginStudent(
     );
 }
 
+export function impersonateObserverSupport(supportId: number): Promise<LoginResponse> {
+    return postJson<Record<string, never>, LoginResponse>(
+        `/api/support/conversations/managed-supports/${supportId}/impersonate`,
+        {},
+    );
+}
+
 export function registerStudent(
     payload: StudentRegisterPayload,
 ): Promise<StudentRegisterResponse> {
-    return postJson<StudentRegisterPayload, StudentRegisterResponse>(
-        "/api/register/student",
-        payload,
-    );
+    if (payload.roadmap) {
+        const form = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+            if (key === "roadmap" || value === undefined || value === null) return;
+            if (Array.isArray(value)) value.forEach((item) => form.append(`${key}[]`, String(item)));
+            else form.append(key, String(value));
+        });
+        form.append("roadmap", payload.roadmap);
+        return postMultipart<StudentRegisterResponse>("/api/register/student", form);
+    }
+
+    const { roadmap: _roadmap, ...jsonPayload } = payload;
+    return postJson<typeof jsonPayload, StudentRegisterResponse>("/api/register/student", jsonPayload);
 }
 
 export async function registerSupport(

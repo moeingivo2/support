@@ -15,8 +15,8 @@ import type { Resource } from "../types/resource";
 
 type SessionSourceCardProps = {
     resource: Resource;
-    onEdit: (resource: Resource) => void;
-    onDelete: (resource: Resource) => void;
+    onEdit?: (resource: Resource) => void;
+    onDelete?: (resource: Resource) => void;
 };
 
 export function SessionSourceCard({
@@ -44,8 +44,9 @@ export function SessionSourceCard({
                         {resource.category}
                     </span>
                 ) : null}
+                {onEdit || onDelete ? (
                 <span className="mr-auto flex items-center gap-1">
-                    <Button
+                    {onEdit ? <Button
                         variant="ghost"
                         size="icon"
                         className="size-11"
@@ -53,8 +54,8 @@ export function SessionSourceCard({
                         onClick={() => onEdit(resource)}
                     >
                         <Pencil className="size-4" />
-                    </Button>
-                    <Button
+                    </Button> : null}
+                    {onDelete ? <Button
                         variant="ghost"
                         size="icon"
                         className="size-11 text-err-text hover:text-err-text"
@@ -62,8 +63,9 @@ export function SessionSourceCard({
                         onClick={() => onDelete(resource)}
                     >
                         <Trash2 className="size-4" />
-                    </Button>
+                    </Button> : null}
                 </span>
+                ) : null}
             </div>
 
             <div className="space-y-2">
@@ -81,10 +83,12 @@ export function SessionSourceCard({
                         <CalendarDays className="size-4" />
                         {formatResourceDate(resource.created_at)}
                     </span>
-                    <span className="inline-flex items-center gap-1.5">
-                        <UserRound className="size-4" />
-                        {resource.creator.name}
-                    </span>
+                    {resource.creator ? (
+                        <span className="inline-flex items-center gap-1.5">
+                            <UserRound className="size-4" />
+                            {resource.creator.name}
+                        </span>
+                    ) : null}
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                     <Button asChild className="w-full sm:w-auto">

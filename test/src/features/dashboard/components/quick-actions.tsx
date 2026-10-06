@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom";
 import { ArrowUpLeft } from "lucide-react";
 import { Card } from "@/shared/ui/card";
-import { dashboardQuickActions } from "../constants";
+import { dashboardQuickActions, observerDashboardQuickActions } from "../constants";
+import { useAuth } from "@/shared/services/auth-context";
 
 export function QuickActionsSection() {
+    const { user } = useAuth();
+    const actions = user?.role === "observer" ? observerDashboardQuickActions : dashboardQuickActions;
     return (
         <section className="space-y-4" aria-labelledby="quick-actions">
             <h2 id="quick-actions" className="text-xl font-bold text-ink">
                 اقدامات سریع
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {dashboardQuickActions.map((action) => (
+                {actions.map((action) => (
                     <Card key={action.path} className="p-0">
                         <Link
                             to={action.path}

@@ -30,12 +30,17 @@ import { AuthProvider, useAuth } from "@/shared/services/auth-context";
 import { ThemeProvider } from "@/shared/services/theme-context";
 import { ToastProvider } from "@/shared/ui/toast";
 import LoginSplash from "@/features/auth/components/LoginSplash";
+import { AppErrorBoundary } from "@/shared/ui/app-error-boundary";
+import ObserverSchedulesPage from "@/features/admin/pages/ObserverSchedulesPage";
+import MentorFeedbackPage from "@/features/student-complaints/pages/MentorFeedbackPage";
 
 const supportOnlyPaths = new Set([
     "/support-shifts",
     "/end-shift-report",
     "/reports",
 ]);
+const accountObserverOnlyPaths = new Set(["/observer-schedules"]);
+const supportPanelPaths = new Set(["/mentor-feedback"]);
 const adminOnlyPaths = new Set([
     "/all-reports",
     "/register-support",
@@ -65,6 +70,8 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/manage-admins": ManageAdminsRoute,
     "/register-support": RegisterSupportRoute,
     "/support-ranking": SupportRankingRoute,
+    "/observer-schedules": ObserverSchedulesPage,
+    "/mentor-feedback": MentorFeedbackPage,
 };
 
 function PanelRoutes() {
@@ -78,6 +85,10 @@ function PanelRoutes() {
         if (isAdmin && transcriptPaths.has(path))
             return <Navigate to={homePath} replace />;
         if (supportOnlyPaths.has(path) && (isAdmin || isObserver))
+            return <Navigate to={homePath} replace />;
+        if (accountObserverOnlyPaths.has(path) && user?.role !== "account_observer")
+            return <Navigate to={homePath} replace />;
+        if (supportPanelPaths.has(path) && !["support", "observer", "account_observer"].includes(user?.role ?? ""))
             return <Navigate to={homePath} replace />;
         if (adminOnlyPaths.has(path) && !isAdmin)
             return <Navigate to={homePath} replace />;
@@ -110,6 +121,7 @@ function StudentRoutes() {
                 <Routes>
                     <Route path="/chat" element={<ChatRoute />} />
                     <Route path="/account" element={<AccountRoute />} />
+                    <Route path="/mentor-feedback" element={<MentorFeedbackPage />} />
                     <Route path="*" element={<Navigate to="/chat" replace />} />
                 </Routes>
             </Suspense>
@@ -180,7 +192,9 @@ export default function App() {
             <ThemeProvider>
                 <ToastProvider>
                     <AuthProvider>
-                        <AppRoutes />
+                        <AppErrorBoundary>
+                            <AppRoutes />
+                        </AppErrorBoundary>
                     </AuthProvider>
                 </ToastProvider>
             </ThemeProvider>

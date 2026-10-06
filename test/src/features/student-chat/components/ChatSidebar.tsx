@@ -4,6 +4,7 @@ import {
     MessagesSquare,
     RefreshCw,
     UserRound,
+    MessageSquareWarning,
 } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -23,6 +24,7 @@ type ChatSidebarProps = {
     onSelect: (id: number) => void;
     onCreate: () => void;
     isCreating: boolean;
+    remainingChats?: number;
 };
 
 export function ChatSidebar({
@@ -34,6 +36,7 @@ export function ChatSidebar({
     onSelect,
     onCreate,
     isCreating,
+    remainingChats,
 }: ChatSidebarProps) {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -44,13 +47,18 @@ export function ChatSidebar({
                 <MessageSquarePlus />
                 {isCreating ? "در حال ساخت..." : "گفتگوی جدید"}
             </Button>
+            <Button type="button" variant="ghost" onClick={() => navigate("/mentor-feedback")} className="w-full justify-start">
+                <MessageSquareWarning />ثبت نارضایتی از منتور
+            </Button>
 
             <div className="flex items-center justify-between px-1">
                 <span className="text-xs font-bold text-ink-2">
                     گفتگوهای قبلی
                 </span>
-                <span className="text-[11px] text-ink-3">
-                    {toPersianDigits(conversations.length)} گفتگو
+                    <span className="text-[11px] text-ink-3">
+                    {remainingChats === undefined
+                        ? `${toPersianDigits(conversations.length)} گفتگو`
+                        : `${toPersianDigits(remainingChats)} گفتگوی باقی‌مانده`}
                 </span>
             </div>
 

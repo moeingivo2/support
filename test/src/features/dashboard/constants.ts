@@ -3,17 +3,10 @@ import {
     CalendarClock,
     ClipboardList,
     FolderOpen,
-    MessageSquareWarning,
     PlayCircle,
 } from "lucide-react";
 
 export const dashboardQuickActions = [
-    {
-        title: "ثبت نارضایتی دانشجو",
-        description: "فرم رسمی ثبت نارضایتی",
-        icon: MessageSquareWarning,
-        path: "/student-complaints",
-    },
     {
         title: "سورس جلسات",
         description: "دسترسی به سورس و کدهای جلسات",
@@ -45,3 +38,5 @@ export const dashboardQuickActions = [
         path: "/end-shift-report",
     },
 ] as const;
+
+export const observerDashboardQuickActions = dashboardQuickActions;

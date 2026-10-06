@@ -59,6 +59,8 @@ class SupportChatController extends Controller
     public function students(Request $request): JsonResponse
     {
         $studentId = $request->integer('student_id') ?: null;
+        $ownerId = $request->integer('owner_id') ?: null;
+        $this->authorizeObserverOwner($request, $ownerId);
 
         $rows = Conversation::query()
             ->select([
@@ -68,6 +70,12 @@ class SupportChatController extends Controller
                 DB::raw('max(last_message_at) as last_message_at'),
             ])
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
+            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
+            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(fn ($conversations) => $conversations
+                ->whereNull('support_id')
+                ->orWhereHas('support', fn ($support) => $support
+                    ->where('observer_id', $request->user()->id)
+                    ->where('support_type', $request->user()->support_type))))
             ->groupBy('student_id')
             ->orderByDesc('last_message_at')
             ->limit(self::STUDENT_LIMIT)
@@ -110,10 +118,14 @@ class SupportChatController extends Controller
     public function index(Request $request): JsonResponse
     {
         $studentId = $request->integer('student_id') ?: null;
+        $ownerId = $request->integer('owner_id') ?: null;
+        $this->authorizeObserverOwner($request, $ownerId);
 
         $conversations = Conversation::query()
             // با باز کردن پروفایل یک دانشجو، فقط گفتگوهای همان نفر می‌آید.
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
+            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
+            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(fn ($conversations) => $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('observer_id', $request->user()->id)->where('support_type', $request->user()->support_type))))
             ->with([
                 'student:id,name,email,phone',
                 'support:id,name',
@@ -138,9 +150,13 @@ class SupportChatController extends Controller
     private function unreadTotal(): int
     {
         return (int) Cache::remember(
-            'support:unread_total',
+            'support:unread_total:'.request()->user()->id,
             2,
-            fn (): int => (int) Conversation::query()->sum('unread_support_count'),
+            fn (): int => (int) Conversation::query()
+                ->when(request()->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations): void {
+                    $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('support_type', request()->user()->support_type));
+                }))
+                ->sum('unread_support_count'),
         );
     }
 
@@ -152,7 +168,13 @@ class SupportChatController extends Controller
      */
     public function notifications(Request $request): JsonResponse
     {
+        $ownerId = $request->integer('owner_id') ?: null;
+        $this->authorizeObserverOwner($request, $ownerId);
         $unread = Conversation::query()
+            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
+            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations) use ($request): void {
+                $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('support_type', $request->user()->support_type));
+            }))
             ->where('unread_support_count', '>', 0)
             ->with('student:id,name')
             ->orderByDesc('last_message_at')
@@ -173,29 +195,82 @@ class SupportChatController extends Controller
         ]);
     }
 
+    public function assignedSupports(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === 'account_observer', 403);
+        $supports = User::query()
+            ->where('observer_id', $request->user()->id)
+            ->where('role', 'support')
+            ->where('support_type', $request->user()->support_type)
+            ->select(['id', 'name', 'support_type'])
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['data' => $supports]);
+    }
+
+    public function impersonate(Request $request, User $support): JsonResponse
+    {
+        abort_unless($request->user()->role === 'account_observer', 403);
+        abort_unless(
+            $support->role === 'support'
+            && $support->observer_id === $request->user()->id
+            && $support->support_type === $request->user()->support_type,
+            403,
+        );
+
+        ObserverAccessLog::create([
+            'observer_id' => $request->user()->id,
+            'conversation_id' => null,
+            'action' => 'impersonate_support:'.$support->id,
+            'ip_address' => $request->ip(),
+        ]);
+
+        $token = $support->createToken(
+            'observer-impersonation:'.$request->user()->id,
+            ['*'],
+            now()->addHours(2),
+        )->plainTextToken;
+
+        return response()->json(['user' => $support, 'token' => $token]);
+    }
+
     /**
      * پیام‌های گفتگو به‌همراه اطلاعات دانشجو؛ با باز کردن گفتگو پیام‌ها خوانده می‌شوند
      */
     public function show(Request $request, int $conversation): JsonResponse
     {
+        $ownerId = $request->integer('owner_id') ?: null;
+        $this->authorizeObserverOwner($request, $ownerId);
         $model = $this->conversation($request, $conversation);
-        $isObserver = $request->user()->isObserver();
+        abort_unless(
+            $request->user()->role !== 'account_observer'
+            || ($ownerId !== null
+                ? $model->support_id === $ownerId
+                : $model->support === null
+                    || $this->isOwnManagedSupport($request->user(), $model->support)),
+            403,
+        );
+        $isObserver = $request->user()->role === 'observer';
 
         if ($isObserver) {
             // ناظر فقط‌خواندنی است: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
-            $this->logObserverAccess($request, $model);
+            if (Cache::add('observer-access:'.$request->user()->id.':'.$model->id, true, 60)) {
+                $this->logObserverAccess($request, $model);
+            }
         } else {
             // نوشتن فقط وقتی لازم است که چیزی تغییر کرده باشد؛
             // poll هر ۵ ثانیه نباید بی‌دلیل در دیتابیس بنویسد.
             $needsUpdate = $model->unread_support_count > 0
-                || $model->support_id !== $request->user()->id
-                || $model->support_last_read_at === null;
+                || ($request->user()->isSupport() && $model->support_id !== $request->user()->id)
+                || $model->support_last_read_at === null
+                || $model->support_last_read_at->lt(now()->subMinute());
 
             if ($needsUpdate) {
                 $model->update([
                     'unread_support_count' => 0,
                     'support_last_read_at' => now(),
-                    'support_id' => $request->user()->id,
+                    'support_id' => $request->user()->isSupport() ? $request->user()->id : $model->support_id,
                 ]);
             }
         }
@@ -205,12 +280,13 @@ class SupportChatController extends Controller
                 'conversation' => $this->summary(
                     $model->load(['student:id,name,email,phone', 'support:id,name', 'rating'])
                 ),
-                'profile' => $isObserver ? null : $this->studentProfile($model),
+                'profile' => $request->user()->isObserver() ? null : $this->studentProfile($model),
                 // سقف تعداد پیام تا یک گفتگوی طولانی کل حافظه را پر نکند.
                 // ترتیب نزولی نگه داشته می‌شود: MessageList فرض می‌کند
                 // messages[0] جدیدترین است و روی آن اسکرول می‌کند. معکوس‌کردن
                 // اینجا باعث می‌شد هر پیام جدید پنل را به قدیمی‌ترین پیام ببرد.
                 'messages' => $model->messages()
+                    ->when($request->integer('after_id') > 0, fn ($query) => $query->where('id', '>', $request->integer('after_id')))
                     ->with('sender:id,name')
                     ->orderByDesc('created_at')
                     ->orderByDesc('id')
@@ -238,9 +314,43 @@ class SupportChatController extends Controller
         }
 
         try {
+            $sender = $request->user();
+            $tokenName = $sender->currentAccessToken()?->name ?? '';
+            if (str_starts_with($tokenName, 'observer-impersonation:')) {
+                $observerId = (int) substr($tokenName, strlen('observer-impersonation:'));
+                $observer = User::query()->whereKey($observerId)->where('role', 'account_observer')->first();
+                // توکن impersonation فقط تا وقتی معتبر است که ناظر هنوز این
+                // پشتیبان را داشته باشد؛ لغو انتساب، دسترسی را هم می‌بندد.
+                abort_unless($this->isOwnManagedSupport($observer, $sender), 403);
+
+                ObserverAccessLog::create([
+                    'observer_id' => $observer->id,
+                    'conversation_id' => $model->id,
+                    'action' => 'reply_as_support:'.$sender->id,
+                    'ip_address' => $request->ip(),
+                ]);
+                $request->attributes->set('actor_id', $observer->id);
+                $request->attributes->set('actor_name', $observer->name.' (به‌جای '.$sender->name.')');
+            }
+            if ($sender->role === 'account_observer') {
+                // ناظر اکانت بدون impersonation هم می‌تواند پاسخ بدهد، اما
+                // فقط به‌جای یکی از پشتیبان‌های خودش و با ثبت صریح هویت.
+                $ownerId = $request->integer('acting_support_id') ?: null;
+                abort_unless($ownerId !== null && ($model->support_id === null || $model->support_id === $ownerId), 403);
+                $actingAs = User::query()->whereKey($ownerId)->first();
+                abort_unless($this->isOwnManagedSupport($sender, $actingAs), 403);
+
+                $sender = $actingAs;
+                $request->attributes->set('actor_id', $request->user()->id);
+                $request->attributes->set('actor_name', $request->user()->name.' (به‌جای '.$actingAs->name.')');
+                $this->logObserverAccess($request, $model, 'reply_as_support:'.$actingAs->id);
+            }
+            if ($sender->id !== $request->user()->id) {
+                $model->forceFill(['support_id' => $sender->id])->save();
+            }
             $message = $this->sender->send(
                 $model,
-                $request->user(),
+                $sender,
                 $request,
                 $request->boolean('code_mode'),
             );
@@ -263,6 +373,7 @@ class SupportChatController extends Controller
      */
     public function close(Request $request, int $conversation): JsonResponse
     {
+        abort_unless($request->user()->role !== 'account_observer', 403);
         $model = $this->conversation($request, $conversation);
 
         $validated = $request->validate([
@@ -293,21 +404,61 @@ class SupportChatController extends Controller
         ]);
     }
 
-    private function logObserverAccess(Request $request, Conversation $conversation): void
+    private function logObserverAccess(Request $request, Conversation $conversation, string $action = 'view_transcript'): void
     {
         ObserverAccessLog::create([
             'observer_id' => $request->user()->id,
             'conversation_id' => $conversation->id,
-            'action' => 'view_transcript',
+            'action' => $action,
             'ip_address' => $request->ip(),
         ]);
     }
 
     private function conversation(Request $request, int $conversation): Conversation
     {
-        return Conversation::query()
+        $model = Conversation::query()
             ->with(['student', 'support'])
             ->findOrFail($conversation);
+
+        abort_unless(
+            $request->user()->role !== 'account_observer'
+            || $model->support === null
+            || $model->support->support_type === $request->user()->support_type
+            || $model->support_id === $request->user()->id,
+            403,
+        );
+
+        return $model;
+    }
+
+    /**
+     * پشتیبانِ تحت مدیریت این ناظر اکانت: هم به او انتساب داده شده و هم
+     * از همان نوع پشتیبانی است.
+     */
+    private function isOwnManagedSupport(?User $observer, ?User $support): bool
+    {
+        return $observer !== null
+            && $support !== null
+            && $support->role === 'support'
+            && $support->observer_id === $observer->id
+            && $support->support_type === $observer->support_type;
+    }
+
+    private function authorizeObserverOwner(Request $request, ?int $ownerId): void
+    {
+        if ($ownerId === null || $request->user()->role !== 'account_observer') {
+            return;
+        }
+
+        abort_unless(
+            User::query()
+                ->whereKey($ownerId)
+                ->where('role', 'support')
+                ->where('observer_id', $request->user()->id)
+                ->where('support_type', $request->user()->support_type)
+                ->exists(),
+            403,
+        );
     }
 
     /**
@@ -379,7 +530,7 @@ class SupportChatController extends Controller
             'url' => $message->attachmentUrl(),
             'actor_role' => $message->actor_role->value,
             'actor_role_label' => $message->actor_role->label(),
-            'actor_name' => $message->sender?->name,
+            'actor_name' => $message->actor_name ?? $message->sender?->name,
             'is_edited' => (bool) $message->is_edited,
             'sender' => [
                 'id' => $message->sender?->id,

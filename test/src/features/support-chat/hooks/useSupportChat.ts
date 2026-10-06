@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/shared/ui/toast";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
 import { playNewMessageSound } from "../utils/notification-sound";
 import {
     getSupportConversation,
+    getObserverConversation,
     getSupportInbox,
     getSupportNotifications,
     getSupportStudents,
@@ -12,31 +13,47 @@ import {
 } from "../services/support-chat-service";
 import type { SupportNotifications } from "../types/support-chat";
 
-const POLL_INTERVAL = 5000;
+const LIST_POLL_INTERVAL = 15000;
+const MESSAGE_POLL_INTERVAL = 5000;
 
-export function useSupportInbox(studentId: number | null = null) {
+export function useSupportInbox(studentId: number | null = null, ownerId?: number) {
     return useQuery({
-        queryKey: supportChatKeys.inbox(studentId),
-        queryFn: () => getSupportInbox(studentId),
-        refetchInterval: POLL_INTERVAL,
+        queryKey: [...supportChatKeys.inbox(studentId), ownerId],
+        queryFn: () => getSupportInbox(studentId, ownerId),
+        refetchInterval: LIST_POLL_INTERVAL,
     });
 }
 
 /** فهرست دانشجویان با تعداد گفتگو؛ نمای پیش‌فرض پنل پشتیبان. */
-export function useSupportStudents() {
+export function useSupportStudents(ownerId?: number) {
     return useQuery({
-        queryKey: supportChatKeys.students,
-        queryFn: getSupportStudents,
-        refetchInterval: POLL_INTERVAL,
+        queryKey: [...supportChatKeys.students, ownerId],
+        queryFn: () => getSupportStudents(ownerId),
+        refetchInterval: LIST_POLL_INTERVAL,
     });
 }
 
-export function useSupportConversation(conversationId: number | null) {
+export function useSupportConversation(conversationId: number | null, ownerId?: number) {
+    const queryClient = useQueryClient();
     return useQuery({
-        queryKey: supportChatKeys.conversation(conversationId ?? 0),
-        queryFn: () => getSupportConversation(conversationId as number),
+        queryKey: [...supportChatKeys.conversation(conversationId ?? 0), ownerId],
+        queryFn: async () => {
+            const queryKey = supportChatKeys.conversation(conversationId as number);
+            const previous = queryClient.getQueryData<{ data: import("../types/support-chat").SupportConversationDetail }>(queryKey);
+            const afterId = Math.max(0, ...(previous?.data.messages ?? []).map((message) => message.id));
+            const response = ownerId === undefined
+                ? await getSupportConversation(conversationId as number, afterId)
+                : await getObserverConversation(conversationId as number, afterId, ownerId);
+            if (!previous || afterId === 0) return response;
+            return {
+                data: {
+                    ...response.data,
+                    messages: [...response.data.messages, ...previous.data.messages].sort((a, b) => b.id - a.id).slice(0, 100),
+                },
+            };
+        },
         enabled: conversationId !== null,
-        refetchInterval: POLL_INTERVAL,
+        refetchInterval: MESSAGE_POLL_INTERVAL,
     });
 }
 
@@ -44,14 +61,14 @@ export function useSupportConversation(conversationId: number | null) {
  * نظرسنجی دوره‌ای صندوق ورودی به‌همراه اعلان پیام جدید برای گفتگوهایی که
  * پشتیبان در حال حاضر روی آن‌ها باز نکرده است.
  */
-export function useNewMessageAlert(activeConversationId: number | null) {
+export function useNewMessageAlert(activeConversationId: number | null, ownerId?: number) {
     const toast = useToast();
     const seenRef = useRef<Set<string> | null>(null);
 
     const query = useQuery({
-        queryKey: supportChatKeys.notifications,
-        queryFn: getSupportNotifications,
-        refetchInterval: POLL_INTERVAL,
+        queryKey: [...supportChatKeys.notifications, ownerId],
+        queryFn: () => getSupportNotifications(ownerId),
+        refetchInterval: LIST_POLL_INTERVAL,
         refetchOnWindowFocus: true,
     });
 

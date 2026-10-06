@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudentProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,6 +19,15 @@ class AttachmentController extends Controller
 {
     public function show(Request $request, string $path)
     {
+        if (str_starts_with($path, 'roadmaps/')) {
+            $ownerId = StudentProfile::query()->where('roadmap_path', $path)->value('user_id');
+            abort_unless(
+                $ownerId === $request->user()->id
+                || in_array($request->user()->role, ['support', 'observer', 'account_observer', 'admin'], true),
+                403,
+            );
+        }
+
         $disk = Storage::disk(config('aiosupport.attachments.disk'));
 
         if (! $disk->exists($path)) {

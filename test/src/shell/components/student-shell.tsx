@@ -237,7 +237,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                 </div>
             </header>
 
-            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col px-3 py-3 md:px-7 md:py-6">
+            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 md:px-7 md:py-6">
                 {children}
             </main>
         </div>

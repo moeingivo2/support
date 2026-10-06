@@ -19,4 +19,5 @@ export type StudentProfilePayload = {
     low_remaining_threshold: number;
     mentor_name: string | null;
     membership_date: string | null;
+    roadmap_url?: string | null;
 };

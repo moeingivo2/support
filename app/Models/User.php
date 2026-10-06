@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -24,6 +25,7 @@ class User extends Authenticatable
         'password',
         'role',
         'support_type',
+        'observer_id',
     ];
 
     protected $hidden = [
@@ -56,16 +58,30 @@ class User extends Authenticatable
     }
 
     /**
+     * ناظر اکانت — علاوه بر نظارت، تیم پشتیبان خودش را مدیریت می‌کند.
+     * با ناظر فقط‌خواندنی یکی نیست و دسترسی‌های بیشتری دارد.
+     */
+    public function isAccountObserver(): bool
+    {
+        return $this->role === 'account_observer';
+    }
+
+    /**
      * دسترسی به متن گفتگو — سوپر ادمین طبق سیاست ندارد.
      */
     public function canReadTranscripts(): bool
     {
-        return in_array($this->role, ['support', 'observer'], true);
+        return in_array($this->role, ['support', 'observer', 'account_observer'], true);
     }
 
     public function shifts()
     {
         return $this->hasMany(Shift::class);
+    }
+
+    public function observer(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'observer_id');
     }
 
     // پروفایل آموزشی دانشجو (دوره، رشته، جلسات و سهمیه چت)

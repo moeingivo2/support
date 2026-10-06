@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Faq;
+use App\Models\Resource;
 use App\Models\User;
 use App\Support\IranianPhone;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +15,68 @@ use Tests\TestCase;
  */
 class StudentPhoneLoginTest extends TestCase
 {
+    public function test_student_can_read_session_sources_and_faqs_without_write_access(): void
+    {
+        $student = $this->makeStudent();
+        $source = Resource::create([
+            'title' => 'نمونه سورس',
+            'description' => 'فقط نمایش',
+            'type' => 'session_source',
+            'file_url' => 'https://example.test/source.zip',
+            'created_by' => $this->makeSupport()->id,
+        ]);
+        Resource::create([
+            'title' => 'فایل داخلی',
+            'type' => 'required_file',
+            'file_url' => 'https://example.test/internal.pdf',
+            'created_by' => $this->makeSupport()->id,
+        ]);
+        Faq::create([
+            'question' => 'چطور وارد شوم؟',
+            'answer' => 'از شماره موبایل استفاده کنید.',
+            'category' => 'other',
+            'order' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson('/api/student/session-sources')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $source->id)
+            ->assertJsonMissingPath('data.0.creator');
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson('/api/student/faqs')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.question', 'چطور وارد شوم؟');
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson('/api/resources', [
+                'title' => 'تلاش نوشتن',
+                'type' => 'session_source',
+                'file_url' => 'https://example.test/nope.zip',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_student_registration_rejects_persian_password_with_keyboard_message(): void
+    {
+        $this->postJson('/api/register/student', [
+            'first_name' => 'آزمون',
+            'last_name' => 'کاربر',
+            'phone' => '09123456790',
+            'password' => 'سلام12345',
+            'password_confirmation' => 'سلام12345',
+            'course' => 'in_person',
+            'track' => null,
+            'sessions' => [],
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.password.0', 'لطفاً کیبوردتان را انگلیسی کنید.');
+    }
+
     private const INVALID_CREDENTIALS = 'شماره موبایل یا رمز عبور اشتباه است.';
 
     private function studentWithPhone(string $phone = '09121234567'): User

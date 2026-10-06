@@ -25,6 +25,7 @@ class Message extends Model
         'duration_seconds',
         'read_at',
         'actor_role',
+        'actor_name',
         'actor_id',
     ];
 
@@ -49,6 +50,7 @@ class Message extends Model
         static::updating(function (self $message): void {
             $message->actor_role = $message->getOriginal('actor_role');
             $message->actor_id = $message->getOriginal('actor_id');
+            $message->actor_name = $message->getOriginal('actor_name');
         });
     }
 

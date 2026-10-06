@@ -39,6 +39,37 @@ class ResourceController extends Controller
         return response()->json($resources);
     }
 
+    /** دانشجو فقط سورس‌های آموزشی را می‌خواند؛ هیچ عملیات نوشتنی ندارد. */
+    public function studentSessionSources(Request $request)
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = Resource::query()
+            ->where('type', 'session_source')
+            ->select(['id', 'title', 'description', 'file_url', 'category', 'created_at']);
+
+        if (! empty($validated['category'])) {
+            $query->where('category', $validated['category']);
+        }
+
+        if (! empty($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($builder) use ($search): void {
+                $builder->where('title', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
+            });
+        }
+
+        return response()->json($query
+            ->orderByDesc('created_at')
+            ->paginate(min((int) ($validated['per_page'] ?? 30), 100)));
+    }
+
     // پسوندهای خطرناک و آپلود فایل در App\Support\AttachmentStorage مدیریت می‌شود
 
     // ثبت فایل یا سورس جدید

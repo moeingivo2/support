@@ -17,6 +17,10 @@ import {
     createSupport,
     deleteSupport,
     getSupports,
+    assignSupportObserver,
+    getObservers,
+    setAccountObserver,
+    revokeAccountObserver,
     type SupportListItem,
 } from "../services/admin-service";
 import {
@@ -52,6 +56,14 @@ export default function RegisterSupportPage() {
         queryKey: adminKeys.supports,
         queryFn: getSupports,
     });
+    const observersQuery = useQuery({
+        queryKey: ["admin", "supports", "account-observers"],
+        queryFn: async () => {
+            const [web, ai] = await Promise.all([getObservers("web"), getObservers("ai")]);
+            return { data: [...web.data, ...ai.data] };
+        },
+    });
+    const accountObservers = (observersQuery.data?.data ?? []).filter((item) => item.role === "account_observer");
 
     const {
         formState: { errors, isSubmitting },
@@ -128,6 +140,29 @@ export default function RegisterSupportPage() {
             );
         } finally {
             setIsDeleting(false);
+        }
+    }
+
+    async function handleObserverAssignment(support: SupportListItem, observerId: number | null): Promise<void> {
+        try {
+            const response = await assignSupportObserver(support.id, observerId);
+            toast.success(response.message);
+            await queryClient.invalidateQueries({ queryKey: adminKeys.supports });
+        } catch (error) {
+            setServerError(error instanceof Error ? error.message : "تغییر انتساب ناظر ناموفق بود.");
+        }
+    }
+
+    async function handleObserverRole(support: SupportListItem): Promise<void> {
+        try {
+            const response = support.role === "account_observer"
+                ? await revokeAccountObserver(support.id)
+                : await setAccountObserver(support.id);
+            toast.success(response.message);
+            await queryClient.invalidateQueries({ queryKey: adminKeys.supports });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "supports", "account-observers"] });
+        } catch (error) {
+            setServerError(error instanceof Error ? error.message : "تغییر نقش ناظر انجام نشد.");
         }
     }
 
@@ -280,12 +315,12 @@ export default function RegisterSupportPage() {
                             <Alert tone="danger">
                                 دریافت فهرست پشتیبان‌ها ناموفق بود.
                             </Alert>
-                        ) : (supportsQuery.data?.data ?? []).length === 0 ? (
+                        ) : (supportsQuery.data?.data ?? []).filter((item) => item.role === "support").length === 0 ? (
                             <p className="py-8 text-center text-sm text-ink-2">
                                 هنوز پشتیبانی ثبت نشده است.
                             </p>
                         ) : (
-                            (supportsQuery.data?.data ?? []).map((support) => (
+                            (supportsQuery.data?.data ?? []).filter((item) => item.role === "support").map((support) => (
                                 <div
                                     key={support.id}
                                     className="space-y-4 rounded-3xl border border-hairline bg-surface-2 p-4"
@@ -339,6 +374,20 @@ export default function RegisterSupportPage() {
                                             حذف
                                         </Button>
                                     </div>
+                                    {support.role !== "account_observer" ? (
+                                        <div className="flex justify-end">
+                                            <Button type="button" variant="ghost" onClick={() => void handleObserverRole(support)}>
+                                                تبدیل به ناظر اکانت {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}
+                                            </Button>
+                                        </div>
+                                    ) : null}
+                                    {support.role === "support" ? <div className="space-y-2 border-t border-hairline pt-3">
+                                        <Label htmlFor={`observer-assignment-${support.id}`}>انتساب این پشتیبان به ناظر {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}</Label>
+                                        <select id={`observer-assignment-${support.id}`} value={support.observer_id ?? ""} onChange={(event) => void handleObserverAssignment(support, event.target.value ? Number(event.target.value) : null)} className="h-10 w-full rounded-xl border border-hairline bg-surface px-3 text-sm text-ink">
+                                            <option value="">انتساب به ناظر</option>
+                                            {accountObservers.filter((observer) => observer.support_type === support.support_type && observer.id !== support.id).map((observer) => <option key={observer.id} value={observer.id}>{observer.name}</option>)}
+                                        </select>
+                                    </div> : null}
                                 </div>
                             ))
                         )}

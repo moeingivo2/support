@@ -20,34 +20,52 @@ export const supportChatKeys = {
 };
 
 /** دانشجویان به‌همراه تعداد گفتگو، جدیدترین فعالیت اول. */
-export function getSupportStudents(): Promise<{
+export function getSupportStudents(ownerId?: number): Promise<{
     data: SupportStudentRow[];
 }> {
     return getJson<{ data: SupportStudentRow[] }>(
         "/api/support/conversations/students",
+        { owner_id: ownerId },
     );
+}
+
+export function getObserverSupports(): Promise<{ data: import("@/features/admin/services/admin-service").SupportListItem[] }> {
+    return getJson("/api/support/conversations/managed-supports");
 }
 
 export function getSupportInbox(
     studentId: number | null = null,
+    ownerId?: number,
 ): Promise<SupportInboxResponse> {
     return getJson<SupportInboxResponse>("/api/support/conversations", {
         student_id: studentId ?? undefined,
+        owner_id: ownerId,
     });
 }
 
-export function getSupportNotifications(): Promise<SupportNotifications> {
+export function getSupportNotifications(ownerId?: number): Promise<SupportNotifications> {
     return getJson<SupportNotifications>(
         "/api/support/conversations/notifications",
+        { owner_id: ownerId },
     );
 }
 
 export function getSupportConversation(
     id: number,
+    afterId?: number,
+    ownerId?: number,
 ): Promise<{ data: SupportConversationDetail }> {
     return getJson<{ data: SupportConversationDetail }>(
         `/api/support/conversations/${id}`,
+        { after_id: afterId || undefined, owner_id: ownerId },
     );
+}
+
+export function getObserverConversation(id: number, afterId: number, ownerId?: number): Promise<{ data: SupportConversationDetail }> {
+    return getJson<{ data: SupportConversationDetail }>(`/api/support/conversations/${id}`, {
+        after_id: afterId || undefined,
+        owner_id: ownerId,
+    });
 }
 
 export type SendReplyInput = {
@@ -57,6 +75,8 @@ export type SendReplyInput = {
     language?: string;
     attachment?: OutgoingAttachment;
     signal?: AbortSignal;
+    actingSupportId?: number;
+    observerActorName?: string;
 };
 
 export function sendReply({
@@ -66,6 +86,8 @@ export function sendReply({
     language,
     attachment,
     signal,
+    actingSupportId,
+    observerActorName,
 }: SendReplyInput): Promise<{ message: string; data: ChatMessage }> {
     const url = `/api/support/conversations/${conversationId}/messages`;
 
@@ -74,6 +96,7 @@ export function sendReply({
         formData.append("body", body);
         formData.append("code_mode", codeMode ? "1" : "0");
         if (language) formData.append("language", language);
+        if (observerActorName) formData.append("actor_name", observerActorName);
         if (attachment.durationSeconds) {
             formData.append(
                 "duration_seconds",
@@ -82,6 +105,7 @@ export function sendReply({
         }
         formData.append("attachment", attachment.file);
 
+        if (actingSupportId) formData.append("acting_support_id", String(actingSupportId));
         return postMultipart(url, formData, signal);
     }
 
@@ -91,6 +115,8 @@ export function sendReply({
             body,
             code_mode: codeMode,
             language: language ?? null,
+            acting_support_id: actingSupportId ?? null,
+            actor_name: observerActorName ?? null,
         },
         signal,
     );

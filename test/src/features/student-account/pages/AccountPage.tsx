@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
 import {
     AlertTriangle,
     CalendarDays,
@@ -24,9 +25,28 @@ import { formatMembershipDate } from "@/features/student-chat/utils/format";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
 import { RemainingChatsWaterTank } from "../components/RemainingChatsWaterTank";
 import { UpgradeDialog } from "../components/UpgradeDialog";
+import { Input } from "@/shared/ui/input";
+import { SessionSourceList } from "@/features/session-sources/components/SessionSourceList";
+import { getStudentSessionSources, sessionSourceKeys } from "@/features/session-sources/services/resourceService";
+import type { Faq } from "@/features/faq/types/faq";
+import { faqKeys } from "@/features/faq/services/faq-service";
+import { getJson } from "@/shared/api/http";
+import { Search } from "lucide-react";
 
 export default function AccountPage() {
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+    const [faqSearch, setFaqSearch] = useState("");
+    const debouncedFaqSearch = useDebouncedValue(faqSearch, 300);
+    const sessionSourcesQuery = useQuery({
+        queryKey: sessionSourceKeys.list({ page: 1 }),
+        queryFn: () => getStudentSessionSources({ page: 1 }),
+    });
+    const studentFaqsQuery = useQuery({
+        queryKey: faqKeys.list(undefined, debouncedFaqSearch),
+        queryFn: () => getJson<Faq[]>("/api/student/faqs", {
+            search: debouncedFaqSearch || undefined,
+        }),
+    });
     const profileQuery = useQuery({
         queryKey: studentProfileKeys.profile,
         queryFn: getStudentProfile,
@@ -42,7 +62,7 @@ export default function AccountPage() {
             <div className="flex justify-start">
                 <Link
                     to="/chat"
-                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out  hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2  md:hidden"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out  hover:border-hairline-strong hover:bg-surface-3 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                 >
                     <ChevronRight className="size-4" aria-hidden="true" />
                     بازگشت به گفتگو
@@ -278,6 +298,63 @@ export default function AccountPage() {
                     </Card>
                 </div>
             </div>
+
+            <section className="space-y-4" aria-labelledby="student-faq-title">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h2 id="student-faq-title" className="text-xl font-bold text-ink">
+                            سوالات متداول
+                        </h2>
+                        <p className="mt-1 text-sm text-ink-2">
+                            پاسخ پرسش‌های پرتکرار دوره و سامانه
+                        </p>
+                    </div>
+                    <div className="relative w-full sm:w-72">
+                        <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden="true" />
+                        <Input
+                            type="search"
+                            value={faqSearch}
+                            onChange={(event) => setFaqSearch(event.target.value)}
+                            placeholder="جستجو در سوالات…"
+                            aria-label="جستجو در سوالات متداول"
+                            className="pr-9"
+                        />
+                    </div>
+                </div>
+                {studentFaqsQuery.isError ? (
+                    <Alert tone="danger" className="flex items-center justify-between gap-3">
+                        <span>دریافت سوالات متداول ناموفق بود.</span>
+                        <Button variant="ghost" onClick={() => void studentFaqsQuery.refetch()}>تلاش مجدد</Button>
+                    </Alert>
+                ) : studentFaqsQuery.isPending ? (
+                    <Card className="p-5 text-sm text-ink-2">در حال بارگذاری سوالات…</Card>
+                ) : (studentFaqsQuery.data ?? []).length === 0 ? (
+                    <Card className="p-5 text-sm text-ink-2">سوالی یافت نشد.</Card>
+                ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                        {studentFaqsQuery.data?.map((faq) => (
+                            <details key={faq.id} className="rounded-2xl border border-hairline bg-glass p-4">
+                                <summary className="cursor-pointer text-sm font-bold text-ink">{faq.question}</summary>
+                                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink-2">{faq.answer}</p>
+                            </details>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            <section className="space-y-4" aria-labelledby="student-session-sources-title">
+                <div>
+                    <h2 id="student-session-sources-title" className="text-xl font-bold text-ink">سورس جلسات</h2>
+                    <p className="mt-1 text-sm text-ink-2">فایل‌ها و کدهای آموزشی جلسات شما</p>
+                </div>
+                {sessionSourcesQuery.isError ? (
+                    <Alert tone="danger">دریافت سورس جلسات ناموفق بود.</Alert>
+                ) : sessionSourcesQuery.isPending ? (
+                    <Card className="p-5 text-sm text-ink-2">در حال بارگذاری سورس‌ها…</Card>
+                ) : (
+                    <SessionSourceList resources={sessionSourcesQuery.data?.items ?? []} />
+                )}
+            </section>
 
             {profile ? (
                 <UpgradeDialog

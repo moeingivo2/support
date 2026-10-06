@@ -4,7 +4,6 @@ import {
     FileWarning,
     Info,
     RotateCcw,
-    Smile,
     Users,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -14,11 +13,6 @@ import { StatusPill } from "@/shared/ui/status-pill";
 import type { DashboardMetrics } from "../services/dashboard-service";
 
 const metricCards = [
-    {
-        label: "نارضایتی‌های ثبت‌شده در این هفته",
-        field: "weeklySatisfaction",
-        icon: Smile,
-    },
     {
         label: "دانشجویان پاسخ‌داده‌شده در این هفته",
         field: "answeredStudents",
@@ -37,7 +31,7 @@ const metricCards = [
 ] as const satisfies Array<{
     label: string;
     field: keyof DashboardMetrics;
-    icon: typeof Smile;
+    icon: typeof ClipboardList;
 }>;
 
 export function DashboardMetricsSection({

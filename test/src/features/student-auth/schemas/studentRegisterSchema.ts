@@ -31,6 +31,7 @@ export const studentRegisterSchema = z
         sessions: z
             .array(z.number().int().min(1).max(TOTAL_SESSIONS))
             .default([]),
+        roadmap: z.custom<File>((value) => value instanceof File, "فایل رودمپ معتبر نیست.").nullable().optional(),
     })
     .superRefine((values, ctx) => {
         if (values.password !== values.password_confirmation) {
@@ -42,6 +43,13 @@ export const studentRegisterSchema = z
         }
 
         if (values.course !== "offline") {
+            if (values.roadmap) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["roadmap"],
+                    message: "بارگذاری رودمپ فقط برای دوره آفلاین است.",
+                });
+            }
             if (values.track) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,

@@ -56,6 +56,25 @@ export async function getSessionSources(
     };
 }
 
+/** فهرست فقط‌خواندنی سورس‌ها برای حساب دانشجو. */
+export async function getStudentSessionSources(
+    filters: SessionSourcesFilters,
+): Promise<SessionSourcesPage> {
+    const response = await getJson<LaravelPagination<Resource>>(
+        "/api/student/session-sources",
+        {
+            page: filters.page,
+            search: filters.search?.trim() || undefined,
+            category: filters.category?.trim() || undefined,
+        },
+    );
+
+    return {
+        items: response.data,
+        pagination: getPagination(response),
+    };
+}
+
 function getPagination(
     response: LaravelPagination<Resource>,
 ): SessionSourcesPagination {

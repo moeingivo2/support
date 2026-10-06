@@ -4,8 +4,8 @@ import type { Resource } from "../types/resource";
 
 type SessionSourceListProps = {
     resources: Resource[];
-    onEdit: (resource: Resource) => void;
-    onDelete: (resource: Resource) => void;
+    onEdit?: (resource: Resource) => void;
+    onDelete?: (resource: Resource) => void;
 };
 
 export function SessionSourceList({

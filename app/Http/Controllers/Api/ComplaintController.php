@@ -59,9 +59,16 @@ class ComplaintController extends Controller
     {
         $query = Complaint::with(['student', 'mentor', 'support']);
 
-        // ساپورت فقط نارضایتی‌هایی که خودش ثبت کرده
+        // ساپورت فقط نارضایتی‌هایی که خودش ثبت کرده؛ ناظر اکانت فقط تیم خودش را می‌بیند
         if (! $request->user()->isAdmin()) {
-            $query->where('support_id', $request->user()->id);
+            $query->when(
+                $request->user()->isAccountObserver(),
+                fn ($scoped) => $scoped->whereHas(
+                    'support',
+                    fn ($support) => $support->where('observer_id', $request->user()->id),
+                ),
+                fn ($scoped) => $scoped->where('support_id', $request->user()->id),
+            );
         }
 
         // فیلتر بر اساس وضعیت
@@ -74,7 +81,7 @@ class ComplaintController extends Controller
             $query->where('priority', $request->priority);
         }
 
-        // فیلترهای ادمین: منتور یا پشتیبان ثبت‌کننده
+        // فیلترهای مدیریتی: منتور یا پشتیبان ثبت‌کننده
         if ($request->user()->isAdmin() && $request->filled('mentor_id')) {
             $query->where('mentor_id', $request->input('mentor_id'));
         }
@@ -124,7 +131,10 @@ class ComplaintController extends Controller
             ->findOrFail($id);
 
         abort_unless(
-            $request->user()->isAdmin() || $complaint->support_id === $request->user()->id,
+            $request->user()->isAdmin()
+            || $complaint->support_id === $request->user()->id
+            || ($request->user()->isAccountObserver()
+                && $complaint->support?->observer_id === $request->user()->id),
             403,
             'این نارضایتی به شما تعلق ندارد.',
         );
@@ -165,10 +175,15 @@ class ComplaintController extends Controller
             ->withMax('complaints', 'created_at')
             ->when(
                 ! $request->user()->isAdmin(),
-                // پشتیبان فقط شکایت‌های خودش را می‌بیند
+                // پشتیبان فقط شکایت‌های خودش و ناظر اکانت فقط تیم خودش را می‌بینند
                 fn ($query) => $query->whereHas(
                     'complaints',
-                    fn ($complaints) => $complaints->where('support_id', $request->user()->id),
+                    fn ($complaints) => $request->user()->isAccountObserver()
+                        ? $complaints->whereHas(
+                            'support',
+                            fn ($support) => $support->where('observer_id', $request->user()->id),
+                        )
+                        : $complaints->where('support_id', $request->user()->id),
                 ),
             )
             ->paginate(min((int) $request->input('per_page', 25), 100));

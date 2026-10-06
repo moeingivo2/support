@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterStudentRequest;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Support\AttachmentStorage;
 use App\Support\CourseTrack;
 use App\Support\CourseType;
 use App\Support\IranianPhone;
 use App\Support\StudentProfilePayload;
+use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +31,7 @@ class StudentAuthController extends Controller
     /**
      * ثبت‌نام دانشجو به‌همراه دوره، رشته و جلسات خریداری‌شده
      */
-    public function register(RegisterStudentRequest $request): JsonResponse
+    public function register(RegisterStudentRequest $request, AttachmentStorage $attachments): JsonResponse
     {
         $course = CourseType::from((string) $request->input('course'));
         $phone = IranianPhone::normalize((string) $request->input('phone'));
@@ -42,31 +44,39 @@ class StudentAuthController extends Controller
             return response()->json(['message' => 'این شماره موبایل قبلاً ثبت شده است.'], 422);
         }
 
-        [$user, $profile] = DB::transaction(function () use ($request, $course, $phone): array {
-            $user = User::create([
-                'name' => trim($request->input('first_name').' '.$request->input('last_name')),
-                'phone' => $phone,
-                'email' => null,
-                'password' => Hash::make($request->input('password')),
-                'role' => 'student',
-            ]);
+        try {
+            [$user, $profile] = DB::transaction(function () use ($request, $course, $phone, $attachments): array {
+                $roadmapPath = $request->hasFile('roadmap')
+                    ? $attachments->store($request->file('roadmap'), 'roadmaps', AttachmentStorage::ALLOWED_ROADMAP_EXTENSIONS)
+                    : null;
+                $user = User::create([
+                    'name' => trim($request->input('first_name').' '.$request->input('last_name')),
+                    'phone' => $phone,
+                    'email' => null,
+                    'password' => Hash::make($request->input('password')),
+                    'role' => 'student',
+                ]);
 
-            $profile = StudentProfile::create([
-                'user_id' => $user->id,
-                'course' => $course,
-                'track' => $course === CourseType::Offline
-                    ? CourseTrack::from((string) $request->input('track'))
-                    : null,
-                'purchased_sessions' => $course === CourseType::Offline
-                    ? $this->normalizeSessions($request->input('sessions', []))
-                    : null,
-                'total_chats' => config('aiosupport.chat_quota.'.$course->value, 0),
-                'used_chats' => 0,
-                'membership_date' => now(),
-            ]);
+                $profile = StudentProfile::create([
+                    'user_id' => $user->id,
+                    'course' => $course,
+                    'track' => $course === CourseType::Offline
+                        ? CourseTrack::from((string) $request->input('track'))
+                        : null,
+                    'purchased_sessions' => $course === CourseType::Offline
+                        ? $this->normalizeSessions($request->input('sessions', []))
+                        : null,
+                    'total_chats' => config('aiosupport.chat_quota.'.$course->value, 0),
+                    'used_chats' => 0,
+                    'membership_date' => now(),
+                    'roadmap_path' => $roadmapPath,
+                ]);
 
-            return [$user, $profile];
-        });
+                return [$user, $profile];
+            });
+        } catch (UnsupportedAttachmentException $exception) {
+            return response()->json(['message' => $exception->getMessage(), 'errors' => ['roadmap' => [$exception->getMessage()]]], 422);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

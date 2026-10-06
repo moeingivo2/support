@@ -5,6 +5,14 @@ export function getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
 }
 
+export function setToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function setStoredUser(user: PanelUser): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 export function setAuth(token: string, user: PanelUser): void {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -24,7 +32,7 @@ export function clearAuth(): void {
     localStorage.removeItem(USER_KEY);
 }
 
-export type PanelRole = "admin" | "support" | "observer" | "student";
+export type PanelRole = "admin" | "support" | "observer" | "account_observer" | "student";
 
 export interface PanelUser {
     id: number;
@@ -33,4 +41,5 @@ export interface PanelUser {
     phone: string | null;
     role: PanelRole;
     support_type?: "web" | "ai" | null;
+    observer_id?: number | null;
 }

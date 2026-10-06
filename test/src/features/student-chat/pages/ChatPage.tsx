@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code2, Lock, MessagesSquare, Star } from "lucide-react";
+import { Code2, Lock, MessageSquareWarning, MessagesSquare, Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { HttpApiError } from "@/shared/api/http";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
@@ -39,6 +39,7 @@ export default function ChatPage() {
     const isOnline = useOnlineStatus();
     const [searchParams, setSearchParams] = useSearchParams();
     const [codeMode, setCodeMode] = useState(false);
+    const [messageSearch, setMessageSearch] = useState("");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<LifecycleDialogMode>(null);
     const [dialogError, setDialogError] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function ChatPage() {
     const isClosed = activeConversation?.status === "closed";
 
     const selectConversation = (id: number) => {
+        setMessageSearch("");
         setDialogMode(null);
         setDialogError(null);
         setIsSidebarOpen(false);
@@ -300,17 +302,22 @@ export default function ChatPage() {
                                 شروع گفتگوی جدید
                             </Button>
                         </div>
+                        <Button type="button" variant="ghost" onClick={() => window.location.assign("/mentor-feedback")}>
+                            <MessageSquareWarning />ثبت نارضایتی از منتور
+                        </Button>
                     </div>
                 ) : (
                     <>
-                        <MessageList
+        <MessageList
                             messages={messages}
                             currentUserId={user?.id ?? null}
                             isPending={messagesQuery.isPending}
                             isError={messagesQuery.isError}
-                            emptyHint={EMPTY_HINT}
-                            conversationId={activeId}
-                        />
+            emptyHint={EMPTY_HINT}
+            conversationId={activeId}
+            search={messageSearch}
+            onSearchChange={setMessageSearch}
+        />
                         {isClosed ? (
                             <div className="space-y-3 border-t border-hairline bg-sunken px-4 py-5 text-center">
                                 <div className="flex flex-col items-center gap-2">

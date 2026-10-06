@@ -9,13 +9,40 @@ use Illuminate\Http\Request;
 
 class FaqController extends Controller
 {
+    /** FAQ فعال و فقط‌خواندنی برای صفحه‌ی حساب دانشجو. */
+    public function studentIndex(Request $request)
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'string', 'max:100'],
+            'search' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $query = Faq::query()
+            ->where('is_active', true)
+            ->select(['id', 'question', 'answer', 'category', 'order']);
+
+        if (! empty($validated['category'])) {
+            $query->where('category', $validated['category']);
+        }
+
+        if (! empty($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($builder) use ($search): void {
+                $builder->where('question', 'like', '%'.$search.'%')
+                    ->orWhere('answer', 'like', '%'.$search.'%');
+            });
+        }
+
+        return response()->json($query->orderBy('order')->orderByDesc('id')->get());
+    }
+
     // لیست FAQها (با فیلتر دسته)
     public function index(Request $request)
     {
         $query = Faq::query();
 
         // فقط فعال‌ها (مگر اینکه ادمین بخواد همه رو ببینه)
-        if (!$request->boolean('all')) {
+        if (! $request->boolean('all')) {
             $query->where('is_active', true);
         }
 
@@ -27,7 +54,7 @@ class FaqController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('question', 'like', "%{$search}%")
-                  ->orWhere('answer', 'like', "%{$search}%");
+                    ->orWhere('answer', 'like', "%{$search}%");
             });
         }
 
@@ -51,6 +78,7 @@ class FaqController extends Controller
     public function show($id)
     {
         $faq = Faq::findOrFail($id);
+
         return response()->json($faq);
     }
 

@@ -7,13 +7,13 @@ export interface Resource {
     id: number;
     title: string;
     description: string | null;
-    type: string;
+    type?: string;
     file_url: string;
     category: string | null;
-    created_by: number;
+    created_by?: number;
     created_at: string;
-    updated_at: string;
-    creator: ResourceCreator;
+    updated_at?: string;
+    creator?: ResourceCreator;
 }
 
 export interface LaravelPaginationLink {

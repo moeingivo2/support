@@ -27,7 +27,7 @@ enum ActorRole: string
     {
         return match ($role) {
             'student' => self::Student,
-            'support' => self::Support,
+            'support', 'account_observer' => self::Support,
             'observer' => self::Observer,
             default => self::System,
         };

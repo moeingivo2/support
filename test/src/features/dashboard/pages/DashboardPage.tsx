@@ -11,6 +11,7 @@ import {
     Users,
 } from "lucide-react";
 import { getDashboardData } from "../api/dashboard-api";
+import { getJson } from "@/shared/api/http";
 import { DashboardMetricsSection } from "../components/dashboard-metrics";
 import { QuickActionsSection } from "../components/quick-actions";
 import {
@@ -24,6 +25,7 @@ import { useActiveShift } from "@/features/support-shifts/hooks/useActiveShift";
 import { getActiveShifts } from "@/features/support-shifts/services/shift-service";
 import { useAuth } from "@/shared/services/auth-context";
 import { Card } from "@/shared/ui/card";
+import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { StatusPill } from "@/shared/ui/status-pill";
@@ -272,6 +274,11 @@ function SupportDashboard({
 }) {
     const currentShift = useActiveShift();
     const activeShift = currentShift.data;
+    const scheduleQuery = useQuery({
+        queryKey: ["shift-schedule", "notifications"],
+        queryFn: () => getJson<{ data: { starts_at: string; ends_at: string; schedule: { name: string; channel: string } }[] }>("/api/shift-schedule/notifications"),
+        refetchInterval: 30000,
+    });
 
     const metricsStatus = dashboard.isPending
         ? "loading"
@@ -292,6 +299,12 @@ function SupportDashboard({
                     شیفت شما
                 </p>
             </Card>
+
+            {(scheduleQuery.data?.data ?? []).map((assignment, index) => (
+                <Alert key={`${assignment.starts_at}-${index}`} tone="info">
+                    شیفت «{assignment.schedule.name}» برای شما تعیین شده: {formatShiftTime(assignment.starts_at)} تا {formatShiftTime(assignment.ends_at)} ({assignment.schedule.channel === "ai" ? "هوش مصنوعی" : "وب"}). لطفاً در زمان مشخص‌شده حاضر باشید.
+                </Alert>
+            ))}
 
             {currentShift.isPending ? (
                 <Card className="p-6">

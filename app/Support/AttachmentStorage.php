@@ -34,6 +34,9 @@ class AttachmentStorage
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'csv', 'xls', 'xlsx',
     ];
 
+    /** @var array<int, string> */
+    public const ALLOWED_ROADMAP_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
+
     /**
      * نوع‌های واقعی مجاز (بررسی سمت سرور با finfo، نه هدر مرورگر).
      *

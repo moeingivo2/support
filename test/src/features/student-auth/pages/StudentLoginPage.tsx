@@ -99,7 +99,7 @@ export default function StudentLoginPage() {
                                         inputMode="numeric"
                                         autoComplete="tel"
                                         placeholder="0912 345 6789"
-                                        className="pr-11 text-right"
+                                        className="pr-11 text-left"
                                         aria-invalid={Boolean(errors.phone)}
                                         {...register("phone", {
                                             onChange: (event) =>

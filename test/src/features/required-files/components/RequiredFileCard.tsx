@@ -90,7 +90,7 @@ export function RequiredFileCard({
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                         <UserRound className="size-4" />
-                        {resource.creator.name}
+                        {resource.creator?.name ?? "سامانه"}
                     </span>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">

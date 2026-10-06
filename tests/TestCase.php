@@ -46,6 +46,20 @@ abstract class TestCase extends BaseTestCase
         ], $attributes));
     }
 
+    /**
+     * ناظر اکانت — تیم پشتیبان را خودش مدیریت می‌کند
+     */
+    protected function makeAccountObserver(array $attributes = []): User
+    {
+        return User::create(array_merge([
+            'name' => 'ناظر اکانت تست',
+            'phone' => '09'.random_int(100000000, 999999999),
+            'password' => Hash::make('secret1234'),
+            'role' => 'account_observer',
+            'support_type' => 'web',
+        ], $attributes));
+    }
+
     protected function makeStudent(array $attributes = [], array $profileAttributes = []): User
     {
         $student = User::create(array_merge([

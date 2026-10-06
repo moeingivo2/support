@@ -63,6 +63,7 @@ export type ConversationDetail = {
     conversation: ConversationSummary;
     rating: ConversationRating | null;
     messages: ChatMessage[];
+    profile?: import("@/features/student-account/types/student-profile").StudentProfilePayload;
 };
 
 export type SendMessageResponse = {

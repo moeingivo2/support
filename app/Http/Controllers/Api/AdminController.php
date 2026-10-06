@@ -33,11 +33,18 @@ class AdminController extends Controller
     public function supports(Request $request): JsonResponse
     {
         $supports = User::query()
-            ->where('role', 'support')
+            ->where(function ($query) use ($request): void {
+                if ($request->input('role') === 'account_observer') {
+                    $query->where('role', 'account_observer');
+                } else {
+                    $query->where('role', 'support');
+                }
+            })
             ->when($request->filled('support_type'), function ($query) use ($request): void {
                 $query->where('support_type', $request->input('support_type'));
             })
-            ->select(['id', 'name', 'phone', 'support_type', 'created_at'])
+            ->when($request->filled('observer_id'), fn ($query) => $query->where('observer_id', $request->integer('observer_id')))
+            ->select(['id', 'name', 'phone', 'role', 'support_type', 'observer_id', 'created_at'])
             ->orderBy('name')
             ->get();
 
@@ -46,7 +53,7 @@ class AdminController extends Controller
 
     public function updateSupport(UpdateSupportRequest $request, User $support): JsonResponse
     {
-        abort_unless($support->isSupport(), 404);
+        abort_unless($support->isSupport() || $support->role === 'account_observer', 404);
 
         $data = $request->safe()->only(['name', 'phone']);
 
@@ -68,7 +75,7 @@ class AdminController extends Controller
 
     public function destroySupport(User $support): JsonResponse
     {
-        abort_unless($support->isSupport(), 404);
+        abort_unless($support->isSupport() || $support->role === 'account_observer', 404);
 
         if ($support->shifts()->where('status', 'active')->exists()) {
             return response()->json([
@@ -82,6 +89,65 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'پشتیبان با موفقیت حذف شد.',
         ]);
+    }
+
+    public function grantAccountObserver(Request $request, User $support): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless($support->isSupport(), 404);
+
+        if ($support->shifts()->where('status', 'active')->exists()) {
+            return response()->json(['message' => 'پشتیبان شیفت فعال دارد؛ ابتدا شیفت او را ببندید.'], 422);
+        }
+
+        $support->tokens()->delete();
+        $support->forceFill(['role' => 'account_observer'])->save();
+
+        return response()->json(['message' => 'نقش ناظر اکانت برای این پشتیبان فعال شد.', 'user' => $support->fresh()]);
+    }
+
+    public function revokeAccountObserver(Request $request, User $support): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless($support->role === 'account_observer', 404);
+
+        if ($support->shifts()->where('status', 'active')->exists()) {
+            return response()->json(['message' => 'پشتیبان شیفت فعال دارد؛ ابتدا شیفت او را ببندید.'], 422);
+        }
+
+        $support->tokens()->delete();
+        $support->forceFill(['role' => 'support', 'observer_id' => null])->save();
+
+        return response()->json(['message' => 'نقش ناظر اکانت حذف شد.', 'user' => $support->fresh()]);
+    }
+
+    public function assignSupportToObserver(Request $request, User $support): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless($support->isSupport() || $support->role === 'account_observer', 404);
+
+        $data = $request->validate([
+            'observer_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+        $observerId = $data['observer_id'] ?? null;
+
+        if ($observerId !== null && $support->role !== 'account_observer') {
+            $observer = User::query()->whereKey($observerId)
+                ->where('role', 'account_observer')
+                ->where('support_type', $support->support_type)
+                ->first();
+            if ($observer === null) {
+                return response()->json(['message' => 'ناظر انتخاب‌شده باید از همان نوع وب یا هوش مصنوعی باشد.'], 422);
+            }
+        }
+
+        if ($support->role === 'account_observer') {
+            return response()->json(['message' => 'ناظر نمی‌تواند به ناظر دیگری منتسب شود.'], 422);
+        }
+
+        $support->forceFill(['observer_id' => $observerId])->save();
+
+        return response()->json(['message' => $observerId === null ? 'انتساب پشتیبان حذف شد.' : 'پشتیبان به تیم ناظر افزوده شد.', 'user' => $support->fresh()]);
     }
 
     public function admins(): JsonResponse

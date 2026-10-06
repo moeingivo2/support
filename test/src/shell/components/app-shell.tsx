@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { getNavigation } from "@/shared/navigation";
 import { useAuth } from "@/shared/services/auth-context";
@@ -13,7 +13,7 @@ import { cn } from "@/shared/lib/utils";
 export default function AppShell({ children }: { children: ReactNode }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, logout, observerUser, returnToObserverAccount } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const activePath = location.pathname;
     const navigation = getNavigation(user);
@@ -42,6 +42,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                         ? "پنل سوپر ادمین"
                                         : user?.role === "observer"
                                           ? "پنل ناظر"
+                                          : user?.role === "account_observer"
+                                            ? "پنل ناظر اکانت"
                                           : "پنل پشتیبانی"}
                                 </span>
                                 <span className="block text-xs text-ink-2">
@@ -61,6 +63,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                 ? "دسترسی سوپر ادمین"
                                 : user?.role === "observer"
                                   ? "دسترسی ناظر — فقط‌خواندنی"
+                                  : user?.role === "account_observer"
+                                    ? "ناظر اکانت — دسترسی پشتیبانی"
                                   : user?.support_type === "ai"
                                     ? "پشتیبان هوش مصنوعی"
                                     : "پشتیبان وب"}
@@ -73,6 +77,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </aside>
                 <div className="flex min-w-0 flex-1 flex-col">
                     <header className="sticky top-0 z-20 flex h-18 items-center gap-3 border-b border-hairline bg-glass px-4 backdrop-blur-xl md:h-20 md:px-7">
+                        {observerUser ? (
+                            <Button type="button" variant="ghost" onClick={() => { returnToObserverAccount(); navigate("/observer-schedules", { replace: true }); }} className="absolute right-4 top-1/2 z-10 -translate-y-1/2 md:right-7">
+                                <ChevronRight />بازگشت به اکانت ناظر
+                            </Button>
+                        ) : null}
                         <Dialog.Root
                             open={mobileMenuOpen}
                             onOpenChange={setMobileMenuOpen}
@@ -158,7 +167,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             {/* صفحه‌های چت خودشان اسکرول داخلی دارند و min-h-0 لازم دارند؛
                 بقیه‌ی صفحه‌ها بلندتر از دید هستند و overflow-y-auto اسکرول
                 را همین‌جا نگه می‌دارد. */}
-            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 md:px-7 md:py-8">
+            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-6 md:px-7 md:py-8">
                 {children}
             </main>
                 </div>
@@ -255,5 +264,6 @@ function formatRoleLabel(
     if (!user) return "کاربر";
     if (user.role === "admin") return "سوپر ادمین";
     if (user.role === "observer") return "ناظر";
+    if (user.role === "account_observer") return user.support_type === "ai" ? "ناظر اکانت هوش مصنوعی" : "ناظر اکانت وب";
     return user.support_type === "ai" ? "پشتیبان هوش مصنوعی" : "پشتیبان وب";
 }

@@ -15,6 +15,39 @@ use Tests\TestCase;
  */
 class ChatLifecycleTest extends TestCase
 {
+    public function test_support_student_filter_keeps_conversations_that_support_already_replied_to(): void
+    {
+        $student = $this->makeStudent();
+        $support = $this->makeSupport();
+        $conversation = $this->openConversation($student, $support);
+
+        $conversation->messages()->create([
+            'sender_id' => $support->id,
+            'actor_id' => $support->id,
+            'actor_role' => ActorRole::Support->value,
+            'type' => 'text',
+            'body' => 'پاسخ پشتیبان',
+        ]);
+        $conversation->forceFill([
+            'support_id' => $support->id,
+            'last_message_preview' => 'پاسخ پشتیبان',
+            'last_message_at' => now(),
+        ])->save();
+
+        $this->actingAs($support, 'sanctum')
+            ->getJson('/api/support/conversations/students')
+            ->assertOk()
+            ->assertJsonPath('data.0.student.id', $student->id)
+            ->assertJsonPath('data.0.conversations_count', 1);
+
+        $this->actingAs($support, 'sanctum')
+            ->getJson('/api/support/conversations?student_id='.$student->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $conversation->id)
+            ->assertJsonPath('data.0.support.id', $support->id);
+    }
+
     private function openConversation(User $student, ?User $support = null): Conversation
     {
         $conversation = Conversation::create([

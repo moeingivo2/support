@@ -41,8 +41,9 @@ class ChatMessageSender
 
         $message = $conversation->messages()->create([
             'sender_id' => $sender->id,
-            'actor_id' => $sender->id,
+            'actor_id' => $request->attributes->get('actor_id', $sender->id),
             'actor_role' => ActorRole::forRole((string) $sender->role),
+            'actor_name' => $request->attributes->get('actor_name', $sender->name),
             'type' => $type,
             'body' => $body === '' ? null : $body,
             'language' => $type === MessageType::Code ? ($request->input('language') ?: 'plain') : null,
