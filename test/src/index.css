@@ -593,6 +593,19 @@
         gap: 8px;
     }
 
+    @media (min-width: 768px) {
+        .chat-composer-toolbar {
+            gap: 3px;
+        }
+
+        .chat-composer-toolbar .composer-tool {
+            width: 32px;
+            height: 32px;
+            border-color: transparent;
+            background: transparent;
+        }
+    }
+
     /* روی نمایشگرهای باریک فاصله‌ی ابزارها کم می‌شود تا دکمه‌ی ارسال
        از کادر بیرون نزند؛ اندازه‌ی هدف لمسی دست‌نخورده می‌ماند. */
     @media (max-width: 479px) {

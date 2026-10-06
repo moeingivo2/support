@@ -27,17 +27,23 @@ const CHAT_TEXTAREA_MAX = 144;
  * بعد از چهار خط متوقف می‌شود تا کل صفحه را نبلعد. `rows` پیش‌فرض روی یک
  * خط تنظیم شده تا در شروع، فیلد بی‌دلیل بلندتر از محتوا نباشد.
  */
-export function ChatTextarea({ value, className, ...props }: ComponentProps<"textarea"> & { value: string }) {
+export function ChatTextarea({
+    value,
+    className,
+    minHeight = CHAT_TEXTAREA_MIN,
+    maxHeight = CHAT_TEXTAREA_MAX,
+    ...props
+}: ComponentProps<"textarea"> & { value: string; minHeight?: number; maxHeight?: number }) {
     const ref = useRef<HTMLTextAreaElement>(null);
 
     useLayoutEffect(() => {
         const element = ref.current;
         if (!element) return;
         element.style.height = "auto";
-        const next = Math.min(Math.max(element.scrollHeight, CHAT_TEXTAREA_MIN), CHAT_TEXTAREA_MAX);
+        const next = Math.min(Math.max(element.scrollHeight, minHeight), maxHeight);
         element.style.height = `${next}px`;
-        element.style.overflowY = element.scrollHeight > CHAT_TEXTAREA_MAX ? "auto" : "hidden";
-    }, [value]);
+        element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
+    }, [value, minHeight, maxHeight]);
 
     return (
         <Textarea

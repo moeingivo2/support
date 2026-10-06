@@ -57,7 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [actingAsSupport, setActingAsSupport] = useState<PanelUser | null>(null);
     const [observerUser, setObserverUser] = useState<PanelUser | null>(null);
     const [observerToken, setObserverToken] = useState<string | null>(null);
-    const [showLoginSplash, setShowLoginSplash] = useState(false);
+    // اسپلش یک‌بار هنگام بالا آمدن برنامه نمایش داده می‌شود، نه در هر
+    // ورود دوباره؛ وگرنه با هر لاگین دوباره دیده می‌شد.
+    const [showLoginSplash, setShowLoginSplash] = useState(true);
 
     const loginAction = useCallback(
         async (loginValue: string, password: string) => {
@@ -67,7 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             setAuth(token, authenticatedUser);
             setUser(authenticatedUser);
-            setShowLoginSplash(true);
             return authenticatedUser;
         },
         [],
@@ -81,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
             setAuth(token, authenticatedUser);
             setUser(authenticatedUser);
-            setShowLoginSplash(true);
             return authenticatedUser;
         },
         [],
