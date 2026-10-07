@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
-const PERSIAN_CHARACTERS = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/g;
-const PERSIAN_KEY = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+// کاراکترهای عربی/فارسی با فرار unicode تا فاصله‌ی غیرعادی U+FEFF
+// داخل عبارت باقاعده نیاید (eslint no-irregular-whitespace).
+const PERSIAN_CHARACTERS =
+    /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+const PERSIAN_KEY =
+    /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 
 const KEYBOARD_ERROR_MESSAGE = "لطفا کیبوردتون رو انگلیسی کنین";
 const KEYBOARD_ERROR_TIMEOUT = 5000;
@@ -22,7 +26,7 @@ export function Input({
 }: ComponentProps<"input">) {
     const isPassword = type === "password";
     const [keyboardError, setKeyboardError] = useState(false);
-    const errorId = useRef(`input-keyboard-${Math.random().toString(36).slice(2)}`);
+    const errorId = useId();
     const timer = useRef<number | undefined>(undefined);
     // رویداد input مصنوعی خودمان دوباره به onChange می‌رسد؛ بدون این پرچم،
     // همان رویداد خطایی را که تازه ساخته‌ایم پاک می‌کند.
@@ -50,7 +54,7 @@ export function Input({
         <input
             type={type}
             aria-invalid={isPassword && keyboardError ? true : ariaInvalid}
-            aria-describedby={isPassword && keyboardError ? errorId.current : ariaDescribedBy}
+            aria-describedby={isPassword && keyboardError ? errorId : ariaDescribedBy}
             className={cn(
                 // تا ۶۴۰ پیکسل عرض، هدف لمسی ۴۸ پیکسل و متن ۱۶ پیکسل است؛
                 // متن زیر ۱۶ پیکسل باعث زوم خودکار مرورگر موبایل هنگام فوکوس می‌شود.
@@ -103,7 +107,7 @@ export function Input({
             {input}
             {keyboardError ? (
                 <span
-                    id={errorId.current}
+                    id={errorId}
                     role="alert"
                     className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-err-text"
                 >

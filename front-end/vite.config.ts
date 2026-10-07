@@ -20,6 +20,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  css: {
+    // Tailwind از طریق افزونه‌ی @tailwindcss/vite اعمال می‌شود نه PostCSS؛
+    // بدون این خط، Vite بالا به پوشه‌های والد می‌گردد و به package.json
+    // خالیِ کنار ریپو می‌خورد و build با «Unexpected end of JSON input» می‌شکند.
+    postcss: {},
+  },
   server: {
     port: Number(process.env.PORT) || 5174,
     strictPort: true,

@@ -13,6 +13,7 @@ use App\Support\ChatMessageSender;
 use App\Support\ConversationCloser;
 use App\Support\StudentProfilePayload;
 use App\Support\UnsupportedAttachmentException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -139,24 +140,41 @@ class SupportChatController extends Controller
 
         return response()->json([
             'data' => $conversations,
-            'unread_total' => $this->unreadTotal(),
+            'unread_total' => $this->unreadTotal($request, $ownerId),
         ]);
+    }
+
+    /**
+     * دامنه‌ی محاسبه‌ی خوانده‌نشده‌ها؛ همان شرط `students()` و `index()`.
+     *
+     * ناظر اکانت فقط گفتگوهای بدون پشتیبان و پشتیبان‌های منتسب به تیم خودش
+     * را می‌بیند، پس شمارنده‌ی خوانده‌نشده هم باید همان دامنه را رعایت کند.
+     *
+     * @return Builder<Conversation>
+     */
+    private function unreadScope(Request $request, ?int $ownerId): Builder
+    {
+        return Conversation::query()
+            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
+            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations) use ($request): void {
+                $conversations
+                    ->whereNull('support_id')
+                    ->orWhereHas('support', fn ($support) => $support
+                        ->where('observer_id', $request->user()->id)
+                        ->where('support_type', $request->user()->support_type));
+            }));
     }
 
     /**
      * مجموع پیام‌های خوانده‌نشده — یک بار محاسبه و کش می‌شود تا در هر
      * poll به‌جای اسکن کامل جدول اجرا نشود.
      */
-    private function unreadTotal(): int
+    private function unreadTotal(Request $request, ?int $ownerId): int
     {
         return (int) Cache::remember(
-            'support:unread_total:'.request()->user()->id,
+            'support:unread_total:'.$request->user()->id.':'.($ownerId ?? 'team'),
             2,
-            fn (): int => (int) Conversation::query()
-                ->when(request()->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations): void {
-                    $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('support_type', request()->user()->support_type));
-                }))
-                ->sum('unread_support_count'),
+            fn (): int => (int) $this->unreadScope($request, $ownerId)->sum('unread_support_count'),
         );
     }
 
@@ -170,11 +188,7 @@ class SupportChatController extends Controller
     {
         $ownerId = $request->integer('owner_id') ?: null;
         $this->authorizeObserverOwner($request, $ownerId);
-        $unread = Conversation::query()
-            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
-            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations) use ($request): void {
-                $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('support_type', $request->user()->support_type));
-            }))
+        $unread = $this->unreadScope($request, $ownerId)
             ->where('unread_support_count', '>', 0)
             ->with('student:id,name')
             ->orderByDesc('last_message_at')
@@ -182,10 +196,8 @@ class SupportChatController extends Controller
             ->limit(self::NOTIFICATION_LIMIT)
             ->get();
 
-        $unreadTotal = $unread->sum('unread_support_count');
-
         return response()->json([
-            'unread_total' => max($unreadTotal, $this->unreadTotal()),
+            'unread_total' => $this->unreadTotal($request, $ownerId),
             'unread_conversations' => $unread->count(),
             'unread' => $unread->map(fn (Conversation $conversation): array => [
                 'conversation_id' => $conversation->id,
@@ -251,7 +263,9 @@ class SupportChatController extends Controller
                     || $this->isOwnManagedSupport($request->user(), $model->support)),
             403,
         );
-        $isObserver = $request->user()->role === 'observer';
+        // مسیر صفرکردن خوانده‌نشده فقط برای پشتیبان (و ادمین) است؛ ناظر تیمی
+        // و ناظر اکانت هیچ تغییری روی گفتگو اعمال نمی‌کنند.
+        $isObserver = $request->user()->isObserver() || $request->user()->isAccountObserver();
 
         if ($isObserver) {
             // ناظر فقط‌خواندنی است: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
@@ -344,6 +358,12 @@ class SupportChatController extends Controller
                 $request->attributes->set('actor_id', $request->user()->id);
                 $request->attributes->set('actor_name', $request->user()->name.' (به‌جای '.$actingAs->name.')');
                 $this->logObserverAccess($request, $model, 'reply_as_support:'.$actingAs->id);
+                // مسیر show() برای ناظر اکانت خوانده‌نشده را صفر نمی‌کند؛ از آنجا
+                // که پاسخ ثبت شده، گفتگو رسیدگی‌شده محسوب و شمارنده‌ی تیم پاک می‌شود.
+                $model->forceFill([
+                    'unread_support_count' => 0,
+                    'support_last_read_at' => now(),
+                ])->save();
             }
             if ($sender->id !== $request->user()->id) {
                 $model->forceFill(['support_id' => $sender->id])->save();

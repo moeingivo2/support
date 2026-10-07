@@ -191,6 +191,76 @@ class AccountObserverTeamTest extends TestCase
             ->assertJsonPath('data.0.name', 'شیفت من');
     }
 
+    public function test_unread_total_only_counts_unassigned_and_own_team_conversations(): void
+    {
+        $observer = $this->makeAccountObserver();
+        $otherObserver = $this->makeAccountObserver();
+        $student = $this->makeStudent();
+        $mine = $this->openConversation($student, $this->makeSupport(['observer_id' => $observer->id]));
+        $theirs = $this->openConversation($student, $this->makeSupport(['observer_id' => $otherObserver->id]));
+        $unassigned = $this->openConversation($student);
+
+        $mine->update(['unread_support_count' => 2]);
+        $theirs->update(['unread_support_count' => 7]);
+        $unassigned->update(['unread_support_count' => 3]);
+
+        $this->actingAs($observer, 'sanctum')
+            ->getJson('/api/support/conversations/notifications')
+            ->assertStatus(200)
+            ->assertJsonPath('unread_total', 5)
+            ->assertJsonPath('unread_conversations', 2);
+    }
+
+    public function test_opening_a_conversation_does_not_clear_the_unread_counter_for_an_observer(): void
+    {
+        $observer = $this->makeAccountObserver();
+        $student = $this->makeStudent();
+        $support = $this->makeSupport(['observer_id' => $observer->id]);
+        $conversation = $this->openConversation($student, $support);
+        $conversation->update(['unread_support_count' => 3]);
+
+        $this->actingAs($observer, 'sanctum')
+            ->getJson("/api/support/conversations/{$conversation->id}")
+            ->assertStatus(200);
+
+        $this->assertSame(3, $conversation->fresh()->unread_support_count);
+        $this->assertSame($support->id, $conversation->fresh()->support_id);
+
+        $this->actingAs($support, 'sanctum')
+            ->getJson("/api/support/conversations/{$conversation->id}")
+            ->assertStatus(200);
+
+        $this->assertSame(0, $conversation->fresh()->unread_support_count);
+        $this->assertSame($support->id, $conversation->fresh()->support_id);
+    }
+
+    public function test_observer_must_name_an_acting_support_and_replying_clears_the_counter(): void
+    {
+        $observer = $this->makeAccountObserver();
+        $student = $this->makeStudent();
+        $support = $this->makeSupport(['observer_id' => $observer->id]);
+        $conversation = $this->openConversation($student);
+        $conversation->update(['unread_support_count' => 2]);
+
+        $this->actingAs($observer, 'sanctum')
+            ->postJson("/api/support/conversations/{$conversation->id}/messages", ['body' => 'سلام'])
+            ->assertStatus(403);
+
+        $this->assertSame(2, $conversation->fresh()->unread_support_count);
+
+        $this->actingAs($observer, 'sanctum')
+            ->postJson("/api/support/conversations/{$conversation->id}/messages", [
+                'body' => 'پاسخ ناظر اکانت',
+                'acting_support_id' => $support->id,
+            ])
+            ->assertStatus(201);
+
+        $fresh = $conversation->fresh();
+        $this->assertSame(0, $fresh->unread_support_count);
+        $this->assertSame($support->id, $fresh->support_id);
+        $this->assertNotNull($fresh->support_last_read_at);
+    }
+
     private function openConversation(User $student, ?User $support = null): Conversation
     {
         $conversation = Conversation::create([

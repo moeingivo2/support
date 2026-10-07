@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
+use App\Models\MentorFeedback;
 use App\Models\Resource;
-use App\Models\Shift;
 use App\Models\ShiftReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -23,7 +23,7 @@ class DashboardController extends Controller
             return [
                 'weeklySatisfaction' => Complaint::where('created_at', '>=', $weekStart)->count(),
                 'answeredStudents' => ShiftReport::where('created_at', '>=', $weekStart)->sum('responded_students_count'),
-                'mentorIssues' => Complaint::where('created_at', '>=', $weekStart)->where('status', '!=', 'resolved')->count(),
+                'mentorIssues' => MentorFeedback::where('created_at', '>=', $weekStart)->where('status', '!=', 'resolved')->count(),
                 'availableServices' => Resource::count(),
             ];
         });

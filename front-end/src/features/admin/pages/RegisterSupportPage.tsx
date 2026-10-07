@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     CheckCircle2,
+    Eye,
     Globe,
     Loader2,
     Pencil,
@@ -63,7 +64,7 @@ export default function RegisterSupportPage() {
             return { data: [...web.data, ...ai.data] };
         },
     });
-    const accountObservers = (observersQuery.data?.data ?? []).filter((item) => item.role === "account_observer");
+    const accountObservers = observersQuery.data?.data ?? [];
 
     const {
         formState: { errors, isSubmitting },
@@ -155,14 +156,23 @@ export default function RegisterSupportPage() {
 
     async function handleObserverRole(support: SupportListItem): Promise<void> {
         try {
-            const response = support.role === "account_observer"
-                ? await revokeAccountObserver(support.id)
-                : await setAccountObserver(support.id);
+            const response = await setAccountObserver(support.id);
             toast.success(response.message);
             await queryClient.invalidateQueries({ queryKey: adminKeys.supports });
             await queryClient.invalidateQueries({ queryKey: ["admin", "supports", "account-observers"] });
         } catch (error) {
-            setServerError(error instanceof Error ? error.message : "تغییر نقش ناظر انجام نشد.");
+            toast.error(error instanceof Error ? error.message : "تغییر نقش ناظر انجام نشد.");
+        }
+    }
+
+    async function handleRevokeObserver(observer: SupportListItem): Promise<void> {
+        try {
+            const response = await revokeAccountObserver(observer.id);
+            toast.success(response.message);
+            await queryClient.invalidateQueries({ queryKey: adminKeys.supports });
+            await queryClient.invalidateQueries({ queryKey: ["admin", "supports", "account-observers"] });
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "لغو نقش ناظر انجام نشد.");
         }
     }
 
@@ -315,12 +325,12 @@ export default function RegisterSupportPage() {
                             <Alert tone="danger">
                                 دریافت فهرست پشتیبان‌ها ناموفق بود.
                             </Alert>
-                        ) : (supportsQuery.data?.data ?? []).filter((item) => item.role === "support").length === 0 ? (
+                        ) : (supportsQuery.data?.data ?? []).length === 0 ? (
                             <p className="py-8 text-center text-sm text-ink-2">
                                 هنوز پشتیبانی ثبت نشده است.
                             </p>
                         ) : (
-                            (supportsQuery.data?.data ?? []).filter((item) => item.role === "support").map((support) => (
+                            (supportsQuery.data?.data ?? []).map((support) => (
                                 <div
                                     key={support.id}
                                     className="space-y-4 rounded-3xl border border-hairline bg-surface-2 p-4"
@@ -374,26 +384,107 @@ export default function RegisterSupportPage() {
                                             حذف
                                         </Button>
                                     </div>
-                                    {support.role !== "account_observer" ? (
-                                        <div className="flex justify-end">
-                                            <Button type="button" variant="ghost" onClick={() => void handleObserverRole(support)}>
-                                                تبدیل به ناظر اکانت {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}
-                                            </Button>
-                                        </div>
-                                    ) : null}
-                                    {support.role === "support" ? <div className="space-y-2 border-t border-hairline pt-3">
+                                    <div className="flex justify-end">
+                                        <Button type="button" variant="ghost" onClick={() => void handleObserverRole(support)}>
+                                            تبدیل به ناظر اکانت {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-2 border-t border-hairline pt-3">
                                         <Label htmlFor={`observer-assignment-${support.id}`}>انتساب این پشتیبان به ناظر {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}</Label>
                                         <select id={`observer-assignment-${support.id}`} value={support.observer_id ?? ""} onChange={(event) => void handleObserverAssignment(support, event.target.value ? Number(event.target.value) : null)} className="h-10 w-full rounded-xl border border-hairline bg-surface px-3 text-sm text-ink">
                                             <option value="">انتساب به ناظر</option>
                                             {accountObservers.filter((observer) => observer.support_type === support.support_type && observer.id !== support.id).map((observer) => <option key={observer.id} value={observer.id}>{observer.name}</option>)}
                                         </select>
-                                    </div> : null}
+                                    </div>
                                 </div>
                             ))
                         )}
                     </div>
                 </Card>
             </div>
+
+            <Card className="p-6 md:p-7">
+                <div className="flex items-center gap-3">
+                    <span className="grid size-11 place-items-center rounded-2xl bg-primary-soft text-accent-ink ring-1 ring-primary-ring">
+                        <Eye className="size-5" />
+                    </span>
+                    <h2 className="text-xl font-bold text-ink">
+                        ناظران اکانت
+                    </h2>
+                </div>
+                <p className="mt-2 max-w-2xl text-sm text-ink-2">
+                    ناظر اکانت به پشتیبان‌های منتسب‌شده‌اش دسترسی دارد و می‌تواند
+                    به‌جای آن‌ها پاسخ ثبت کند. لغو نقش، پشتیبان‌ها را به حالت
+                    عادی برمی‌گرداند.
+                </p>
+
+                <div className="mt-5 space-y-3">
+                    {observersQuery.isPending ? (
+                        Array.from({ length: 2 }, (_, index) => (
+                            <Skeleton
+                                key={index}
+                                className="h-16 w-full rounded-3xl"
+                            />
+                        ))
+                    ) : observersQuery.isError ? (
+                        <Alert tone="danger">
+                            دریافت فهرست ناظران اکانت ناموفق بود.
+                        </Alert>
+                    ) : accountObservers.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-ink-2">
+                            هنوز ناظر اکانتی ثبت نشده است. از فهرست پشتیبان‌ها
+                            روی «تبدیل به ناظر اکانت» بزنید.
+                        </p>
+                    ) : (
+                        accountObservers.map((observer) => (
+                            <div
+                                key={observer.id}
+                                className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-hairline bg-surface-2 p-4"
+                            >
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-bold text-ink">
+                                        {observer.name}
+                                    </p>
+                                    <p
+                                        dir="ltr"
+                                        className="mt-1 text-right text-xs text-ink-2"
+                                    >
+                                        {observer.phone}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <StatusPill
+                                        tone={
+                                            observer.support_type === "ai"
+                                                ? "warning"
+                                                : "info"
+                                        }
+                                    >
+                                        {observer.support_type === "ai" ? (
+                                            <Sparkles className="size-3" />
+                                        ) : (
+                                            <Globe className="size-3" />
+                                        )}
+                                        {observer.support_type === "ai"
+                                            ? "هوش مصنوعی"
+                                            : "وب"}
+                                    </StatusPill>
+                                    <Button
+                                        type="button"
+                                        variant="danger"
+                                        onClick={() =>
+                                            void handleRevokeObserver(observer)
+                                        }
+                                    >
+                                        <Trash2 />
+                                        لغو نقش ناظر
+                                    </Button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </Card>
 
             <EditSupportDialog
                 support={editingSupport}

@@ -1,12 +1,21 @@
 import { Link } from "react-router-dom";
 import { ArrowUpLeft } from "lucide-react";
 import { Card } from "@/shared/ui/card";
-import { dashboardQuickActions, observerDashboardQuickActions } from "../constants";
+import {
+    accountObserverDashboardQuickActions,
+    dashboardQuickActions,
+    observerDashboardQuickActions,
+} from "../constants";
 import { useAuth } from "@/shared/services/auth-context";
 
 export function QuickActionsSection() {
     const { user } = useAuth();
-    const actions = user?.role === "observer" ? observerDashboardQuickActions : dashboardQuickActions;
+    const actions =
+        user?.role === "support"
+            ? dashboardQuickActions
+            : user?.role === "account_observer"
+              ? accountObserverDashboardQuickActions
+              : observerDashboardQuickActions;
     return (
         <section className="space-y-4" aria-labelledby="quick-actions">
             <h2 id="quick-actions" className="text-xl font-bold text-ink">

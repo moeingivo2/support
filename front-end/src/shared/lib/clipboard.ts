@@ -16,15 +16,13 @@ export async function copyTextToClipboard(text: string): Promise<void> {
     textarea.style.top = "0";
     textarea.setAttribute("dir", "ltr");
     document.body.append(textarea);
-    let copied = false;
     try {
         textarea.select();
         textarea.setSelectionRange(0, textarea.value.length);
-        copied = document.execCommand("copy");
+        if (!document.execCommand("copy")) {
+            throw new Error("Clipboard write failed");
+        }
     } finally {
         textarea.remove();
-    }
-    if (!copied) {
-        throw new Error("Clipboard write failed");
     }
 }

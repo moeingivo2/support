@@ -45,7 +45,10 @@ export function VoiceWaveform({
     const progressRef = useRef(progress);
     const phaseRef = useRef(0);
 
-    progressRef.current = progress;
+    // به‌روزرسانی ref فقط در effect؛ نوشتن در رندر برای react-hooks/refs خطا است.
+    useEffect(() => {
+        progressRef.current = progress;
+    }, [progress]);
 
     useEffect(() => {
         const live = Boolean(levelsRef?.current) || animateWhilePlaying;

@@ -6,7 +6,7 @@ import {
     PlayCircle,
 } from "lucide-react";
 
-export const dashboardQuickActions = [
+const allQuickActions = [
     {
         title: "سورس جلسات",
         description: "دسترسی به سورس و کدهای جلسات",
@@ -39,4 +39,23 @@ export const dashboardQuickActions = [
     },
 ] as const;
 
-export const observerDashboardQuickActions = dashboardQuickActions;
+/** پشتیبان: همه‌ی اقدامات از جمله شیفت و گزارش پایان شیفت. */
+export const dashboardQuickActions = allQuickActions;
+
+/**
+ * سوپر ادمین و ناظر فقط‌خواندنی: شیفت و گزارش پایان شیفت ندارند؛
+ * منوی این نقش‌ها هم این دو مورد را نشان نمی‌دهد.
+ */
+export const observerDashboardQuickActions = allQuickActions.filter(
+    (action) =>
+        action.path !== "/support-shifts" &&
+        action.path !== "/end-shift-report",
+);
+
+/**
+ * ناظر اکانت شیفت تیمش را می‌بیند و ثبت می‌کند اما گزارش پایان شیفت
+ * مخصوص خود پشتیبان است.
+ */
+export const accountObserverDashboardQuickActions = allQuickActions.filter(
+    (action) => action.path !== "/end-shift-report",
+);

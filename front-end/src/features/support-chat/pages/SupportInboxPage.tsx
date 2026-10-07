@@ -58,6 +58,11 @@ export default function SupportInboxPage() {
     const [isListOpen, setIsListOpen] = useState(false);
     const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
     const [dialogError, setDialogError] = useState<string | null>(null);
+    // ناظر اکانت بدون impersonation باید انتخاب کند پیام را به‌جای کدام یک
+    // از پشتیبان‌های تیمش بفرستد؛ سرور acting_support_id را الزامی می‌داند.
+    const [selectedActingSupportId, setSelectedActingSupportId] = useState<
+        number | null
+    >(null);
 
     // ناظر فقط‌خواندنی است: نه پاسخ می‌دهد و نه گفتگو را می‌بندد
     const isObserver = user?.role === "observer";
@@ -90,19 +95,45 @@ export default function SupportInboxPage() {
     const students = studentsQuery.data?.data ?? [];
     const conversations = inboxQuery.data?.data ?? [];
     const managedSupports = managedSupportsQuery.data?.data ?? [];
-    const showManagedTeam = isAccountObserver && !ownerId;
+    const isDirectAccountObserver = isAccountObserver && !ownerId;
+    const showManagedTeam = isDirectAccountObserver;
     const selectedStudent =
         students.find((row) => row.student.id === studentId) ?? null;
     const profile = conversationQuery.data?.data.profile ?? null;
     const unreadTotal = notificationsQuery.data?.unread_total ?? 0;
     const activeConversation = conversationQuery.data?.data.conversation ?? null;
     const isClosed = activeConversation?.is_closed ?? false;
+    // سرور فقط به ناظر اکانت اجازه می‌دهد به‌جای پشتیبانِ منتسب‌شده به همان
+    // گفتگو (یا گفتگوی بدون پشتیبان) پاسخ بدهد.
+    const conversationSupportId = activeConversation?.support?.id ?? null;
+    const availableActingSupports = managedSupports.filter(
+        (support) =>
+            support.id !== user?.id &&
+            (conversationSupportId === null ||
+                support.id === conversationSupportId),
+    );
+    const defaultActingSupportId =
+        conversationSupportId !== null &&
+        availableActingSupports.some(
+            (support) => support.id === conversationSupportId,
+        )
+            ? conversationSupportId
+            : (availableActingSupports[0]?.id ?? null);
+    const resolvedActingSupportId =
+        selectedActingSupportId !== null &&
+        availableActingSupports.some(
+            (support) => support.id === selectedActingSupportId,
+        )
+            ? selectedActingSupportId
+            : defaultActingSupportId;
+    const canSend = !isDirectAccountObserver || resolvedActingSupportId !== null;
 
     function selectConversation(id: number) {
         setMessageSearch("");
         setIsListOpen(false);
         setIsCloseDialogOpen(false);
         setDialogError(null);
+        setSelectedActingSupportId(null);
         setSearchParams({ c: String(id) }, { replace: true });
     }
 
@@ -142,8 +173,8 @@ export default function SupportInboxPage() {
                 language,
                 attachment,
                 signal,
-                actingSupportId: ownerId,
-        observerActorName: isAccountObserver ? user?.name : undefined,
+                actingSupportId: ownerId ?? (resolvedActingSupportId ?? undefined),
+                observerActorName: isAccountObserver ? user?.name : undefined,
             });
         },
         onSuccess: () => {
@@ -324,7 +355,12 @@ export default function SupportInboxPage() {
                         </StatusPill>
                     ) : null}
 
-                    {activeId !== null && !isClosed && !isReadOnlyObserver ? (
+                    {/* ناظر اکانت بدون impersonation اجازه‌ی بستن گفتگو ندارد؛
+                        سرور این درخواست را 403 می‌کند. */}
+                    {activeId !== null &&
+                    !isClosed &&
+                    !isReadOnlyObserver &&
+                    !isDirectAccountObserver ? (
                         <Button
                             type="button"
                             variant="danger"
@@ -443,7 +479,7 @@ export default function SupportInboxPage() {
                             showAttribution={isObserver || isAccountObserver}
                         />
 
-                        {isClosed || isReadOnlyObserver ? (
+                        {isClosed || isReadOnlyObserver || !canSend ? (
                             <div className="space-y-2 border-t border-hairline bg-sunken px-4 py-4 text-center">
                                 {isClosed ? (
                                     <>
@@ -489,15 +525,64 @@ export default function SupportInboxPage() {
                                         نیست. هر دسترسی شما ثبت می‌شود.
                                     </p>
                                 ) : null}
+
+                                {!isClosed && !isReadOnlyObserver ? (
+                                    <p className="text-xs leading-6 text-ink-2">
+                                        هیچ‌کدام از پشتیبان‌های تیم شما روی این
+                                        گفتگو منتسب نیستند؛ برای ارسال پیام،
+                                        انتساب پشتیبان را از مدیر کل سامان
+                                        بخواهید.
+                                    </p>
+                                ) : null}
                             </div>
                         ) : (
-                            <SupportComposer
-                                onSend={(body, options) =>
-                                    replyMutation.mutateAsync({ body, ...options })
-                                }
-                                isSending={replyMutation.isPending}
-                                isOnline={isOnline}
-                            />
+                            <>
+                                {isDirectAccountObserver ? (
+                                    <div className="space-y-1.5 border-t border-hairline bg-sunken px-4 py-3">
+                                        <label
+                                            htmlFor="acting-support"
+                                            className="text-xs font-semibold text-ink-2"
+                                        >
+                                            ارسال به‌جای
+                                        </label>
+                                        <select
+                                            id="acting-support"
+                                            value={resolvedActingSupportId ?? ""}
+                                            onChange={(event) =>
+                                                setSelectedActingSupportId(
+                                                    event.target.value
+                                                        ? Number(
+                                                              event.target.value,
+                                                          )
+                                                        : null,
+                                                )
+                                            }
+                                            className="h-10 w-full rounded-xl border border-hairline bg-surface px-3 text-sm text-ink"
+                                        >
+                                            {availableActingSupports.map(
+                                                (support) => (
+                                                    <option
+                                                        key={support.id}
+                                                        value={support.id}
+                                                    >
+                                                        {support.name}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </div>
+                                ) : null}
+                                <SupportComposer
+                                    onSend={(body, options) =>
+                                        replyMutation.mutateAsync({
+                                            body,
+                                            ...options,
+                                        })
+                                    }
+                                    isSending={replyMutation.isPending}
+                                    isOnline={isOnline}
+                                />
+                            </>
                         )}
                     </>
                 )}
