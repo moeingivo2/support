@@ -17,6 +17,9 @@ class StoreResourceRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:session_source,required_file,other',
+            // فقط سوپر ادمین این را تعیین می‌کند؛ برای بقیه از کانال خودِ
+            // کاربر پر می‌شود و مقدار ارسالی نادیده گرفته می‌شود.
+            'channel' => 'nullable|in:web,ai',
             'file_url' => 'required_without:file|nullable|url', // یا لینک مستقیم برمی‌داره
             'file' => 'required_without:file_url|nullable|file|max:51200', // یا فایل مستقیم آپلود میشه (تا ۵۰ مگ)
             'category' => 'nullable|string|max:100',

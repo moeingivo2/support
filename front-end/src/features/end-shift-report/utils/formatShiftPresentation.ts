@@ -1,15 +1,20 @@
+import {
+    safeShiftDate,
+    safeShiftDuration,
+    safeShiftTime,
+} from "@/shared/lib/shift-datetime";
+
+/**
+ * ساعت شروع/پایان شیفت. بازه‌های فقط‌ساعت («08:00:00») و مقادیر خالی هم
+ * درست و بی‌خطر نمایش داده می‌شوند؛ پیش از این `Intl` روی تاریخ نامعتبر
+ * `RangeError` می‌داد و صفحه‌ی داشبورد را می‌شکست.
+ */
 export function formatShiftTime(date: string): string {
-    return new Intl.DateTimeFormat("fa-IR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-    }).format(new Date(date));
+    return safeShiftTime(date);
 }
 
 export function formatShiftDate(date: string): string {
-    return new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(
-        new Date(date),
-    );
+    return safeShiftDate(date);
 }
 
 export function formatShiftChannel(channel: string): string {
@@ -27,23 +32,5 @@ export function formatShiftDuration(
     startTime: string,
     endTime: string | null,
 ): string {
-    const end = endTime ? new Date(endTime).getTime() : Date.now();
-
-    const durationMinutes = Math.max(
-        0,
-        Math.round((end - new Date(startTime).getTime()) / 60_000),
-    );
-    const hours = Math.floor(durationMinutes / 60);
-    const minutes = durationMinutes % 60;
-    const parts: string[] = [];
-
-    if (hours > 0) {
-        parts.push(`${hours.toLocaleString("fa-IR")} ساعت`);
-    }
-
-    if (minutes > 0) {
-        parts.push(`${minutes.toLocaleString("fa-IR")} دقیقه`);
-    }
-
-    return parts.length > 0 ? parts.join(" و ") : "۰ دقیقه";
+    return safeShiftDuration(startTime, endTime);
 }

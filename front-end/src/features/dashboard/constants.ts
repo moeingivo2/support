@@ -2,6 +2,7 @@ import {
     BookOpen,
     CalendarClock,
     ClipboardList,
+    Eye,
     FolderOpen,
     PlayCircle,
 } from "lucide-react";
@@ -54,8 +55,14 @@ export const observerDashboardQuickActions = allQuickActions.filter(
 
 /**
  * ناظر اکانت شیفت تیمش را می‌بیند و ثبت می‌کند اما گزارش پایان شیفت
- * مخصوص خود پشتیبان است.
+ * مخصوص خود پشتیبان است. «نظارت بر روی تیم» هم مخصوص اوست.
  */
-export const accountObserverDashboardQuickActions = allQuickActions.filter(
-    (action) => action.path !== "/end-shift-report",
-);
+export const accountObserverDashboardQuickActions = [
+    ...allQuickActions.filter((action) => action.path !== "/end-shift-report"),
+    {
+        title: "نظارت بر روی تیم",
+        description: "آمار اعضای تیم و ورود به حساب پشتیبان",
+        icon: Eye,
+        path: "/team-supervision",
+    },
+] as const;

@@ -8,8 +8,11 @@ import {
 } from "react";
 import {
     clearAuth,
+    clearStoredObserverSession,
+    getStoredObserverSession,
     getStoredUser,
     getToken,
+    setStoredObserverSession,
     setStoredUser,
     setAuth,
     setToken,
@@ -55,8 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getToken() ? getStoredUser() : null,
     );
     const [actingAsSupport, setActingAsSupport] = useState<PanelUser | null>(null);
-    const [observerUser, setObserverUser] = useState<PanelUser | null>(null);
-    const [observerToken, setObserverToken] = useState<string | null>(null);
+    // نشست ناظر اکانت از sessionStorage هم برمی‌گردد تا رفرش صفحه حین ورود به
+    // حساب یک پشتیبان، مسیر «بازگشت به اکانت ناظر» را از بین نبرد.
+    const [observerUser, setObserverUser] = useState<PanelUser | null>(() => {
+        const stored = getStoredObserverSession();
+
+        return stored.user?.role === "account_observer" ? stored.user : null;
+    });
+    const [observerToken, setObserverToken] = useState<string | null>(() => {
+        const stored = getStoredObserverSession();
+
+        return stored.user?.role === "account_observer" ? stored.token : null;
+    });
     // اسپلش یک‌بار هنگام بالا آمدن برنامه نمایش داده می‌شود، نه در هر
     // ورود دوباره؛ وگرنه با هر لاگین دوباره دیده می‌شد.
     const [showLoginSplash, setShowLoginSplash] = useState(true);
@@ -68,6 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 password,
             );
             setAuth(token, authenticatedUser);
+            // ورود تازه یعنی نشست پشتیبانی که قبلاً impersonation شده
+            // دیگر معتبر نیست؛ بدون پاک‌کردن، نشانی «بازگشت به اکانت ناظر»
+            // با هویت کهنه باقی می‌ماند.
+            clearStoredObserverSession();
+            setObserverUser(null);
+            setObserverToken(null);
             setUser(authenticatedUser);
             return authenticatedUser;
         },
@@ -81,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 password,
             );
             setAuth(token, authenticatedUser);
+            clearStoredObserverSession();
+            setObserverUser(null);
+            setObserverToken(null);
             setUser(authenticatedUser);
             return authenticatedUser;
         },
@@ -105,7 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = useCallback(() => {
         void apiLogout();
         clearAuth();
+        clearStoredObserverSession();
         setUser(null);
+        setObserverUser(null);
+        setObserverToken(null);
         setActingAsSupport(null);
         setShowLoginSplash(false);
     }, []);
@@ -114,8 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user?.role !== "account_observer") return;
         const observerTokenValue = getToken();
         const response = await impersonateObserverSupport(supportId);
-        if (observerTokenValue) setObserverToken(observerTokenValue);
+        if (!observerTokenValue) return;
+        setObserverToken(observerTokenValue);
         setObserverUser(user);
+        setStoredObserverSession(observerTokenValue, user);
         setToken(response.token);
         setStoredUser(response.user);
         setUser(response.user);
@@ -126,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(observerToken);
         setStoredUser(observerUser);
         setUser(observerUser);
+        clearStoredObserverSession();
         setObserverUser(null);
         setObserverToken(null);
         setActingAsSupport(null);

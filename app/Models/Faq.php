@@ -13,6 +13,7 @@ class Faq extends Model
         'question',
         'answer',
         'category',
+        'channel',
         'order',
         'is_active',
     ];

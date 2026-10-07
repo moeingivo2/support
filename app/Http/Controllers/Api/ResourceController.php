@@ -6,15 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreResourceRequest;
 use App\Models\Resource;
 use App\Support\AttachmentStorage;
+use App\Support\Concerns\ScopesBySupportChannel;
 use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ResourceController extends Controller
 {
+    use ScopesBySupportChannel;
+
     public function __construct(private readonly AttachmentStorage $attachments) {}
 
-    // دریافت لیست فایل‌ها و سورس‌ها
+    /**
+     * لیست سورس‌ها و فایل‌ها. پشتیبان و ناظر اکانت فقط بخش هم‌نوع خودشان را
+     * می‌بینند؛ سوپر ادمین هر دو بخش را و با `?channel=web|ai` فقط یکی را.
+     */
     public function index(Request $request)
     {
         $query = Resource::with('creator');
@@ -22,6 +28,12 @@ class ResourceController extends Controller
         // فیلتر بر اساس نوع (سورس جلسه / فایل مورد نیاز)
         if ($request->has('type')) {
             $query->where('type', $request->type);
+        }
+
+        if ($channels = $this->requestedChannels($request)) {
+            $query->whereIn('channel', $channels);
+        } else {
+            $this->applyVisibleChannel($query, $request->user());
         }
 
         // فیلتر بر اساس دسته‌بندی
@@ -39,7 +51,7 @@ class ResourceController extends Controller
         return response()->json($resources);
     }
 
-    /** دانشجو فقط سورس‌های آموزشی را می‌خواند؛ هیچ عملیات نوشتنی ندارد. */
+    /** دانشجو فقط سورس‌های آموزشیِ هم‌نوع مسیر خودش را می‌خواند؛ هیچ عملیات نوشتنی ندارد. */
     public function studentSessionSources(Request $request)
     {
         $validated = $request->validate([
@@ -51,7 +63,8 @@ class ResourceController extends Controller
 
         $query = Resource::query()
             ->where('type', 'session_source')
-            ->select(['id', 'title', 'description', 'file_url', 'category', 'created_at']);
+            ->whereIn('channel', $this->studentChannels($request->user()))
+            ->select(['id', 'title', 'description', 'file_url', 'category', 'channel', 'created_at']);
 
         if (! empty($validated['category'])) {
             $query->where('category', $validated['category']);
@@ -93,6 +106,8 @@ class ResourceController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'type' => $request->type,
+            // بخش از خودِ کاربر می‌آید، مگر سوپر ادمین خودش انتخاب کند.
+            'channel' => $this->channelForNewContent($request),
             'file_url' => $fileUrl,
             'category' => $request->category,
             'created_by' => $request->user()->id,
@@ -105,22 +120,21 @@ class ResourceController extends Controller
     }
 
     // نمایش جزئیات یک فایل
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $resource = Resource::with('creator')->findOrFail($id);
-
-        return response()->json($resource);
+        return response()->json($this->findVisibleResource($request, (int) $id));
     }
 
-    // ویرایش فایل/سورس
+    // ویرایش فایل/سورس — جابه‌جایی بین دو بخش فقط کار سوپر ادمین است
     public function update(Request $request, $id)
     {
-        $resource = Resource::findOrFail($id);
+        $resource = $this->findVisibleResource($request, (int) $id);
 
         $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|required|in:session_source,required_file,other',
+            'channel' => 'sometimes|in:web,ai',
             'file_url' => 'nullable|url',
             'category' => 'nullable|string|max:100',
         ]);
@@ -137,22 +151,43 @@ class ResourceController extends Controller
             $request->merge(['file_url' => url(Storage::url($path))]);
         }
 
-        $resource->update($request->only([
-            'title', 'description', 'type', 'file_url', 'category',
-        ]));
+        $changes = $request->only(['title', 'description', 'type', 'file_url', 'category']);
+
+        if ($request->user()->isAdmin() && $request->has('channel')) {
+            $changes['channel'] = $request->string('channel')->toString();
+        }
+
+        $resource->update($changes);
 
         return response()->json([
             'message' => 'فایل با موفقیت ویرایش شد',
-            'resource' => $resource,
+            'resource' => $resource->fresh('creator'),
         ]);
     }
 
     // حذف فایل
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $resource = Resource::findOrFail($id);
-        $resource->delete();
+        $this->findVisibleResource($request, (int) $id)->delete();
 
         return response()->json(['message' => 'فایل با موفقیت حذف شد']);
+    }
+
+    /**
+     * رکوردی که کاربر اجازه دیدنش را دارد. برای پشتیبان و ناظر اکانت یعنی
+     * فقط بخش هم‌نوع خودشان؛ سوپر ادمین به هر دو بخش دسترسی دارد.
+     * پاسخ ۴۰۴ است تا وجود رکوردِ بخشِ دیگر هم لو نرود.
+     */
+    private function findVisibleResource(Request $request, int $id): Resource
+    {
+        $query = Resource::query()->whereKey($id);
+
+        if (! $request->user()->isAdmin()) {
+            $this->applyVisibleChannel($query, $request->user());
+        }
+
+        abort_if($query->doesntExist(), 404, 'این فایل در دسترس شما نیست.');
+
+        return Resource::with('creator')->findOrFail($id);
     }
 }

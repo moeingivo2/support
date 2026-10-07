@@ -1,6 +1,8 @@
 import { useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Link2, X } from "lucide-react";
+import { SUPPORT_CHANNELS, type SupportChannel } from "@/shared/lib/content-channel";
+import { useAuth } from "@/shared/services/auth-context";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -11,6 +13,7 @@ type ResourceLike = {
     description: string | null;
     file_url: string;
     category: string | null;
+    channel?: SupportChannel;
 };
 
 type ResourceFormValues = {
@@ -18,6 +21,8 @@ type ResourceFormValues = {
     description: string;
     file_url: string;
     category: string;
+    /** فقط سوپر ادمین می‌فرستد؛ برای بقیه سرور بخش خودشان را اعمال می‌کند. */
+    channel?: SupportChannel;
 };
 
 type ResourceFormDialogProps = {
@@ -41,6 +46,8 @@ export function ResourceFormDialog({
     onSubmit,
     onClose,
 }: ResourceFormDialogProps) {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
     const [values, setValues] = useState<ResourceFormValues>(() =>
         getInitialValues(resource ?? null),
     );
@@ -59,6 +66,7 @@ export function ResourceFormDialog({
             description: values.description.trim(),
             file_url: values.file_url.trim(),
             category: values.category.trim(),
+            ...(isAdmin && values.channel ? { channel: values.channel } : {}),
         });
     }
 
@@ -97,6 +105,44 @@ export function ResourceFormDialog({
                         onSubmit={handleSubmit}
                         noValidate
                     >
+                        {isAdmin ? (
+                            <fieldset className="space-y-2">
+                                <legend className="text-sm font-semibold text-ink">
+                                    بخش محتوا
+                                </legend>
+                                <div className="flex gap-2">
+                                    {SUPPORT_CHANNELS.map((option) => (
+                                        <label
+                                            key={option.value}
+                                            className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-hairline bg-surface-2 px-3 py-2.5 text-sm font-semibold text-ink has-checked:border-primary-line-2 has-checked:bg-primary-soft"
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="resource-channel"
+                                                value={option.value}
+                                                checked={
+                                                    (values.channel ??
+                                                        "web") === option.value
+                                                }
+                                                onChange={() =>
+                                                    setField(
+                                                        "channel",
+                                                        option.value,
+                                                    )
+                                                }
+                                            />
+                                            {option.label}
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-ink-2">
+                                    هر بخش جدا نگه‌داری می‌شود؛ فقط
+                                    پشتیبان‌ها و دانشجویان همان بخش آن را
+                                    می‌بینند.
+                                </p>
+                            </fieldset>
+                        ) : null}
+
                         <div className="space-y-2">
                             <Label htmlFor="resource-title">عنوان</Label>
                             <Input
@@ -197,6 +243,7 @@ function getInitialValues(resource: ResourceLike | null): ResourceFormValues {
         description: resource?.description ?? "",
         file_url: resource?.file_url ?? "",
         category: resource?.category ?? "",
+        channel: resource?.channel ?? "web",
     };
 }
 

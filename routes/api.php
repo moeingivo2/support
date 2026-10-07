@@ -52,7 +52,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/supports/{support}', [AdminController::class, 'destroySupport']);
         Route::put('/supports/{support}/account-observer', [AdminController::class, 'grantAccountObserver']);
         Route::delete('/supports/{support}/account-observer', [AdminController::class, 'revokeAccountObserver']);
-        Route::put('/supports/{support}/observer-assignment', [AdminController::class, 'assignSupportToObserver']);
         Route::get('/activity-report/export', [ActivityReportController::class, 'export'])->middleware('throttle:exports');
         Route::get('/admins', [AdminController::class, 'admins']);
         Route::post('/admins', [AdminController::class, 'storeAdmin']);
@@ -62,14 +61,17 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     Route::middleware('role:account_observer')->prefix('observer')->group(function (): void {
         Route::post('/shift-schedules', [ShiftScheduleController::class, 'store']);
+        Route::post('/shift-schedules/rotation/preview', [ShiftScheduleController::class, 'rotationPreview']);
+        Route::post('/shift-schedules/rotation', [ShiftScheduleController::class, 'rotationStore']);
         Route::get('/shift-schedules', [ShiftScheduleController::class, 'index']);
+        Route::get('/team-supervision', [SupportChatController::class, 'teamSupervision']);
     });
 
     Route::get('/shift-schedule/current', [ShiftScheduleController::class, 'current'])->middleware('role:support,account_observer');
     Route::get('/shift-schedule/notifications', [ShiftScheduleController::class, 'notification'])->middleware('role:support,account_observer');
-    Route::get('/mentor-feedback', [MentorFeedbackController::class, 'index'])->middleware('role:support,observer,account_observer');
+    Route::get('/mentor-feedback', [MentorFeedbackController::class, 'index'])->middleware('role:support,observer,account_observer,admin');
     Route::post('/mentor-feedback', [MentorFeedbackController::class, 'store'])->middleware('role:student');
-    Route::put('/mentor-feedback/{feedback}', [MentorFeedbackController::class, 'update'])->middleware('role:support,observer,account_observer');
+    Route::put('/mentor-feedback/{feedback}', [MentorFeedbackController::class, 'update'])->middleware('role:support,observer,account_observer,admin');
 
     // رتبه‌بندی پشتیبان‌ها — فقط سوپر ادمین
     Route::middleware('role:admin')->prefix('admin/support-ranking')->group(function () {

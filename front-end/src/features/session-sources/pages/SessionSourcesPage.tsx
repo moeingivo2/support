@@ -13,6 +13,8 @@ import {
     type ResourcePayload,
 } from "../services/resourceService";
 import type { Resource } from "../types/resource";
+import { ChannelPicker } from "@/shared/ui/channel-picker";
+import type { ChannelFilter } from "@/shared/lib/content-channel";
 import { HttpApiError } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -28,8 +30,21 @@ const INITIAL_FILTERS = {
     category: "",
 };
 
+const INITIAL_CHANNEL: ChannelFilter = "all";
+
+/** فیلترهای صفحه؛ بخش فقط برای سوپر ادمین قابل انتخاب است. */
+type PanelFilters = {
+    page: number;
+    search: string;
+    category: string;
+    channel?: ChannelFilter;
+};
+
 export default function SessionSourcesPage() {
-    const [filters, setFilters] = useState(INITIAL_FILTERS);
+    const [filters, setFilters] = useState<PanelFilters>({
+        ...INITIAL_FILTERS,
+        channel: INITIAL_CHANNEL,
+    });
     const [searchInput, setSearchInput] = useState("");
     const [formOpen, setFormOpen] = useState(false);
     const [editingResource, setEditingResource] = useState<Resource | null>(
@@ -140,6 +155,13 @@ export default function SessionSourcesPage() {
                     </Button>
                 </Alert>
             ) : null}
+
+            <ChannelPicker
+                value={filters.channel ?? INITIAL_CHANNEL}
+                onChange={(channel) =>
+                    setFilters((current) => ({ ...current, page: 1, channel }))
+                }
+            />
 
             <SessionSourceFilters
                 search={searchInput}

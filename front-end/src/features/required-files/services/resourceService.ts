@@ -1,10 +1,12 @@
 import { deleteJson, getJson, postJson, putJson } from "@/shared/api/http";
+import type { SupportChannel, ChannelFilter } from "@/shared/lib/content-channel";
 import type { LaravelPagination, Resource } from "../types/resource";
 
 export type RequiredFilesFilters = {
     page: number;
     search?: string;
     category?: string;
+    channel?: ChannelFilter;
 };
 
 export type RequiredFilesPagination = Omit<LaravelPagination<Resource>, "data">;
@@ -19,6 +21,7 @@ export type ResourcePayload = {
     description: string;
     file_url: string;
     category: string;
+    channel?: SupportChannel;
 };
 
 export const requiredFileKeys = {
@@ -44,6 +47,7 @@ export async function getRequiredFiles(
             type: "required_file",
             search: filters.search?.trim() || undefined,
             category: filters.category?.trim() || undefined,
+            channel: filters.channel === "all" ? undefined : filters.channel,
         },
     );
 

@@ -3,6 +3,7 @@ import {
     BookOpen,
     CalendarClock,
     ClipboardList,
+    Eye,
     FileSpreadsheet,
     FileWarning,
     FolderOpen,
@@ -75,18 +76,25 @@ const supportNavigation: NavItem[] = [
 /**
  * ناظر فقط‌خواندنی است: گفتگوها را می‌بیند و منابع عمومی را مرور می‌کند،
  * اما شیفت، گزارش‌گیری و ابزارهای پشتیبانی ندارد.
+ *
+ * سورس جلسات، فایل‌های مورد نیاز و سوالات متداول این‌جا نیستند: محتوای
+ * پنل به بخش «وب» و «هوش مصنوعی» تقسیم شده و سرور آن را به
+ * `support_type` کاربر گره می‌زند؛ ناظر فقط‌خواندنی اصلاً نوع پشتیبانی
+ * ندارد، پس فقط ناظر اکانت (که نوع دارد) این سه صفحه را می‌بیند.
  */
 const observerNavigation: NavItem[] = [
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
     { label: "نارضایتی دانشجویان", path: "/student-complaints", icon: MessageSquareWarning },
     { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
-    { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
-    { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
-    { label: "سوالات متداول", path: "/faq", icon: FileWarning },
 ];
 
 const accountObserverNavigation: NavItem[] = [
     ...supportNavigation.filter((item) => item.path !== "/end-shift-report" && item.path !== "/reports" && item.path !== "/mentor-feedback"),
+    {
+        label: "نظارت بر روی تیم",
+        path: "/team-supervision",
+        icon: Eye,
+    },
     { label: "تعیین شیفت تیم", path: "/observer-schedules", icon: UserRoundCog },
 ];
 

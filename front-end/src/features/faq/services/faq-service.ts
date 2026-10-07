@@ -1,18 +1,26 @@
 import { deleteJson, getJson, postJson, putJson } from "@/shared/api/http";
+import type { ChannelFilter, SupportChannel } from "@/shared/lib/content-channel";
 import type { Faq } from "../types/faq";
 
 export const faqKeys = {
     all: ["faqs"] as const,
-    list: (category?: string, search?: string) =>
-        [...faqKeys.all, "list", { category, search }] as const,
+    list: (category?: string, search?: string, channel?: ChannelFilter) =>
+        [...faqKeys.all, "list", { category, search, channel }] as const,
 };
 
 export function getFaqs(
-    params: { category?: string; search?: string } = {},
+    params: {
+        category?: string;
+        search?: string;
+        channel?: ChannelFilter;
+    } = {},
 ): Promise<Faq[]> {
     return getJson<Faq[]>("/api/faqs", {
         category: params.category || undefined,
         search: params.search || undefined,
+        // «هر دو» یعنی بدون فیلتر؛ سرور برای پشتیبان و ناظر اکانت در هر
+        // حال این پارامتر را نادیده می‌گیرد و بخش خودشان را اعمال می‌کند.
+        channel: params.channel === "all" ? undefined : params.channel,
     });
 }
 
@@ -20,6 +28,8 @@ export type FaqPayload = {
     question: string;
     answer: string;
     category: string | null;
+    /** فقط سوپر ادمین می‌تواند بخش را تعیین کند؛ برای بقیه نادیده گرفته می‌شود. */
+    channel?: SupportChannel;
 };
 
 export async function createFaq(

@@ -34,11 +34,14 @@ import {
 import { HttpApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/utils";
 import type { Faq } from "../types/faq";
+import { ChannelPicker } from "@/shared/ui/channel-picker";
+import type { ChannelFilter } from "@/shared/lib/content-channel";
 
 export default function FaqPage() {
     const [category, setCategory] = useState("");
     const [searchInput, setSearchInput] = useState("");
     const search = useDebouncedValue(searchInput, 400);
+    const [channel, setChannel] = useState<ChannelFilter>("all");
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [editingFaq, setEditingFaq] = useState<Faq | null>(null);
@@ -48,7 +51,7 @@ export default function FaqPage() {
     >();
     const queryClient = useQueryClient();
     const toast = useToast();
-    const faqsQuery = useFaqs(category, search);
+    const faqsQuery = useFaqs(category, search, channel);
 
     const faqs = faqsQuery.data ?? [];
 
@@ -137,6 +140,8 @@ export default function FaqPage() {
                     افزودن سوال
                 </Button>
             </Card>
+
+            <ChannelPicker value={channel} onChange={setChannel} />
 
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="relative flex-1">

@@ -32,6 +32,7 @@ import { ToastProvider } from "@/shared/ui/toast";
 import LoginSplash from "@/features/auth/components/LoginSplash";
 import { AppErrorBoundary } from "@/shared/ui/app-error-boundary";
 import ObserverSchedulesPage from "@/features/admin/pages/ObserverSchedulesPage";
+import TeamSupervisionPage from "@/features/support-chat/pages/TeamSupervisionPage";
 import MentorFeedbackPage from "@/features/student-complaints/pages/MentorFeedbackPage";
 
 const supportOnlyPaths = new Set([
@@ -39,8 +40,17 @@ const supportOnlyPaths = new Set([
     "/end-shift-report",
     "/reports",
 ]);
-const accountObserverOnlyPaths = new Set(["/observer-schedules"]);
+const accountObserverOnlyPaths = new Set([
+    "/observer-schedules",
+    "/team-supervision",
+]);
 const supportPanelPaths = new Set(["/mentor-feedback"]);
+/**
+ * محتوای پنل (سورس جلسات، فایل‌های مورد نیاز، سوالات متداول) به بخش «وب» و
+ * «هوش مصنوعی» تقسیم شده و سرور آن را به `support_type` گره می‌زند. ناظر
+ * فقط‌خواندنی نوع پشتیبانی ندارد، پس این سه صفحه برایش نیست.
+ */
+const contentChannelPaths = new Set(["/sessions", "/files", "/faq"]);
 const adminOnlyPaths = new Set([
     "/all-reports",
     "/register-support",
@@ -71,6 +81,7 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/register-support": RegisterSupportRoute,
     "/support-ranking": SupportRankingRoute,
     "/observer-schedules": ObserverSchedulesPage,
+    "/team-supervision": TeamSupervisionPage,
     "/mentor-feedback": MentorFeedbackPage,
 };
 
@@ -88,7 +99,9 @@ function PanelRoutes() {
             return <Navigate to={homePath} replace />;
         if (accountObserverOnlyPaths.has(path) && user?.role !== "account_observer")
             return <Navigate to={homePath} replace />;
-        if (supportPanelPaths.has(path) && !["support", "observer", "account_observer"].includes(user?.role ?? ""))
+        if (supportPanelPaths.has(path) && !["support", "observer", "account_observer", "admin"].includes(user?.role ?? ""))
+            return <Navigate to={homePath} replace />;
+        if (contentChannelPaths.has(path) && user?.role === "observer")
             return <Navigate to={homePath} replace />;
         if (adminOnlyPaths.has(path) && !isAdmin)
             return <Navigate to={homePath} replace />;

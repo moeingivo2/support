@@ -30,6 +30,9 @@ const STATUS_LABEL: Record<MentorFeedback["status"], string> = {
 export default function MentorFeedbackPage() {
     const { user } = useAuth();
     const isStudent = user?.role === "student";
+    const isAdmin = user?.role === "admin";
+    const backPath = isStudent ? "/chat" : isAdmin ? "/" : "/inbox";
+    const backLabel = isStudent ? "بازگشت به گفتگو" : isAdmin ? "بازگشت به داشبورد" : "بازگشت به گفتگوها";
     const [mentorName, setMentorName] = useState("");
     const [description, setDescription] = useState("");
     const [success, setSuccess] = useState("");
@@ -55,9 +58,9 @@ export default function MentorFeedbackPage() {
     return (
         <div className="mx-auto w-full max-w-5xl space-y-6">
             <div className="flex justify-start">
-                <Link to={isStudent ? "/chat" : "/inbox"} className="ms-auto inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2">
+                <Link to={backPath} className="ms-auto inline-flex h-11 items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink-2 transition hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2">
                     <ChevronRight className="size-4" aria-hidden="true" />
-                    {isStudent ? "بازگشت به گفتگو" : "بازگشت به گفتگوها"}
+                    {backLabel}
                 </Link>
             </div>
             <Card className="p-6 md:p-7">

@@ -13,6 +13,7 @@ class Resource extends Model
         'title',
         'description',
         'type',
+        'channel',
         'file_url',
         'category',
         'created_by',

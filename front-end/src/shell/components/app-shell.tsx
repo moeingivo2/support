@@ -78,7 +78,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 <div className="flex min-w-0 flex-1 flex-col">
                     <header className="sticky top-0 z-20 flex h-18 items-center gap-3 border-b border-hairline bg-glass px-4 backdrop-blur-xl md:h-20 md:px-7">
                         {observerUser ? (
-                            <Button type="button" variant="ghost" onClick={() => { returnToObserverAccount(); navigate("/observer-schedules", { replace: true }); }} className="absolute right-4 top-1/2 z-10 -translate-y-1/2 md:right-7">
+                            <Button type="button" variant="ghost" onClick={() => { returnToObserverAccount(); navigate("/team-supervision", { replace: true }); }} className="absolute right-4 top-1/2 z-10 -translate-y-1/2 md:right-7">
                                 <ChevronRight />بازگشت به اکانت ناظر
                             </Button>
                         ) : null}

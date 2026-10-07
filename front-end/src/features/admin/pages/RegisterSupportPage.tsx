@@ -18,7 +18,6 @@ import {
     createSupport,
     deleteSupport,
     getSupports,
-    assignSupportObserver,
     getObservers,
     setAccountObserver,
     revokeAccountObserver,
@@ -141,16 +140,6 @@ export default function RegisterSupportPage() {
             );
         } finally {
             setIsDeleting(false);
-        }
-    }
-
-    async function handleObserverAssignment(support: SupportListItem, observerId: number | null): Promise<void> {
-        try {
-            const response = await assignSupportObserver(support.id, observerId);
-            toast.success(response.message);
-            await queryClient.invalidateQueries({ queryKey: adminKeys.supports });
-        } catch (error) {
-            setServerError(error instanceof Error ? error.message : "تغییر انتساب ناظر ناموفق بود.");
         }
     }
 
@@ -389,13 +378,6 @@ export default function RegisterSupportPage() {
                                             تبدیل به ناظر اکانت {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}
                                         </Button>
                                     </div>
-                                    <div className="space-y-2 border-t border-hairline pt-3">
-                                        <Label htmlFor={`observer-assignment-${support.id}`}>انتساب این پشتیبان به ناظر {support.support_type === "ai" ? "هوش مصنوعی" : "وب"}</Label>
-                                        <select id={`observer-assignment-${support.id}`} value={support.observer_id ?? ""} onChange={(event) => void handleObserverAssignment(support, event.target.value ? Number(event.target.value) : null)} className="h-10 w-full rounded-xl border border-hairline bg-surface px-3 text-sm text-ink">
-                                            <option value="">انتساب به ناظر</option>
-                                            {accountObservers.filter((observer) => observer.support_type === support.support_type && observer.id !== support.id).map((observer) => <option key={observer.id} value={observer.id}>{observer.name}</option>)}
-                                        </select>
-                                    </div>
                                 </div>
                             ))
                         )}
@@ -413,9 +395,10 @@ export default function RegisterSupportPage() {
                     </h2>
                 </div>
                 <p className="mt-2 max-w-2xl text-sm text-ink-2">
-                    ناظر اکانت به پشتیبان‌های منتسب‌شده‌اش دسترسی دارد و می‌تواند
-                    به‌جای آن‌ها پاسخ ثبت کند. لغو نقش، پشتیبان‌ها را به حالت
-                    عادی برمی‌گرداند.
+                    ناظر اکانت یک نفر برای هر نوع پاسخگویی است و توسط سوپر
+                    ادمین انتخاب می‌شود. همه پشتیبان‌های همین نوع (مثلاً وب)
+                    خودکار به تیم او وصل می‌شوند؛ نیازی به انتساب دستی نیست.
+                    لغو نقش، پشتیبان‌ها را به حالت عادی برمی‌گرداند.
                 </p>
 
                 <div className="mt-5 space-y-3">

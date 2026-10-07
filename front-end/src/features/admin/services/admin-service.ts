@@ -26,7 +26,6 @@ export type SupportListItem = Pick<
     "id" | "name" | "phone" | "support_type"
 > & {
     role?: "support" | "account_observer";
-    observer_id?: number | null;
     created_at: string;
 };
 
@@ -91,16 +90,8 @@ export function revokeAccountObserver(supportId: number): Promise<{ message: str
     return deleteJson(`/api/admin/supports/${supportId}/account-observer`);
 }
 
-export function assignSupportObserver(supportId: number, observer_id: number | null): Promise<{ message: string; user: PanelUser }> {
-    return putJson(`/api/admin/supports/${supportId}/observer-assignment`, { observer_id });
-}
-
 export function getObservers(supportType: SupportType): Promise<{ data: SupportListItem[] }> {
     return getJson("/api/admin/supports", { support_type: supportType, role: "account_observer" });
-}
-
-export function getAssignedSupports(observerId: number, supportType: SupportType): Promise<{ data: SupportListItem[] }> {
-    return getJson("/api/admin/supports", { observer_id: observerId, support_type: supportType });
 }
 
 export function getAdmins(): Promise<{ data: AdminListItem[] }> {

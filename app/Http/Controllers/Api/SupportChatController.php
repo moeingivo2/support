@@ -63,7 +63,7 @@ class SupportChatController extends Controller
         $ownerId = $request->integer('owner_id') ?: null;
         $this->authorizeObserverOwner($request, $ownerId);
 
-        $rows = Conversation::query()
+        $rows = $this->conversationScope($request, $ownerId)
             ->select([
                 'student_id',
                 DB::raw('count(*) as conversations_count'),
@@ -71,12 +71,6 @@ class SupportChatController extends Controller
                 DB::raw('max(last_message_at) as last_message_at'),
             ])
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
-            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
-            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(fn ($conversations) => $conversations
-                ->whereNull('support_id')
-                ->orWhereHas('support', fn ($support) => $support
-                    ->where('observer_id', $request->user()->id)
-                    ->where('support_type', $request->user()->support_type))))
             ->groupBy('student_id')
             ->orderByDesc('last_message_at')
             ->limit(self::STUDENT_LIMIT)
@@ -122,11 +116,9 @@ class SupportChatController extends Controller
         $ownerId = $request->integer('owner_id') ?: null;
         $this->authorizeObserverOwner($request, $ownerId);
 
-        $conversations = Conversation::query()
+        $conversations = $this->conversationScope($request, $ownerId)
             // با باز کردن پروفایل یک دانشجو، فقط گفتگوهای همان نفر می‌آید.
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
-            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
-            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(fn ($conversations) => $conversations->whereNull('support_id')->orWhereHas('support', fn ($support) => $support->where('observer_id', $request->user()->id)->where('support_type', $request->user()->support_type))))
             ->with([
                 'student:id,name,email,phone',
                 'support:id,name',
@@ -145,24 +137,58 @@ class SupportChatController extends Controller
     }
 
     /**
-     * دامنه‌ی محاسبه‌ی خوانده‌نشده‌ها؛ همان شرط `students()` و `index()`.
+     * دامنه‌ی دید گفتگو؛ همان شرط در `students()`، `index()` و شمارنده‌ی
+     * خوانده‌نشده استفاده می‌شود تا نشانگر با فهرست نخوانَد.
      *
-     * ناظر اکانت فقط گفتگوهای بدون پشتیبان و پشتیبان‌های منتسب به تیم خودش
-     * را می‌بیند، پس شمارنده‌ی خوانده‌نشده هم باید همان دامنه را رعایت کند.
+     * بدون `owner_id` همه‌ی گفتگوها نمایش داده می‌شوند — ناظر اکانت هم یک
+     * پشتیبان است و در صفحه‌ی گفتگوی خودش مثل بقیه‌ی پشتیبان‌ها رفتار
+     * می‌کند. دامنه‌ی محدود فقط وقتی است که با `owner_id` صریحاً به حساب
+     * یکی از اعضای تیم رفته باشد (از صفحه‌ی «نظارت بر روی تیم»).
      *
      * @return Builder<Conversation>
      */
-    private function unreadScope(Request $request, ?int $ownerId): Builder
+    private function conversationScope(Request $request, ?int $ownerId): Builder
     {
-        return Conversation::query()
-            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId))
-            ->when($ownerId === null && $request->user()->role === 'account_observer', fn ($query) => $query->where(function ($conversations) use ($request): void {
-                $conversations
-                    ->whereNull('support_id')
-                    ->orWhereHas('support', fn ($support) => $support
-                        ->where('observer_id', $request->user()->id)
-                        ->where('support_type', $request->user()->support_type));
-            }));
+        $query = Conversation::query()
+            ->when($ownerId !== null, fn ($query) => $query->where('support_id', $ownerId));
+
+        $this->applyTrackScope($query, $request);
+
+        return $query;
+    }
+
+    /**
+     * هر حوزه‌ی چت خودش را دارد: گفتگوی دانشجوی مسیر «وب» را فقط پشتیبان‌های
+     * وب می‌بینند و گفتگوی مسیر «هوش مصنوعی» را فقط پشتیبان‌های هوش مصنوعی.
+     *
+     * دانشجویی که هنوز مسیری ثبت نکرده (دوره‌ی حضوری یا مدرسه‌ای) در هر دو
+     * حوزه دیده می‌شود تا گفتگویش بی‌پاسخ نماند.
+     *
+     * ناظرِ فقط‌خواندنی نوع پشتیبانی ندارد و چون دسترسی‌اش فقط خواندنی است،
+     * حسابرسی‌اش همه‌ی حوزه‌ها را می‌بیند.
+     */
+    private function applyTrackScope(Builder $query, Request $request, string $column = 'conversations.student_id'): void
+    {
+        $track = $request->user()->support_type;
+
+        if ($track === null) {
+            return;
+        }
+
+        $query->where(function ($conversations) use ($track, $column): void {
+            // یا مسیر دانشجو با حوزه‌ی پشتیبان یکی است، یا هنوز مسیری ثبت
+            // نشده — چه پروفایل نداشته باشد و چه مسالش خالی باشد — و در نتیجه
+            // در هر دو حوزه دیده می‌شود.
+            $conversations
+                ->whereExists(function ($profiles) use ($track, $column): void {
+                    $profiles->selectRaw('1')
+                        ->from('student_profiles')
+                        ->whereColumn('student_profiles.user_id', $column)
+                        ->where('student_profiles.track', $track);
+                })
+                ->orWhereDoesntHave('student.profile')
+                ->orWhereHas('student.profile', fn ($profile) => $profile->whereNull('track'));
+        });
     }
 
     /**
@@ -174,7 +200,7 @@ class SupportChatController extends Controller
         return (int) Cache::remember(
             'support:unread_total:'.$request->user()->id.':'.($ownerId ?? 'team'),
             2,
-            fn (): int => (int) $this->unreadScope($request, $ownerId)->sum('unread_support_count'),
+            fn (): int => (int) $this->conversationScope($request, $ownerId)->sum('unread_support_count'),
         );
     }
 
@@ -188,7 +214,7 @@ class SupportChatController extends Controller
     {
         $ownerId = $request->integer('owner_id') ?: null;
         $this->authorizeObserverOwner($request, $ownerId);
-        $unread = $this->unreadScope($request, $ownerId)
+        $unread = $this->conversationScope($request, $ownerId)
             ->where('unread_support_count', '>', 0)
             ->with('student:id,name')
             ->orderByDesc('last_message_at')
@@ -210,9 +236,10 @@ class SupportChatController extends Controller
     public function assignedSupports(Request $request): JsonResponse
     {
         abort_unless($request->user()->role === 'account_observer', 403);
+        // کل تیم همان نوع: همه پشتیبان‌ها به‌علاوه‌ی خودِ ناظر، چون ناظر هم
+        // عضو تیم است و باید بتواند به خودش هم شیفت بدهد.
         $supports = User::query()
-            ->where('observer_id', $request->user()->id)
-            ->where('role', 'support')
+            ->whereIn('role', ['support', 'account_observer'])
             ->where('support_type', $request->user()->support_type)
             ->select(['id', 'name', 'support_type'])
             ->orderBy('name')
@@ -221,12 +248,49 @@ class SupportChatController extends Controller
         return response()->json(['data' => $supports]);
     }
 
+    /**
+     * «نظارت بر روی تیم»: نمای تیمی ناظر اکانت.
+     *
+     * هر عضو با تعداد گفتگو، شمارنده‌ی خوانده‌نشده و وضعیت شیفتش برمی‌گردد
+     * تا ناظر بداند کدام پشتیبان را باید از صفحه‌ی نظارت ببیند یا به‌جایش
+     * وارد حسابش شود. متن گفتگو اینجا هرگز برنمی‌گردد؛ برای خواندن و
+     * پاسخ‌دادن باید به حساب همان پشتیبان وارد شود.
+     */
+    public function teamSupervision(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === 'account_observer', 403);
+
+        $team = User::query()
+            ->where('role', 'support')
+            ->where('support_type', $request->user()->support_type)
+            ->where('id', '!=', $request->user()->id)
+            ->withCount([
+                'assignedConversations as conversations_count',
+                'assignedConversations as unread_conversations_count' => fn ($query) => $query->where('unread_support_count', '>', 0),
+            ])
+            ->withExists(['shifts as on_shift' => fn ($query) => $query->where('status', 'active')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone', 'support_type']);
+
+        return response()->json([
+            'data' => $team->map(fn (User $support): array => [
+                'id' => $support->id,
+                'name' => $support->name,
+                'phone' => $support->phone,
+                'support_type' => $support->support_type,
+                'conversations_count' => (int) $support->conversations_count,
+                'unread_conversations_count' => (int) $support->unread_conversations_count,
+                'on_shift' => (bool) $support->on_shift,
+            ]),
+            'support_type' => $request->user()->support_type,
+        ]);
+    }
+
     public function impersonate(Request $request, User $support): JsonResponse
     {
         abort_unless($request->user()->role === 'account_observer', 403);
         abort_unless(
             $support->role === 'support'
-            && $support->observer_id === $request->user()->id
             && $support->support_type === $request->user()->support_type,
             403,
         );
@@ -255,17 +319,14 @@ class SupportChatController extends Controller
         $ownerId = $request->integer('owner_id') ?: null;
         $this->authorizeObserverOwner($request, $ownerId);
         $model = $this->conversation($request, $conversation);
-        abort_unless(
-            $request->user()->role !== 'account_observer'
-            || ($ownerId !== null
-                ? $model->support_id === $ownerId
-                : $model->support === null
-                    || $this->isOwnManagedSupport($request->user(), $model->support)),
-            403,
-        );
-        // مسیر صفرکردن خوانده‌نشده فقط برای پشتیبان (و ادمین) است؛ ناظر تیمی
-        // و ناظر اکانت هیچ تغییری روی گفتگو اعمال نمی‌کنند.
-        $isObserver = $request->user()->isObserver() || $request->user()->isAccountObserver();
+        // دامنه‌ی `owner_id` فقط گفتگوی همان پشتیبان را باز می‌کند؛ بدون این
+        // شرط، ناظر می‌توانست با یک owner_id معتبر به گفتگوی هر پشتیبان دیگری
+        // هم دسترسی بزند.
+        abort_unless($ownerId === null || $model->support_id === $ownerId, 403);
+        // فقط ناظرِ فقط‌خواندنی هیچ تغییری روی گفتگو نمی‌گذارد. ناظر اکانت
+        // خودش پشتیبان است و مثل بقیه شمارنده را برمی‌دارد؛ وگرنه نشانگر
+        // «خوانده‌نشده» او هیچ‌وقت صفر نمی‌شد.
+        $isObserver = $request->user()->isObserver();
 
         if ($isObserver) {
             // ناظر فقط‌خواندنی است: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
@@ -333,8 +394,9 @@ class SupportChatController extends Controller
             if (str_starts_with($tokenName, 'observer-impersonation:')) {
                 $observerId = (int) substr($tokenName, strlen('observer-impersonation:'));
                 $observer = User::query()->whereKey($observerId)->where('role', 'account_observer')->first();
-                // توکن impersonation فقط تا وقتی معتبر است که ناظر هنوز این
-                // پشتیبان را داشته باشد؛ لغو انتساب، دسترسی را هم می‌بندد.
+                // توکن impersonation فقط تا وقتی معتبر است که پشتیبان هنوز در
+                // تیم هم‌نوعِ ناظر باشد؛ با تغییر نوع یا خروج از تیم، دسترسی
+                // هم بسته می‌شود.
                 abort_unless($this->isOwnManagedSupport($observer, $sender), 403);
 
                 ObserverAccessLog::create([
@@ -345,25 +407,6 @@ class SupportChatController extends Controller
                 ]);
                 $request->attributes->set('actor_id', $observer->id);
                 $request->attributes->set('actor_name', $observer->name.' (به‌جای '.$sender->name.')');
-            }
-            if ($sender->role === 'account_observer') {
-                // ناظر اکانت بدون impersonation هم می‌تواند پاسخ بدهد، اما
-                // فقط به‌جای یکی از پشتیبان‌های خودش و با ثبت صریح هویت.
-                $ownerId = $request->integer('acting_support_id') ?: null;
-                abort_unless($ownerId !== null && ($model->support_id === null || $model->support_id === $ownerId), 403);
-                $actingAs = User::query()->whereKey($ownerId)->first();
-                abort_unless($this->isOwnManagedSupport($sender, $actingAs), 403);
-
-                $sender = $actingAs;
-                $request->attributes->set('actor_id', $request->user()->id);
-                $request->attributes->set('actor_name', $request->user()->name.' (به‌جای '.$actingAs->name.')');
-                $this->logObserverAccess($request, $model, 'reply_as_support:'.$actingAs->id);
-                // مسیر show() برای ناظر اکانت خوانده‌نشده را صفر نمی‌کند؛ از آنجا
-                // که پاسخ ثبت شده، گفتگو رسیدگی‌شده محسوب و شمارنده‌ی تیم پاک می‌شود.
-                $model->forceFill([
-                    'unread_support_count' => 0,
-                    'support_last_read_at' => now(),
-                ])->save();
             }
             if ($sender->id !== $request->user()->id) {
                 $model->forceFill(['support_id' => $sender->id])->save();
@@ -393,7 +436,9 @@ class SupportChatController extends Controller
      */
     public function close(Request $request, int $conversation): JsonResponse
     {
-        abort_unless($request->user()->role !== 'account_observer', 403);
+        // ناظر اکانت هم یک پشتیبان است، پس مثل بقیه می‌تواند گفتگوی حوزه‌ی خودش
+        // را ببندد. فقط ناظرِ فقط‌خواندنی از این کار محروم است.
+        abort_if($request->user()->isObserver(), 403);
         $model = $this->conversation($request, $conversation);
 
         $validated = $request->validate([
@@ -436,31 +481,25 @@ class SupportChatController extends Controller
 
     private function conversation(Request $request, int $conversation): Conversation
     {
-        $model = Conversation::query()
-            ->with(['student', 'support'])
-            ->findOrFail($conversation);
+        $query = Conversation::query()->with(['student', 'support']);
 
-        abort_unless(
-            $request->user()->role !== 'account_observer'
-            || $model->support === null
-            || $model->support->support_type === $request->user()->support_type
-            || $model->support_id === $request->user()->id,
-            403,
-        );
+        // باز کردن گفتگو هم مثل فهرست، محدود به حوزه‌ی خود پشتیبان است؛ وگرنه
+        // یک پشتیبان می‌توانست با حدس‌زدن شناسه به گفتگوی حوزه‌ی دیگر هم
+        // دسترسی بزند.
+        $this->applyTrackScope($query, $request);
 
-        return $model;
+        return $query->findOrFail($conversation);
     }
 
     /**
-     * پشتیبانِ تحت مدیریت این ناظر اکانت: هم به او انتساب داده شده و هم
-     * از همان نوع پشتیبانی است.
+     * پشتیبانِ تحت مدیریت این ناظر اکانت: هر پشتیبانی که از همان نوع
+     * پشتیبانی او باشد. اتصال تیم‌ها بر اساس نوع است، نه انتساب تک‌تک.
      */
     private function isOwnManagedSupport(?User $observer, ?User $support): bool
     {
         return $observer !== null
             && $support !== null
             && $support->role === 'support'
-            && $support->observer_id === $observer->id
             && $support->support_type === $observer->support_type;
     }
 
@@ -474,7 +513,6 @@ class SupportChatController extends Controller
             User::query()
                 ->whereKey($ownerId)
                 ->where('role', 'support')
-                ->where('observer_id', $request->user()->id)
                 ->where('support_type', $request->user()->support_type)
                 ->exists(),
             403,

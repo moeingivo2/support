@@ -61,7 +61,11 @@ export function useSupportConversation(conversationId: number | null, ownerId?: 
  * نظرسنجی دوره‌ای صندوق ورودی به‌همراه اعلان پیام جدید برای گفتگوهایی که
  * پشتیبان در حال حاضر روی آن‌ها باز نکرده است.
  */
-export function useNewMessageAlert(activeConversationId: number | null, ownerId?: number) {
+export function useNewMessageAlert(
+    activeConversationId: number | null,
+    ownerId?: number,
+    enabled = true,
+) {
     const toast = useToast();
     const seenRef = useRef<Set<string> | null>(null);
 
@@ -70,6 +74,9 @@ export function useNewMessageAlert(activeConversationId: number | null, ownerId?
         queryFn: () => getSupportNotifications(ownerId),
         refetchInterval: LIST_POLL_INTERVAL,
         refetchOnWindowFocus: true,
+        // ناظرِ فقط‌خواندنی هیچ شمارنده‌ای را صفر نمی‌کند؛ نشانگر یا هشدارش
+        // فقط عددی ثابت و گمراه‌کننده می‌شد.
+        enabled,
     });
 
     const unreadConversations = query.data?.unread;

@@ -1,3 +1,5 @@
+import type { SupportChannel } from "@/shared/lib/content-channel";
+
 export interface ResourceCreator {
     id: number;
     name: string;
@@ -10,6 +12,7 @@ export interface Resource {
     type: string;
     file_url: string;
     category: string | null;
+    channel: SupportChannel;
     created_by: number;
     created_at: string;
     updated_at: string;

@@ -65,7 +65,9 @@ class ComplaintController extends Controller
                 $request->user()->isAccountObserver(),
                 fn ($scoped) => $scoped->whereHas(
                     'support',
-                    fn ($support) => $support->where('observer_id', $request->user()->id),
+                    fn ($support) => $support
+                        ->where('role', 'support')
+                        ->where('support_type', $request->user()->support_type),
                 ),
                 fn ($scoped) => $scoped->where('support_id', $request->user()->id),
             );
@@ -134,7 +136,8 @@ class ComplaintController extends Controller
             $request->user()->isAdmin()
             || $complaint->support_id === $request->user()->id
             || ($request->user()->isAccountObserver()
-                && $complaint->support?->observer_id === $request->user()->id),
+                && $complaint->support?->role === 'support'
+                && $complaint->support?->support_type === $request->user()->support_type),
             403,
             'این نارضایتی به شما تعلق ندارد.',
         );
@@ -181,7 +184,9 @@ class ComplaintController extends Controller
                     fn ($complaints) => $request->user()->isAccountObserver()
                         ? $complaints->whereHas(
                             'support',
-                            fn ($support) => $support->where('observer_id', $request->user()->id),
+                            fn ($support) => $support
+                                ->where('role', 'support')
+                                ->where('support_type', $request->user()->support_type),
                         )
                         : $complaints->where('support_id', $request->user()->id),
                 ),

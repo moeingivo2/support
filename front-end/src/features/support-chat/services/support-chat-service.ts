@@ -17,6 +17,18 @@ export const supportChatKeys = {
     students: ["support", "students"] as const,
     conversation: (id: number) => ["support", "conversations", id] as const,
     notifications: ["support", "conversations", "notifications"] as const,
+    teamSupervision: ["observer", "team-supervision"] as const,
+};
+
+/** یک عضو تیم در نمای «نظارت بر روی تیم». */
+export type TeamMember = {
+    id: number;
+    name: string;
+    phone: string | null;
+    support_type: "web" | "ai" | null;
+    conversations_count: number;
+    unread_conversations_count: number;
+    on_shift: boolean;
 };
 
 /** دانشجویان به‌همراه تعداد گفتگو، جدیدترین فعالیت اول. */
@@ -31,6 +43,17 @@ export function getSupportStudents(ownerId?: number): Promise<{
 
 export function getObserverSupports(): Promise<{ data: import("@/features/admin/services/admin-service").SupportListItem[] }> {
     return getJson("/api/support/conversations/managed-supports");
+}
+
+/**
+ * «نظارت بر روی تیم»: اعضای هم‌نوع ناظر با آمار گفتگو و شیفت. متن گفتگو
+ * اینجا برنمی‌گردد؛ برای خواندن باید به حساب همان پشتیبان وارد شود.
+ */
+export function getTeamSupervision(): Promise<{
+    data: TeamMember[];
+    support_type: "web" | "ai" | null;
+}> {
+    return getJson("/api/observer/team-supervision");
 }
 
 export function getSupportInbox(
@@ -75,8 +98,6 @@ export type SendReplyInput = {
     language?: string;
     attachment?: OutgoingAttachment;
     signal?: AbortSignal;
-    actingSupportId?: number;
-    observerActorName?: string;
 };
 
 export function sendReply({
@@ -86,8 +107,6 @@ export function sendReply({
     language,
     attachment,
     signal,
-    actingSupportId,
-    observerActorName,
 }: SendReplyInput): Promise<{ message: string; data: ChatMessage }> {
     const url = `/api/support/conversations/${conversationId}/messages`;
 
@@ -96,7 +115,6 @@ export function sendReply({
         formData.append("body", body);
         formData.append("code_mode", codeMode ? "1" : "0");
         if (language) formData.append("language", language);
-        if (observerActorName) formData.append("actor_name", observerActorName);
         if (attachment.durationSeconds) {
             formData.append(
                 "duration_seconds",
@@ -105,7 +123,6 @@ export function sendReply({
         }
         formData.append("attachment", attachment.file);
 
-        if (actingSupportId) formData.append("acting_support_id", String(actingSupportId));
         return postMultipart(url, formData, signal);
     }
 
@@ -115,8 +132,6 @@ export function sendReply({
             body,
             code_mode: codeMode,
             language: language ?? null,
-            acting_support_id: actingSupportId ?? null,
-            actor_name: observerActorName ?? null,
         },
         signal,
     );

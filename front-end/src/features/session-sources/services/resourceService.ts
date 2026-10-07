@@ -1,10 +1,12 @@
 import { deleteJson, getJson, postJson, putJson } from "@/shared/api/http";
+import type { SupportChannel, ChannelFilter } from "@/shared/lib/content-channel";
 import type { LaravelPagination, Resource } from "../types/resource";
 
 export type SessionSourcesFilters = {
     page: number;
     search?: string;
     category?: string;
+    channel?: ChannelFilter;
 };
 
 export type SessionSourcesPagination = Omit<
@@ -22,6 +24,7 @@ export type ResourcePayload = {
     description: string;
     file_url: string;
     category: string;
+    channel?: SupportChannel;
 };
 
 export const sessionSourceKeys = {
@@ -47,6 +50,7 @@ export async function getSessionSources(
             type: "session_source",
             search: filters.search?.trim() || undefined,
             category: filters.category?.trim() || undefined,
+            channel: filters.channel === "all" ? undefined : filters.channel,
         },
     );
 
@@ -56,7 +60,12 @@ export async function getSessionSources(
     };
 }
 
-/** فهرست فقط‌خواندنی سورس‌ها برای حساب دانشجو. */
+/**
+ * فهرست فقط‌خواندنی سورس‌ها برای حساب دانشجو.
+ *
+ * بخش را سرور از مسیر خودِ دانشجو تعیین می‌کند، پس این‌جا پارامتری فرستاده
+ * نمی‌شود.
+ */
 export async function getStudentSessionSources(
     filters: SessionSourcesFilters,
 ): Promise<SessionSourcesPage> {
