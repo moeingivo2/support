@@ -38,7 +38,7 @@ services:
 
   web:
     build:
-      context: ./test
+      context: ./front-end
       dockerfile: Dockerfile
     container_name: support-web
     restart: unless-stopped
