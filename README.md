@@ -1,58 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# پنل پشتیبانی AIO
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+پنل مدیریت و پشتیبانی دانشجویان AIO — یک برنامه‌ی دو بخشی:
 
-## About Laravel
+- **Backend / API** — Laravel 11 روی PHP 8.5 (php-fpm) و PostgreSQL 17
+- **Frontend** — React 19 + TypeScript + Vite + Tailwind CSS 4 که به‌صورت استاتیک با nginx سرو می‌شود
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+برنامه به‌صورت کامل از راه Docker اجرا می‌شود (سه سرویس: `api`، `web`، `db`).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## پیش‌نیازها
 
-## Learning Laravel
+- **Docker** نسخه‌ی ۲۴+
+- **Docker Compose** نسخه‌ی 2+ (دستور `docker compose`، نه `docker-compose`)
+- PHP 8.5 + Composer و Node.js 22 فقط برای توسعه‌ی محلی بدون داکر (اختیاری)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## روش ساخت و اجرا با Docker (روش اصلی)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### ۱) فایل `.env` را بسازید
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.docker.example .env
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+مقادیر مهم `.env`:
 
-## Contributing
+| متغیر | پیش‌فرض | توضیح |
+|---|---|---|
+| `APP_KEY` | (در مثال پر شده) | کلید رمزنگاری لاراول؛ در پروژه‌ی واقعی حتماً تعویض کنید |
+| `DB_DATABASE` | `support` | نام دیتابیس |
+| `DB_USERNAME` | `support` | نام کاربری دیتابیس |
+| `DB_PASSWORD` | — | رمز دیتابیس (در پروژه‌ی واقعی عوض کنید) |
+| `WEB_PORT` | `5173` | پورتی که پنل روی هاست روی آن در دسترس است |
+| `API_PORT` | `8000` | پورت API (برای توسعه‌ی محلی فرانت) |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### ۲) بیلد و اجرا
 
-## Code of Conduct
+```bash
+docker compose up -d --build
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+این دستور سه کانتینر می‌سازد و بالا می‌آورد:
 
-## Security Vulnerabilities
+| سرویس | کانتینر | نقش |
+|---|---|---|
+| `api` | `support-api` | Laravel با php-fpm (پورت داخلی ۹۰۰۰)؛ هنگام بالا آمدن خودکار `storage:link` و `migrate` را اجرا می‌کند |
+| `web` | `support-web` | فرانت‌بیلد (nginx) — دانلود فایل‌ها و `location /api/` را به php-fpm پروکسی می‌کند |
+| `db` | `support-db` | PostgreSQL 17 با volume جداگانه |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+دیتا روی دو volume نگه‌داری می‌شود که با بازسازی کانتینر از بین نمی‌رود: `db-data` (دیتابیس) و `storage-data` (پیوست‌ها و فایل‌های آپلودی).
 
-## License
+### ۳) دسترسی
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+پنل روی این آدرس باز می‌شود:
+
+```
+http://localhost:5173
+```
+
+### اجرا روی پورت دلخواه
+
+برای اجرا روی پورتی جز `۵۱۷۳` کافیست `WEB_PORT` را تنظیم کنید (برنامه وابسته به پورت/دامنه نیست و `API` همان‌اورجینِ خود وب است):
+
+```bash
+WEB_PORT=8080 docker compose up -d --build web
+```
+
+حالا پنل روی `http://localhost:8080` در دسترس است.
+
+### اکانت‌های دمو (Seed)
+
+مایگریشن‌ها خودکار اجرا می‌شوند ولی **اکانت‌های نمونه خودکار seed نمی‌شوند**. برای ساخت اکانت‌های دمو:
+
+```bash
+docker compose exec api php artisan db:seed --force
+```
+
+### سایر دستورهای مفید
+
+```bash
+docker compose logs -f api        # لاگ‌های API
+docker compose exec db psql -U support -d support   # شل دیتابیس
+docker compose down               # توقف سرویس‌ها (دیتا حفظ می‌شود)
+docker compose down -v            # توقف + پاک کردن کامل volumeها (پاک شدن همه‌ی داده‌ها)
+```
+
+> هر بار که سورس را تغییر می‌دهید باید ایج مشابه‌ها را دوباره بسازید، چون در compose هیچ bind-mount نداریم:
+> `docker compose up -d --build`
+
+---
+
+## اکانت‌های پیش‌فرض
+
+همه‌ی اکانت‌های دمو با ایمیل و رمز یکسان `password` ساخته می‌شوند (بعد از اجرای `db:seed`):
+
+| # | نقش | نوع / کانال | نام کاربری (ایمیل) | رمز عبور |
+|---|---|---|---|---|
+| ۱ | **سوپر ادمین** (`admin`) | — | `admin@example.com` | `password` |
+| ۲ | **پشتیبان وب** (`support`) | `web` | `sara@example.com` | `password` |
+| ۳ | **پشتیبان هوش مصنوعی** (`support`) | `ai` | `mohammad@example.com` | `password` |
+| ۴ | **دانشجو** (`student`) | — | `ahmad@example.com` | `password` |
+| ۵ | **دانشجو** (`student`) | — | `fatemeh@example.com` | `password` |
+| ۶ | **ناظر (فقط‌خواندنی)** (`observer`) | — | `observer@example.com` | `password` |
+
+### نقش‌ها و دسترسی‌ها
+
+| نقش | دسترسی‌ها |
+|---|---|
+| **سوپر ادمین** (`admin`) | همه‌ی بخش‌های پنل، گزارش‌ها، رتبه‌بندی‌ها، مدیریت سوپر ادمین‌ها و ثبت پشتیبان. طبق سیاست به متن گفتگوها دسترسی ندارد. |
+| **پشتیبان** (`support`) | گفتگوها، فایل‌ها و سوالات متداولِ **فقط کانال خودش** (`web` یا `ai`) + میز شیفت و نظرخواهی دانشجو. |
+| **ناظر اکانت** (`account_observer`) | همه‌چیزِ پشتیبان + مدیریت تیم پشتیبان (شیفت‌بندی خودکار ماهانه، نظارت بر روی تیم، جابه‌جایی و شخصیت‌پذیری با هویت پشتیبان‌ها). |
+| **ناظر** (`observer`) | فقط‌خواندنی برای حسابرسی عملیاتی؛ متن گفتگوها را می‌بیند ولی در آنها دخالت نمی‌کند. |
+| **دانشجو** (`student`) | پنل خودش: چت با پشتیبان/هوش مصنوعی، رودمپ، فایل‌های دوره و سوالات متداولِ کانال خودش. |
+
+> `support_type` (وب / هوش مصنوعی) محتوای پنل و گفتگوها را بین دو کانال جدا می‌کند؛ ناظر اکانت روی `account_observer` دسترسی به هر دو بخش را دارد. برای ساخت ناظر اکانت می‌توانید با دستور زیر یک کاربر با نقش `account_observer` بسازید:
+>
+> `docker compose exec api php artisan tinker --execute 'App\Models\User::create(["name"=>"ناظر اکانت","email"=>"…","password"=>Illuminate\Support\Facades\Hash::make("password"),"role"=>"account_observer"]);'`
+
+---
+
+## توسعه‌ی محلی (بدون Docker)
+
+### Backend (API)
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan serve --port=8000
+```
+
+پیش‌فرض `.env.example` دیتابیس `sqlite` است (فایل `database/database.sqlite`).
+
+### Frontend (React/Vite)
+
+```bash
+cd front-end
+npm install
+npm run dev
+```
+
+Vite روی پورت **`5174`** بالا می‌آید و `API` را به `http://127.0.0.1:5173` پروکسی می‌کند (یعنی باید بخش وبِ داکر روی ۵۱۷۳ در حال اجرا باشد). می‌توانید مقصد پروکسی را با `VITE_API_TARGET` عوض کنید:
+
+```bash
+VITE_API_TARGET=http://127.0.0.1:8000 npm run dev   # اگر API را php artisan serve زده‌اید
+```
+
+> نمی‌توانید مستقیماً به پورت ۹۰۰۰ (php-fpm) وصل شوید؛ این پورت FastCGI است، نه HTTP.
+
+---
+
+## بیلد و بررسی کیفیت (CI محلی)
+
+```bash
+# Backend: فرمت‌دهی کد (pint) و تست‌ها
+vendor/bin/pint --dirty
+vendor/bin/phpunit --no-coverage
+
+# Frontend: تایپ، لینت و بیلد
+cd front-end
+npx tsc -b --noEmit
+npm run lint
+npm run build
+```
+
+---
+
+## ساختار پروژه
+
+```
+├── api/                ← را در ریشه دارد: Laravel app
+│   ├── Dockerfile      ← php:8.5-fpm + composer
+│   ├── docker-compose.yml
+│   ├── app/
+│   ├── database/       ← migrations + seeders (UserSeeder, FaqSeeder)
+│   └── front-end/
+│       ├── Dockerfile  ← node:22-alpine (build) → nginx (serve)
+│       ├── nginx.conf  ← /api → php-fpm + تبلیغات دروازه
+│       └── src/        ← پنل ادمین/پشتیبان/ناظر + پنل دانشجو
+```
