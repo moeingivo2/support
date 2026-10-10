@@ -9,7 +9,6 @@ use App\Support\AttachmentStorage;
 use App\Support\Concerns\ScopesBySupportChannel;
 use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ResourceController extends Controller
 {
@@ -93,13 +92,14 @@ class ResourceController extends Controller
         // اگر فایل آپلود شده بود، روی سرور ذخیره کن
         if ($request->hasFile('file')) {
             try {
-                $fileUrl = url(Storage::url($this->attachments->store($request->file('file'), 'resources', AttachmentStorage::ALLOWED_DOCUMENT_EXTENSIONS)));
+                $path = $this->attachments->store($request->file('file'), 'resources', AttachmentStorage::ALLOWED_DOCUMENT_EXTENSIONS);
             } catch (UnsupportedAttachmentException $exception) {
                 return response()->json([
                     'message' => $exception->getMessage(),
                     'errors' => ['file' => [$exception->getMessage()]],
                 ], 422);
             }
+            $fileUrl = $this->attachmentUrl($path);
         }
 
         $resource = Resource::create([
@@ -148,7 +148,7 @@ class ResourceController extends Controller
                     'errors' => ['file' => [$exception->getMessage()]],
                 ], 422);
             }
-            $request->merge(['file_url' => url(Storage::url($path))]);
+            $request->merge(['file_url' => $this->attachmentUrl($path)]);
         }
 
         $changes = $request->only(['title', 'description', 'type', 'file_url', 'category']);
@@ -171,6 +171,21 @@ class ResourceController extends Controller
         $this->findVisibleResource($request, (int) $id)->delete();
 
         return response()->json(['message' => 'فایل با موفقیت حذف شد']);
+    }
+
+    /**
+     * مسیر نسبی دانلود فایل روی سرور.
+     *
+     * پیش از این `url(Storage::url(...))` استفاده می‌شد که دو راه می‌شکست:
+     * host را از APP_URL می‌ساخت (پس با اجرای برنامه روی پورت یا دامنه‌ی
+     * دیگر نادرست بود)، و به `/storage/...` اشاره می‌کرد که کانتینر وب اصلاً
+     * فایل‌های دیسک API را ندارد و nginx هم آن را سرو نمی‌کند. مسیر
+     * `attachments.show` همان‌جاست که پیوست‌های گفتگو و رودمپ از آن سرو
+     * می‌شوند: نسبی، امن و بدون گره‌خوردن به APP_URL.
+     */
+    private function attachmentUrl(string $path): string
+    {
+        return route('attachments.show', ['path' => $path], absolute: false);
     }
 
     /**

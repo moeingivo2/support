@@ -39,8 +39,11 @@ class StudentProfilePayload
             'low_remaining_threshold' => config('aiosupport.low_remaining_threshold'),
             'mentor_name' => $profile->mentor?->name,
             'membership_date' => $profile->membership_date?->toIso8601String(),
+            // مسیر نسبی، نه URL مطلق: `route()` به‌تنهایی host را از APP_URL
+            // می‌سازد و با اجرای برنامه روی پورت یا دامنه‌ی دیگر، دانلود
+            // رودمپ به میزبان اشتباه می‌رفت و شکست می‌خورد.
             'roadmap_url' => $profile->roadmap_path !== null
-                ? route('attachments.show', ['path' => $profile->roadmap_path])
+                ? route('attachments.show', ['path' => $profile->roadmap_path], absolute: false)
                 : null,
         ];
     }

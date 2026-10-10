@@ -29,8 +29,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return (
         <div className="app-canvas flex h-dvh overflow-hidden">
             <div className="mx-auto flex h-dvh w-full max-w-[1440px]">
-                <aside className="hidden h-full w-[276px] shrink-0 flex-col border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
-                    <div className="flex w-full flex-1 flex-col">
+                {/* min-h-0 لازم است: بدون آن `min-height: auto` پیش‌فرضِ
+                    فلکس آیتم‌ها جلوی کوچک‌شدن ستون کنار منو را می‌گیرد و
+                    با ۱۳ آیتمِ منو، موارد پایین از صفحه بیرون می‌افتند و
+                    `overflow-y-auto` روی منو هیچ‌وقت فعال نمی‌شود. */}
+                <aside className="hidden h-full w-[276px] shrink-0 flex-col overflow-hidden border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
+                    <div className="flex min-h-0 w-full flex-1 flex-col">
                         <Link
                             to={user?.role === "observer" ? "/inbox" : "/"}
                             className="mb-4 flex items-center gap-3 px-1"
@@ -185,7 +189,7 @@ function DesktopNavigation({
 }) {
     return (
         <nav
-            className="flex-1 space-y-1.5 overflow-y-auto"
+            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
             aria-label="منوی پنل"
         >
             {navigation.map((item) => (
@@ -210,7 +214,7 @@ function MobileNavigation({
 }) {
     return (
         <nav
-            className="flex-1 space-y-1.5 overflow-y-auto"
+            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
             aria-label="منوی پنل"
         >
             {navigation.map((item) => (
