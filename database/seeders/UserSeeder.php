@@ -12,52 +12,55 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin
-        User::create([
-            'name' => 'فرزان اسلامی',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-        ]);
+        // با updateOrCreate ایمیل، کلید تطبیق است و بقیه‌ی فیلدها به‌روز می‌شوند.
+        // سیدر باید idempotent باشد؛ create() ساده با هر اجرای دوم روی
+        // users_email_unique خطا می‌دهد و کاربران واقعی ثبت‌نام‌کرده را دست نمی‌زند.
+        $users = [
+            [
+                'name' => 'فرزان اسلامی',
+                'email' => 'admin@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'سارا محمدی',
+                'email' => 'sara@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'support',
+                'support_type' => 'web',
+            ],
+            [
+                'name' => 'محمد علیاری',
+                'email' => 'mohammad@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'support',
+                'support_type' => 'ai',
+            ],
+            [
+                'name' => 'احمد رضایی',
+                'email' => 'ahmad@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'student',
+            ],
+            [
+                'name' => 'فاطمه حسینی',
+                'email' => 'fatemeh@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'student',
+            ],
+            [
+                'name' => 'ناظر سیستم',
+                'email' => 'observer@example.com',
+                'password' => Hash::make('password'),
+                'role' => 'observer',
+            ],
+        ];
 
-        // Support users (with different support_type)
-        User::create([
-            'name' => 'سارا محمدی',
-            'email' => 'sara@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'support',
-            'support_type' => 'web',
-        ]);
-
-        User::create([
-            'name' => 'محمد علیاری',
-            'email' => 'mohammad@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'support',
-            'support_type' => 'ai',
-        ]);
-
-        // Student users
-        User::create([
-            'name' => 'احمد رضایی',
-            'email' => 'ahmad@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-        ]);
-
-        User::create([
-            'name' => 'فاطمه حسینی',
-            'email' => 'fatemeh@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-        ]);
-
-        // Observer user
-        User::create([
-            'name' => 'ناظر سیستم',
-            'email' => 'observer@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'observer',
-        ]);
+        foreach ($users as $user) {
+            User::updateOrCreate(
+                ['email' => $user['email']],
+                $user,
+            );
+        }
     }
 }
