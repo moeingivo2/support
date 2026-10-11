@@ -88,15 +88,21 @@ export type CloseConversationResponse = {
 };
 
 /**
- * بستن گفتگو توسط دانشجو — دروازه‌ی امتیاز اجباری است.
+ * بستن گفتگو توسط دانشجو — دروازه‌ی امتیاز اجباری است. امتیاز کمتر از ۴
+ * نیازمند توضیح دلیل نارضایتی است.
  */
 export function closeConversation(
     conversationId: number,
     ratingValue: number,
+    description?: string,
 ): Promise<CloseConversationResponse> {
     return postJson<Record<string, unknown>, CloseConversationResponse>(
         `/api/conversations/${conversationId}/close`,
-        { rating_value: ratingValue, closure_confirmed: true },
+        {
+            rating_value: ratingValue,
+            closure_confirmed: true,
+            description: description?.trim() ? description : null,
+        },
     );
 }
 
@@ -106,9 +112,13 @@ export function closeConversation(
 export function rateConversation(
     conversationId: number,
     ratingValue: number,
+    description?: string,
 ): Promise<CloseConversationResponse> {
     return postJson<Record<string, unknown>, CloseConversationResponse>(
         `/api/conversations/${conversationId}/rate`,
-        { rating_value: ratingValue },
+        {
+            rating_value: ratingValue,
+            description: description?.trim() ? description : null,
+        },
     );
 }

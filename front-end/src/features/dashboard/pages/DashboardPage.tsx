@@ -30,10 +30,8 @@ import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { Dot } from "@/shared/ui/dot";
-import {
-    formatShiftTime,
-    formatShiftDuration,
-} from "@/features/end-shift-report/utils/formatShiftPresentation";
+import { safeShiftTime as formatShiftTime } from "@/shared/lib/shift-datetime";
+import { formatShiftDuration } from "@/features/support-shifts/utils/formatShiftDuration";
 
 type DashboardQuery = {
     data?: DashboardMetrics;
@@ -355,8 +353,8 @@ function SupportDashboard({
                         </div>
                     </div>
                     <Button variant="danger" asChild>
-                        <Link to="/end-shift-report">
-                            پایان شیفت و ثبت گزارش
+                        <Link to="/support-shifts">
+                            پایان شیفت
                         </Link>
                     </Button>
                 </Card>

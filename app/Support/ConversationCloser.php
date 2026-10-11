@@ -24,6 +24,7 @@ class ConversationCloser
         User $student,
         int $ratingValue,
         bool $closureReasonConfirmed = false,
+        ?string $description = null,
     ): Conversation {
         if (! $closureReasonConfirmed) {
             throw new RuntimeException('تایید هشدار بستن گفتگو الزامی است.');
@@ -32,7 +33,7 @@ class ConversationCloser
         return $this->finalize(
             conversation: $conversation,
             closureActor: 'student',
-            rating: ['value' => $ratingValue, 'student' => $student],
+            rating: ['value' => $ratingValue, 'student' => $student, 'description' => $description],
         );
     }
 
@@ -59,8 +60,12 @@ class ConversationCloser
      *
      * @throws RuntimeException
      */
-    public function rateClosedConversation(Conversation $conversation, User $student, int $ratingValue): MessageRating
-    {
+    public function rateClosedConversation(
+        Conversation $conversation,
+        User $student,
+        int $ratingValue,
+        ?string $description = null,
+    ): MessageRating {
         if (! $conversation->isClosed()) {
             throw new RuntimeException('تنها گفتگوی بسته‌شده قابل امتیازدهی است.');
         }
@@ -75,7 +80,7 @@ class ConversationCloser
             throw new RuntimeException('برای این گفتگو قبلاً امتیاز ثبت شده است.');
         }
 
-        return $this->storeRating($conversation, $student, $ratingValue, $conversation->closure_actor);
+        return $this->storeRating($conversation, $student, $ratingValue, $conversation->closure_actor, $description);
     }
 
     /**
@@ -103,7 +108,13 @@ class ConversationCloser
             // اما چون همان تراکنش امتیاز را ثبت می‌کند، مستقیم به closed می‌رویم.
             if ($rating !== null) {
                 $this->assertRatingValue($rating['value']);
-                $this->storeRating($fresh, $rating['student'], $rating['value'], $closureActor);
+                $this->storeRating(
+                    $fresh,
+                    $rating['student'],
+                    $rating['value'],
+                    $closureActor,
+                    $rating['description'] ?? null,
+                );
             }
 
             $fresh->update([
@@ -136,12 +147,14 @@ class ConversationCloser
         User $student,
         int $value,
         ?string $closureActor,
+        ?string $description = null,
     ): MessageRating {
         return MessageRating::create([
             'conversation_id' => $conversation->id,
             'student_id' => $student->id,
             'support_agent_id' => $conversation->support_id,
             'rating_value' => $value,
+            'description' => filled($description) ? $description : null,
             'closure_actor' => $closureActor,
             'submitted_at' => now(),
         ]);

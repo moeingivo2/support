@@ -149,10 +149,20 @@ class ConversationController extends Controller
         $validated = $request->validate([
             'rating_value' => ['required', 'integer', 'min:1', 'max:5'],
             'closure_confirmed' => ['required', 'boolean'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ], [], [
             'rating_value' => 'امتیاز',
             'closure_confirmed' => 'تایید هشدار',
+            'description' => 'توضیح نارضایتی',
         ]);
+
+        if ((int) $validated['rating_value'] <= 3 && blank($validated['description'] ?? null)) {
+            return response()->json([
+                'message' => 'توضیح دلیل نارضایتی الزامی است.',
+                'errors' => ['description' => ['امتیاز کمتر از ۴ ستاره نیازمند توضیح دلیل نارضایتی است.']],
+                'status' => 422,
+            ], 422);
+        }
 
         try {
             $closed = $this->closer->closeByStudent(
@@ -160,6 +170,7 @@ class ConversationController extends Controller
                 $request->user(),
                 (int) $validated['rating_value'],
                 (bool) $validated['closure_confirmed'],
+                $validated['description'] ?? null,
             );
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -183,13 +194,23 @@ class ConversationController extends Controller
 
         $validated = $request->validate([
             'rating_value' => ['required', 'integer', 'min:1', 'max:5'],
-        ], [], ['rating_value' => 'امتیاز']);
+            'description' => ['nullable', 'string', 'max:2000'],
+        ], [], ['rating_value' => 'امتیاز', 'description' => 'توضیح نارضایتی']);
+
+        if ((int) $validated['rating_value'] <= 3 && blank($validated['description'] ?? null)) {
+            return response()->json([
+                'message' => 'توضیح دلیل نارضایتی الزامی است.',
+                'errors' => ['description' => ['امتیاز کمتر از ۴ ستاره نیازمند توضیح دلیل نارضایتی است.']],
+                'status' => 422,
+            ], 422);
+        }
 
         try {
             $rating = $this->closer->rateClosedConversation(
                 $model,
                 $request->user(),
                 (int) $validated['rating_value'],
+                $validated['description'] ?? null,
             );
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -224,6 +245,7 @@ class ConversationController extends Controller
 
         return [
             'rating_value' => $rating->rating_value,
+            'description' => $rating->description,
             'closure_actor' => $rating->closure_actor,
             'submitted_at' => $rating->submitted_at?->toIso8601String(),
         ];

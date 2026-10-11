@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Star } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { DialogShell } from "@/shared/ui/dialog-shell";
+import { Textarea } from "@/shared/ui/textarea";
 import { StarRating } from "@/features/student-chat/components/StarRating";
 
 /**
@@ -9,7 +10,8 @@ import { StarRating } from "@/features/student-chat/components/StarRating";
  *
  * دانشجو خودش داوطلبانه این صفحه را باز می‌کند (با کلیک روی دعوت امتیازدهی
  * داخل گفتگوی بسته)، ولی همان منطق مرحله‌ی سوم بستن اعمال می‌شود:
- * پیش‌فرض ۵ ستاره، قابل کم کردن، و نیازمند تأیید صریح.
+ * پیش‌فرض ۵ ستاره، قابل کم کردن، و نیازمند تأیید صریح. اگر امتیاز کمتر از
+ * ۴ باشد، نوشتن دلیل نارضایتی اجباری است.
  */
 export function RateConversationDialog({
     isSubmitting = false,
@@ -20,10 +22,14 @@ export function RateConversationDialog({
     isSubmitting?: boolean;
     error?: string | null;
     onCancel: () => void;
-    onConfirm: (ratingValue: number) => void;
+    onConfirm: (ratingValue: number, description?: string) => void;
 }) {
     const [rating, setRating] = useState(5);
     const [hasRated, setHasRated] = useState(false);
+    const [description, setDescription] = useState("");
+
+    const needsDescription = rating < 4;
+    const descriptionValid = !needsDescription || description.trim().length > 0;
 
     return (
         <DialogShell
@@ -49,6 +55,25 @@ export function RateConversationDialog({
                 disabled={isSubmitting}
             />
 
+            {needsDescription ? (
+                <div className="mt-4 w-full space-y-2 text-right">
+                    <label
+                        htmlFor="rate-rating-description"
+                        className="text-sm font-medium text-ink"
+                    >
+                        دلیل نارضایتی
+                    </label>
+                    <Textarea
+                        id="rate-rating-description"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                        placeholder="لطفاً علت نارضایتی خود را بنویسید..."
+                        maxLength={2000}
+                        disabled={isSubmitting}
+                    />
+                </div>
+            ) : null}
+
             {error ? (
                 <p
                     className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-center text-xs font-medium text-err-text"
@@ -70,8 +95,8 @@ export function RateConversationDialog({
                 </Button>
                 <Button
                     type="button"
-                    onClick={() => onConfirm(rating)}
-                    disabled={!hasRated || isSubmitting}
+                    onClick={() => onConfirm(rating, description)}
+                    disabled={!hasRated || !descriptionValid || isSubmitting}
                     className="flex-1"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin" /> : null}

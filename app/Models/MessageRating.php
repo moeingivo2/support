@@ -19,6 +19,7 @@ class MessageRating extends Model
         'student_id',
         'support_agent_id',
         'rating_value',
+        'description',
         'closure_actor',
         'submitted_at',
     ];

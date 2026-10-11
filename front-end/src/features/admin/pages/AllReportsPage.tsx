@@ -9,6 +9,7 @@ import type {
     ShiftReport,
     LaravelPagination,
 } from "@/features/my-shift-reports/types/shiftReport";
+import { useAuth } from "@/shared/services/auth-context";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -27,6 +28,8 @@ type ReportsFilters = {
 };
 
 export default function AllReportsPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
     const [filters, setFilters] = useState<ReportsFilters>({ page: 1 });
     const [selectedReport, setSelectedReport] = useState<ShiftReport | null>(
         null,
@@ -34,6 +37,7 @@ export default function AllReportsPage() {
     const supportsQuery = useQuery({
         queryKey: adminKeys.supports,
         queryFn: getSupports,
+        enabled: isAdmin,
     });
     const reportsQuery = useQuery({
         queryKey: ["all-reports", filters],
@@ -69,8 +73,9 @@ export default function AllReportsPage() {
                             گزارش شیفت پشتیبان‌ها
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-2">
-                            جزئیات کامل گزارش‌های تمام پشتیبان‌ها را با فیلتر
-                            پشتیبان، کانال و بازه زمانی بررسی کنید.
+                            این گزارش‌ها به‌صورت خودکار از لاگ گفتگوی پشتیبان‌ها
+                            با دانشجویان هنگام پایان هر شیفت ثبت می‌شوند و
+                            پشتیبان‌ها دیگر چیزی را دستی وارد نمی‌کنند.
                         </p>
                     </div>
                 </div>
@@ -87,27 +92,31 @@ export default function AllReportsPage() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="filter-user">پشتیبان</Label>
-                        <select
-                            id="filter-user"
-                            className="h-11 w-full rounded-2xl border border-hairline bg-surface-2 px-4 text-sm text-ink outline-none transition focus-visible:border-primary-line-2 focus-visible:ring-2 focus-visible:ring-primary-ring"
-                            value={filters.user_id ?? ""}
-                            onChange={(event) =>
-                                updateFilter("user_id", event.target.value)
-                            }
-                        >
-                            <option value="">همه پشتیبان‌ها</option>
-                            {(supportsQuery.data?.data ?? []).map((support) => (
-                                <option
-                                    key={support.id}
-                                    value={String(support.id)}
-                                >
-                                    {support.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {isAdmin ? (
+                        <div className="space-y-2">
+                            <Label htmlFor="filter-user">پشتیبان</Label>
+                            <select
+                                id="filter-user"
+                                className="h-11 w-full rounded-2xl border border-hairline bg-surface-2 px-4 text-sm text-ink outline-none transition focus-visible:border-primary-line-2 focus-visible:ring-2 focus-visible:ring-primary-ring"
+                                value={filters.user_id ?? ""}
+                                onChange={(event) =>
+                                    updateFilter("user_id", event.target.value)
+                                }
+                            >
+                                <option value="">همه پشتیبان‌ها</option>
+                                {(supportsQuery.data?.data ?? []).map(
+                                    (support) => (
+                                        <option
+                                            key={support.id}
+                                            value={String(support.id)}
+                                        >
+                                            {support.name}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </div>
+                    ) : null}
 
                     <div className="space-y-2">
                         <Label htmlFor="filter-channel">نوع پشتیبانی</Label>
@@ -238,11 +247,6 @@ export default function AllReportsPage() {
                                             report.unsatisfied_students_count
                                         }
                                         tone="text-err-text"
-                                    />
-                                    <MetricPill
-                                        label="دسک"
-                                        value={report.desk_requests_count}
-                                        tone="text-alret-gold"
                                     />
                                 </div>
                             </div>

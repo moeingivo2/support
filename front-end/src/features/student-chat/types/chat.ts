@@ -39,6 +39,7 @@ export type ChatMessage = {
 
 export type ConversationRating = {
     rating_value: number;
+    description: string | null;
     closure_actor: "student" | "support" | null;
     submitted_at: string | null;
 };

@@ -134,20 +134,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}', [VideoController::class, 'destroy']);
     });
 
-    // گزارش شیفت — ثبت و «گزارش‌های من» مختص پشتیبان است و فهرست
-    // کامل در اختیار ادمین قرار می‌گیرد.
-    Route::prefix('shift-reports')->group(function () {
-        Route::middleware('role:support,account_observer')->group(function () {
-            Route::post('/', [ShiftReportController::class, 'store']);
-            Route::get('/my', [ShiftReportController::class, 'myReports']);
-        });
-
-        Route::middleware('role:admin,support,account_observer')->group(function () {
-            Route::get('/', [ShiftReportController::class, 'index']);
-            Route::get('/pending', [ShiftReportController::class, 'pending']);
-            Route::get('/{id}', [ShiftReportController::class, 'show']);
-            Route::put('/{id}', [ShiftReportController::class, 'update']);
-        });
+    // گزارش‌های خودکار پایان شیفت — فقط سوپر ادمین و ناظرها؛ پشتیبان‌ها
+    // دیگر گزارشی پر نمی‌کنند و به این صفحه دسترسی ندارند.
+    Route::middleware('role:admin,observer,account_observer')->prefix('shift-reports')->group(function () {
+        Route::get('/', [ShiftReportController::class, 'index']);
+        Route::get('/{id}', [ShiftReportController::class, 'show']);
     });
 
     // حساب دانشجو — دوره، جلسات، منتور و سهمیه چت

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Loader2, TriangleAlert, Wallet } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { DialogShell } from "@/shared/ui/dialog-shell";
+import { Label } from "@/shared/ui/label";
+import { Textarea } from "@/shared/ui/textarea";
 import { StarRating } from "./StarRating";
 
 /**
@@ -11,6 +13,7 @@ import { StarRating } from "./StarRating";
  *   3) امتیازدهی اجباری (پیش‌فرض ۵ ستاره)
  *
  * تا وقتی کاربر در مرحله‌ی سوم امتیازی ثبت نکند، امکان بستن وجود ندارد.
+ * اگر امتیاز کمتر از ۴ باشد، نوشتن دلیل نارضایتی اجباری است.
  */
 type Stage = "confirm" | "warning" | "rating";
 
@@ -20,7 +23,7 @@ export type CloseConversationDialogProps = {
     isSubmitting?: boolean;
     error?: string | null;
     onCancel: () => void;
-    onConfirm: (ratingValue: number) => void;
+    onConfirm: (ratingValue: number, description?: string) => void;
 };
 
 export function CloseConversationDialog({
@@ -34,6 +37,10 @@ export function CloseConversationDialog({
     const [stage, setStage] = useState<Stage>("confirm");
     const [rating, setRating] = useState(5);
     const [hasRated, setHasRated] = useState(false);
+    const [description, setDescription] = useState("");
+
+    const needsDescription = rating < 4;
+    const descriptionValid = !needsDescription || description.trim().length > 0;
 
     // مسیر فقط رو به جلو است. هر لغو/بازگشتی کل سه مرحله را با هم
     // می‌بندد تا کاربر در مرحله‌ها گم نشود و خروج یک‌باره باشد.
@@ -143,16 +150,16 @@ export function CloseConversationDialog({
                     <Button
                         type="button"
                         variant="ghost"
-                    onClick={closeAll}
-                    disabled={isSubmitting}
-                    className="flex-1"
-                >
-                    لغو
-                </Button>
-                <Button
-                    type="button"
-                    variant="danger"
-                    onClick={() => setStage("rating")}
+                        onClick={closeAll}
+                        disabled={isSubmitting}
+                        className="flex-1"
+                    >
+                        لغو
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => setStage("rating")}
                         disabled={isSubmitting}
                         className="flex-1"
                     >
@@ -184,6 +191,22 @@ export function CloseConversationDialog({
                 disabled={isSubmitting}
             />
 
+            {needsDescription ? (
+                <div className="mt-4 w-full space-y-2 text-right">
+                    <Label htmlFor="close-rating-description">
+                        دلیل نارضایتی
+                    </Label>
+                    <Textarea
+                        id="close-rating-description"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                        placeholder="لطفاً علت نارضایتی خود را بنویسید..."
+                        maxLength={2000}
+                        disabled={isSubmitting}
+                    />
+                </div>
+            ) : null}
+
             {error ? (
                 <p
                     className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-center text-xs font-medium text-err-text"
@@ -206,9 +229,8 @@ export function CloseConversationDialog({
                 <Button
                     type="button"
                     variant="danger"
-                    onClick={() => onConfirm(rating)}
-                    // تا وقتی کاربر امتیازی ثبت نکرده، امکان بستن نیست
-                    disabled={!hasRated || isSubmitting}
+                    onClick={() => onConfirm(rating, description)}
+                    disabled={!hasRated || !descriptionValid || isSubmitting}
                     className="flex-1"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin" /> : null}

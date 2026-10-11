@@ -2,7 +2,6 @@ import {
     BarChart3,
     BookOpen,
     CalendarClock,
-    ClipboardList,
     Eye,
     FileSpreadsheet,
     FileWarning,
@@ -11,7 +10,6 @@ import {
     MessageSquareWarning,
     MessagesSquare,
     PlayCircle,
-    SquareChartGantt,
     Trophy,
     UserRoundCog,
     UserCog,
@@ -50,7 +48,8 @@ const adminNavigation: NavItem[] = [
     { label: "ویدیوهای آموزشی", path: "/training-videos", icon: PlayCircle },
 ];
 
-// منوی پنل ساپورت — عملیات روزمره
+// منوی پشتیبان — عملیات روزمره. گزارش پایان شیفت دیگر دستی نیست و
+// به‌صورت خودکار از لاگ گفتگوها ثبت می‌شود؛ پنل آن فقط ناظر و سوپر ادمین می‌بینند.
 const supportNavigation: NavItem[] = [
     { label: "داشبورد", path: "/", icon: LayoutDashboard },
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
@@ -65,12 +64,6 @@ const supportNavigation: NavItem[] = [
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
     { label: "سوالات متداول", path: "/faq", icon: FileWarning },
     { label: "ویدیوهای آموزشی", path: "/training-videos", icon: PlayCircle },
-    {
-        label: "گزارش پایان شیفت",
-        path: "/end-shift-report",
-        icon: ClipboardList,
-    },
-    { label: "گزارش‌های من", path: "/reports", icon: SquareChartGantt },
 ];
 
 /**
@@ -84,18 +77,20 @@ const supportNavigation: NavItem[] = [
  */
 const observerNavigation: NavItem[] = [
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
+    { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
     { label: "نارضایتی دانشجویان", path: "/student-complaints", icon: MessageSquareWarning },
     { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
 ];
 
 const accountObserverNavigation: NavItem[] = [
-    ...supportNavigation.filter((item) => item.path !== "/end-shift-report" && item.path !== "/reports" && item.path !== "/mentor-feedback"),
+    ...supportNavigation.filter((item) => item.path !== "/mentor-feedback"),
     {
         label: "نظارت بر روی تیم",
         path: "/team-supervision",
         icon: Eye,
     },
     { label: "تعیین شیفت تیم", path: "/observer-schedules", icon: UserRoundCog },
+    { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
 ];
 
 export function getNavigation(user: PanelUser | null): NavItem[] {

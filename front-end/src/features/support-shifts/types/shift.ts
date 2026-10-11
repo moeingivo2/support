@@ -51,6 +51,11 @@ export type StartShiftResponse = {
 export type EndShiftResponse = {
     message: string;
     shift: Shift;
+    report?: {
+        id: number;
+        responded_students_count: number;
+        unsatisfied_students_count: number;
+    };
 };
 
 export type ActiveShiftsResponse = {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StartShiftRequest;
 use App\Models\Shift;
+use App\Support\ShiftReportGenerator;
 use Illuminate\Http\Request;
 
 class ShiftController extends Controller
@@ -58,9 +59,12 @@ class ShiftController extends Controller
             'status' => 'ended',
         ]);
 
+        $report = ShiftReportGenerator::generate($shift);
+
         return response()->json([
-            'message' => 'شیفت با موفقیت پایان یافت',
+            'message' => 'شیفت با موفقیت پایان یافت و گزارش آن به‌صورت خودکار ثبت شد.',
             'shift' => $shift,
+            'report' => $report,
         ]);
     }
 
@@ -111,6 +115,7 @@ class ShiftController extends Controller
     public function show($id)
     {
         $shift = Shift::with(['user', 'report'])->findOrFail($id);
+
         return response()->json($shift);
     }
 }

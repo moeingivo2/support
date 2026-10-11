@@ -14,7 +14,6 @@ class ShiftReport extends Model
         'user_id',
         'responded_students_count',
         'unsatisfied_students_count',
-        'desk_requests_count',
         'extra_notes',
     ];
 

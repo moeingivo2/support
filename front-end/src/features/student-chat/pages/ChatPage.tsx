@@ -136,10 +136,16 @@ export default function ChatPage() {
     const messages = messagesQuery.data?.data.messages ?? [];
 
     const closeMutation = useMutation({
-        mutationFn: (ratingValue: number) => {
+        mutationFn: ({
+            ratingValue,
+            description,
+        }: {
+            ratingValue: number;
+            description?: string;
+        }) => {
             if (activeId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
-            return closeConversation(activeId, ratingValue);
+            return closeConversation(activeId, ratingValue, description);
         },
         onSuccess: (response) => {
             setDialogMode(null);
@@ -159,10 +165,16 @@ export default function ChatPage() {
     });
 
     const rateMutation = useMutation({
-        mutationFn: (ratingValue: number) => {
+        mutationFn: ({
+            ratingValue,
+            description,
+        }: {
+            ratingValue: number;
+            description?: string;
+        }) => {
             if (activeId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
-            return rateConversation(activeId, ratingValue);
+            return rateConversation(activeId, ratingValue, description);
         },
         onSuccess: (response) => {
             setDialogMode(null);
@@ -409,7 +421,9 @@ export default function ChatPage() {
                         setDialogMode(null);
                         setDialogError(null);
                     }}
-                    onConfirm={(ratingValue) => closeMutation.mutate(ratingValue)}
+                    onConfirm={(ratingValue, description) =>
+                        closeMutation.mutate({ ratingValue, description })
+                    }
                 />
             ) : null}
 
@@ -421,7 +435,9 @@ export default function ChatPage() {
                         setDialogMode(null);
                         setDialogError(null);
                     }}
-                    onConfirm={(ratingValue) => rateMutation.mutate(ratingValue)}
+                    onConfirm={(ratingValue, description) =>
+                        rateMutation.mutate({ ratingValue, description })
+                    }
                 />
             ) : null}
         </div>

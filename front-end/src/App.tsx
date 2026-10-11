@@ -17,8 +17,6 @@ import SessionSourcesRoute from "@/features/session-sources/routes";
 import RequiredFilesRoute from "@/features/required-files/routes";
 import FaqRoute from "@/features/faq/routes";
 import TrainingVideosRoute from "@/features/training-videos/routes";
-import MyShiftReportsRoute from "@/features/my-shift-reports/routes";
-import EndShiftReportRoute from "@/features/end-shift-report/routes";
 import {
     ActivityReportRoute,
     AllReportsRoute,
@@ -35,11 +33,7 @@ import ObserverSchedulesPage from "@/features/admin/pages/ObserverSchedulesPage"
 import TeamSupervisionPage from "@/features/support-chat/pages/TeamSupervisionPage";
 import MentorFeedbackPage from "@/features/student-complaints/pages/MentorFeedbackPage";
 
-const supportOnlyPaths = new Set([
-    "/support-shifts",
-    "/end-shift-report",
-    "/reports",
-]);
+const supportOnlyPaths = new Set(["/support-shifts"]);
 const accountObserverOnlyPaths = new Set([
     "/observer-schedules",
     "/team-supervision",
@@ -52,12 +46,16 @@ const supportPanelPaths = new Set(["/mentor-feedback"]);
  */
 const contentChannelPaths = new Set(["/sessions", "/files", "/faq"]);
 const adminOnlyPaths = new Set([
-    "/all-reports",
     "/register-support",
     "/activity-report",
     "/manage-admins",
     "/support-ranking",
 ]);
+/**
+ * پنل گزارش‌های خودکار شیفت — فقط سوپر ادمین و ناظرها؛ پشتیبان‌ها گزارش را
+ * نمی‌بینند (فرم دستی کاملاً حذف شده است).
+ */
+const reportsPanelPaths = new Set(["/all-reports"]);
 /**
  * طبق سیاست حاکمیت داده، سوپر ادمین به متن گفتگوی دانشجویان دسترسی ندارد.
  * دسترسی متن گفتگو فقط برای پشتیبان و ناظر (فقط‌خواندنی) است.
@@ -73,8 +71,6 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/files": RequiredFilesRoute,
     "/faq": FaqRoute,
     "/training-videos": TrainingVideosRoute,
-    "/reports": MyShiftReportsRoute,
-    "/end-shift-report": EndShiftReportRoute,
     "/all-reports": AllReportsRoute,
     "/activity-report": ActivityReportRoute,
     "/manage-admins": ManageAdminsRoute,
@@ -104,6 +100,11 @@ function PanelRoutes() {
         if (contentChannelPaths.has(path) && user?.role === "observer")
             return <Navigate to={homePath} replace />;
         if (adminOnlyPaths.has(path) && !isAdmin)
+            return <Navigate to={homePath} replace />;
+        if (
+            reportsPanelPaths.has(path) &&
+            !["admin", "observer", "account_observer"].includes(user?.role ?? "")
+        )
             return <Navigate to={homePath} replace />;
         const RouteComponent = routeComponents[path]!;
         return <RouteComponent />;

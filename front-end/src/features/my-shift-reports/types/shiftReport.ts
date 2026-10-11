@@ -31,7 +31,6 @@ export interface ShiftReport {
     user_id: number;
     responded_students_count: number;
     unsatisfied_students_count: number;
-    desk_requests_count: number;
     extra_notes: string | null;
     created_at: string;
     updated_at: string;
@@ -39,18 +38,17 @@ export interface ShiftReport {
     user: ShiftReportUser;
 }
 
-export interface CreateShiftReportPayload {
-    shift_id: number;
-    responded_students_count: number;
-    unsatisfied_students_count: number;
-    desk_requests_count: number;
-    extra_notes: string | null;
+export interface DissatisfactionReason {
+    student_name: string;
+    rating_value: number;
+    description: string | null;
+    submitted_at: string;
 }
 
-export type CreateShiftReportResponse = {
-    message: string;
+export interface ShiftReportDetails {
     report: ShiftReport;
-};
+    dissatisfactions: DissatisfactionReason[];
+}
 
 export interface LaravelPaginationLink {
     url: string | null;

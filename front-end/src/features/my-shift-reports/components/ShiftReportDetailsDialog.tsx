@@ -1,11 +1,16 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { CalendarDays, Clock, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, Clock, MessageSquareWarning, X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { StatusPill } from "@/shared/ui/status-pill";
+import { getJson } from "@/shared/api/http";
 import { formatShiftDateTime } from "../utils/formatShiftDateTime";
 import { formatShiftDuration } from "../utils/formatShiftDuration";
 import { formatShiftStatus } from "../utils/formatShiftStatus";
-import type { ShiftReport } from "../types/shiftReport";
+import type {
+    ShiftReport,
+    ShiftReportDetails,
+} from "../types/shiftReport";
 
 type ShiftReportDetailsDialogProps = {
     report: ShiftReport | null;
@@ -16,9 +21,18 @@ export function ShiftReportDetailsDialog({
     report,
     onClose,
 }: ShiftReportDetailsDialogProps) {
+    const detailsQuery = useQuery({
+        queryKey: ["shift-report-details", report?.id],
+        queryFn: ({ queryKey }) =>
+            getJson<ShiftReportDetails>(`/api/shift-reports/${queryKey[1]}`),
+        enabled: report !== null,
+    });
+
     if (!report) {
         return null;
     }
+
+    const dissatisfactions = detailsQuery.data?.dissatisfactions ?? [];
 
     return (
         <DialogPrimitive.Root open onOpenChange={(open) => !open && onClose()}>
@@ -31,7 +45,8 @@ export function ShiftReportDetailsDialog({
                                 جزئیات گزارش
                             </DialogPrimitive.Title>
                             <DialogPrimitive.Description className="mt-2 text-sm leading-6 text-ink-2">
-                                اطلاعات کامل این گزارش و شیفت مرتبط با آن
+                                اطلاعات کامل این گزارش خودکار و شیفت مرتبط با
+                                آن
                             </DialogPrimitive.Description>
                         </div>
                         <DialogPrimitive.Close asChild>
@@ -95,7 +110,7 @@ export function ShiftReportDetailsDialog({
                         </div>
                         <DetailField
                             label="کانال شیفت"
-                            value={report.shift.channel}
+                            value={formatChannel(report.shift.channel)}
                         />
                     </div>
 
@@ -112,12 +127,57 @@ export function ShiftReportDetailsDialog({
                                 "fa-IR",
                             )}
                         />
-                        <DetailField
-                            label="درخواست‌های دسک"
-                            value={report.desk_requests_count.toLocaleString(
-                                "fa-IR",
-                            )}
-                        />
+                    </div>
+
+                    <div className="space-y-3 rounded-3xl border border-hairline bg-surface-2 p-4">
+                        <div className="flex items-center gap-2">
+                            <MessageSquareWarning className="size-4 text-err-text" />
+                            <p className="text-xs font-bold text-ink">
+                                دلایل نارضایتی (امتیازهای کمتر از ۴)
+                            </p>
+                        </div>
+                        {detailsQuery.isPending ? (
+                            <p className="text-sm italic text-ink-3">
+                                در حال دریافت دلایل نارضایتی...
+                            </p>
+                        ) : dissatisfactions.length === 0 ? (
+                            <p className="text-sm italic text-ink-3">
+                                در این شیفت نارضایتی ثبت نشده است.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {dissatisfactions.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="rounded-2xl border border-hairline bg-surface-2 p-3"
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-sm font-semibold text-ink">
+                                                {item.student_name}
+                                            </p>
+                                            <span className="text-xs text-err-text">
+                                                {item.rating_value.toLocaleString(
+                                                    "fa-IR",
+                                                )}{" "}
+                                                از ۵
+                                            </span>
+                                        </div>
+                                        {item.description ? (
+                                            <p className="mt-2 text-sm leading-6 text-ink">
+                                                {item.description}
+                                            </p>
+                                        ) : (
+                                            <p className="mt-2 text-xs italic text-ink-3">
+                                                توضیحی ثبت نشده است.
+                                            </p>
+                                        )}
+                                        <p className="mt-2 text-xs text-ink-2">
+                                            {formatShiftDateTime(item.submitted_at)}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2 rounded-3xl border border-hairline bg-surface-2 p-4">
@@ -168,6 +228,15 @@ function DetailField({ label, value }: { label: string; value: string }) {
             <p className="mt-1.5 text-sm font-semibold text-ink">{value}</p>
         </div>
     );
+}
+
+function formatChannel(channel: string): string {
+    const labels: Record<string, string> = {
+        web: "وب",
+        ai: "هوش مصنوعی",
+        phone: "تلفنی",
+    };
+    return labels[channel] ?? "نامشخص";
 }
 
 function getShiftStatusTone(
