@@ -36,7 +36,7 @@ type AuthContextValue = {
     observerUser: PanelUser | null;
     isAuthenticated: boolean;
     showLoginSplash: boolean;
-    login: (loginValue: string, password: string) => Promise<PanelUser>;
+    login: (phone: string, password: string) => Promise<PanelUser>;
     loginStudentAccount: (phone: string, password: string) => Promise<PanelUser>;
     register: (payload: RegisterPayload) => Promise<void>;
     registerStudentAccount: (payload: StudentRegisterPayload) => Promise<void>;
@@ -75,9 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [showLoginSplash, setShowLoginSplash] = useState(true);
 
     const loginAction = useCallback(
-        async (loginValue: string, password: string) => {
+        async (phone: string, password: string) => {
             const { user: authenticatedUser, token } = await login(
-                loginValue,
+                phone,
                 password,
             );
             setAuth(token, authenticatedUser);

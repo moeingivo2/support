@@ -42,7 +42,7 @@ export default function AccountPage() {
         queryFn: () => getStudentSessionSources({ page: 1 }),
     });
     const studentFaqsQuery = useQuery({
-        queryKey: faqKeys.list(undefined, debouncedFaqSearch),
+        queryKey: faqKeys.list(debouncedFaqSearch),
         queryFn: () => getJson<Faq[]>("/api/student/faqs", {
             search: debouncedFaqSearch || undefined,
         }),

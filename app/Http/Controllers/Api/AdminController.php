@@ -124,7 +124,7 @@ class AdminController extends Controller
     {
         $admins = User::query()
             ->where('role', 'admin')
-            ->select(['id', 'name', 'email', 'phone', 'role', 'created_at', 'updated_at'])
+            ->select(['id', 'name', 'phone', 'role', 'created_at', 'updated_at'])
             ->orderBy('name')
             ->get();
 
@@ -134,7 +134,7 @@ class AdminController extends Controller
     public function storeAdmin(StoreAdminRequest $request): JsonResponse
     {
         $admin = User::create([
-            ...$request->safe()->only(['name', 'email', 'phone']),
+            ...$request->safe()->only(['name', 'phone']),
             'password' => Hash::make($request->string('password')->toString()),
             'role' => 'admin',
             'support_type' => null,
@@ -150,7 +150,7 @@ class AdminController extends Controller
     {
         abort_unless($admin->isAdmin(), 404);
 
-        $data = $request->safe()->only(['name', 'email', 'phone']);
+        $data = $request->safe()->only(['name', 'phone']);
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->string('password')->toString());

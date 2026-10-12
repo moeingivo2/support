@@ -28,7 +28,7 @@ export default function LoginPage() {
         handleSubmit,
         register,
     } = useForm<LoginFormInput, unknown, LoginFormValues>({
-        defaultValues: { login: "", password: "" },
+        defaultValues: { phone: "", password: "" },
         mode: "onSubmit",
         resolver: zodResolver(loginSchema),
     });
@@ -36,7 +36,7 @@ export default function LoginPage() {
     const onSubmit = async (values: LoginFormValues) => {
         setServerError(null);
         try {
-            await login(values.login, values.password);
+            await login(values.phone, values.password);
             navigate("/", { replace: true });
         } catch (error) {
             if (error instanceof HttpApiError && error.fieldErrors) {
@@ -81,18 +81,18 @@ export default function LoginPage() {
                         ) : null}
 
                         <div className="space-y-2">
-                            <Label htmlFor="login">شماره تلفن یا ایمیل</Label>
+                            <Label htmlFor="login">شماره موبایل</Label>
                             <Input
                                 id="login"
                                 dir="ltr"
-                                autoComplete="username"
-                                placeholder="09123456789 یا admin@example.com"
-                                aria-invalid={Boolean(errors.login)}
-                                {...register("login")}
+                                autoComplete="tel"
+                                placeholder="09123456789"
+                                aria-invalid={Boolean(errors.phone)}
+                                {...register("phone")}
                             />
-                            {errors.login ? (
+                            {errors.phone ? (
                                 <p className="text-xs font-medium text-err-text">
-                                    {errors.login.message}
+                                    {errors.phone.message}
                                 </p>
                             ) : null}
                         </div>

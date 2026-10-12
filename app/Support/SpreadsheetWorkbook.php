@@ -93,7 +93,10 @@ abstract class SpreadsheetWorkbook
             .$columns
             .implode('', $rows)
             .'</Table>'
-            .'<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">'.$pageSetup.'</WorksheetOptions>'
+            .'<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">'
+            .'<DisplayRightToLeft/>'
+            .$pageSetup
+            .'</WorksheetOptions>'
             .'</Worksheet>';
     }
 

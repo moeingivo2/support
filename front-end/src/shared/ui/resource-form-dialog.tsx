@@ -12,7 +12,6 @@ type ResourceLike = {
     title: string;
     description: string | null;
     file_url: string;
-    category: string | null;
     channel?: SupportChannel;
 };
 
@@ -20,7 +19,6 @@ type ResourceFormValues = {
     title: string;
     description: string;
     file_url: string;
-    category: string;
     /** فقط سوپر ادمین می‌فرستد؛ برای بقیه سرور بخش خودشان را اعمال می‌کند. */
     channel?: SupportChannel;
 };
@@ -65,7 +63,6 @@ export function ResourceFormDialog({
             title: values.title.trim(),
             description: values.description.trim(),
             file_url: values.file_url.trim(),
-            category: values.category.trim(),
             ...(isAdmin && values.channel ? { channel: values.channel } : {}),
         });
     }
@@ -161,18 +158,6 @@ export function ResourceFormDialog({
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="resource-category">دسته‌بندی</Label>
-                            <Input
-                                id="resource-category"
-                                value={values.category}
-                                onChange={(event) =>
-                                    setField("category", event.target.value)
-                                }
-                                placeholder="مثلاً مقدماتی، پیشرفته…"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
                             <Label htmlFor="resource-url">{linkLabel}</Label>
                             <div className="relative">
                                 <Link2 className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-ink-2" />
@@ -242,7 +227,6 @@ function getInitialValues(resource: ResourceLike | null): ResourceFormValues {
         title: resource?.title ?? "",
         description: resource?.description ?? "",
         file_url: resource?.file_url ?? "",
-        category: resource?.category ?? "",
         channel: resource?.channel ?? "web",
     };
 }

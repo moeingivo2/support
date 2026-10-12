@@ -206,7 +206,7 @@ export function ChatComposer({
                         maxHeight={136}
                         className="max-h-[136px] min-h-12 resize-none rounded-b-none rounded-t-2xl border-0 bg-transparent px-4 py-3 shadow-none focus-visible:bg-transparent focus-visible:shadow-none sm:min-h-12 sm:py-3"
                     />
-                    <div className="flex items-left gap-8 border-t border-hairline/70 px-2 py-1.5">
+                    <div className="flex items-center gap-2 border-t border-hairline/70 px-2 py-1.5">
                         <input
                             ref={imageInputRef}
                             type="file"
@@ -222,7 +222,7 @@ export function ChatComposer({
                         />
                         {/* دکمه‌ی ارسال در سمت چپ کادر می‌نشیند (انتهای بصری
                             در RTL) و ابزارها سمت راست می‌مانند. */}
-                        <div className="flex w-full items-center justify-between gap-2 justify-between" dir="rtl">
+                        <div className="flex w-full items-center justify-between gap-2" dir="rtl">
                             <div className="composer-toolbar chat-composer-toolbar shrink-0">
                                 <button type="button" className="composer-tool" onClick={() => imageInputRef.current?.click()} disabled={isSending || isDisabled} aria-label="پیوست تصویر" title="پیوست تصویر">
                                     <ImageIcon className="size-4" aria-hidden="true" />

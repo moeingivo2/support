@@ -7,13 +7,11 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
-import { FAQ_CATEGORIES } from "../services/faq-service";
 import type { Faq } from "../types/faq";
 
 type FaqFormValues = {
     question: string;
     answer: string;
-    category: string;
     /** فقط سوپر ادمین می‌فرستد؛ برای بقیه سرور بخش خودشان را اعمال می‌کند. */
     channel?: SupportChannel;
 };
@@ -41,8 +39,6 @@ export function FaqFormDialog({
         getInitialValues(faq ?? null),
     );
 
-    const categoryOptions = getCategoryOptions(faq ?? null);
-
     function setField<Key extends keyof FaqFormValues>(
         key: Key,
         value: FaqFormValues[Key],
@@ -55,7 +51,6 @@ export function FaqFormDialog({
         onSubmit({
             question: values.question.trim(),
             answer: values.answer.trim(),
-            category: values.category.trim(),
             ...(isAdmin && values.channel ? { channel: values.channel } : {}),
         });
     }
@@ -170,28 +165,6 @@ export function FaqFormDialog({
                             ) : null}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="faq-category">دسته‌بندی</Label>
-                            <select
-                                id="faq-category"
-                                className="h-11 w-full rounded-2xl border border-hairline bg-surface-2 px-4 text-sm text-ink outline-none transition focus-visible:border-primary-line-2 focus-visible:ring-2 focus-visible:ring-primary-ring"
-                                value={values.category}
-                                onChange={(event) =>
-                                    setField("category", event.target.value)
-                                }
-                            >
-                                <option value="">بدون دسته</option>
-                                {categoryOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
                         <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                             <Button
                                 type="button"
@@ -220,19 +193,8 @@ function getInitialValues(faq: Faq | null): FaqFormValues {
     return {
         question: faq?.question ?? "",
         answer: faq?.answer ?? "",
-        category: faq?.category ?? "",
         channel: faq?.channel ?? "web",
     };
-}
-
-function getCategoryOptions(
-    faq: Faq | null,
-): Array<{ value: string; label: string }> {
-    const options = [...FAQ_CATEGORIES];
-    if (faq?.category && !options.some((item) => item.value === faq.category)) {
-        options.push({ value: faq.category, label: faq.category });
-    }
-    return options;
 }
 
 function fieldError(

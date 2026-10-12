@@ -16,18 +16,13 @@ class FaqController extends Controller
     public function studentIndex(Request $request)
     {
         $validated = $request->validate([
-            'category' => ['nullable', 'string', 'max:100'],
             'search' => ['nullable', 'string', 'max:120'],
         ]);
 
         $query = Faq::query()
             ->where('is_active', true)
             ->whereIn('channel', $this->studentChannels($request->user()))
-            ->select(['id', 'question', 'answer', 'category', 'channel', 'order']);
-
-        if (! empty($validated['category'])) {
-            $query->where('category', $validated['category']);
-        }
+            ->select(['id', 'question', 'answer', 'channel', 'order']);
 
         if (! empty($validated['search'])) {
             $search = $validated['search'];
@@ -57,10 +52,6 @@ class FaqController extends Controller
             $query->whereIn('channel', $channels);
         } else {
             $this->applyVisibleChannel($query, $request->user());
-        }
-
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
         }
 
         if ($request->has('search')) {
@@ -120,20 +111,6 @@ class FaqController extends Controller
         $this->findVisibleFaq($request, (int) $id)->delete();
 
         return response()->json(['message' => 'سوال متداول با موفقیت حذف شد']);
-    }
-
-    // لیست دسته‌بندی‌های موجود — فقط از بخش‌های قابل مشاهده
-    public function categories(Request $request)
-    {
-        $query = Faq::query();
-
-        if ($channels = $this->requestedChannels($request)) {
-            $query->whereIn('channel', $channels);
-        } else {
-            $this->applyVisibleChannel($query, $request->user());
-        }
-
-        return response()->json($query->whereNotNull('category')->distinct()->pluck('category'));
     }
 
     /** رکوردی که کاربر اجازه دیدنش را دارد، وگرنه ۴۰۴ (نه ۴۰۳، تا وجودش لو نرود). */

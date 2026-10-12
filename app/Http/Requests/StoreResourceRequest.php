@@ -22,7 +22,6 @@ class StoreResourceRequest extends FormRequest
             'channel' => 'nullable|in:web,ai',
             'file_url' => 'required_without:file|nullable|url', // یا لینک مستقیم برمی‌داره
             'file' => 'required_without:file_url|nullable|file|max:51200', // یا فایل مستقیم آپلود میشه (تا ۵۰ مگ)
-            'category' => 'nullable|string|max:100',
         ];
     }
 

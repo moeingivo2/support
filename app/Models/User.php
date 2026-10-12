@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'phone', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 // app/Models/User.php
 class User extends Authenticatable
@@ -20,7 +20,6 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
-        'email',
         'phone',
         'password',
         'role',
@@ -58,6 +57,23 @@ class User extends Authenticatable
     }
 
     /**
+     * کارآموز — پشتیبانی که فقط گفتگوها را می‌بیند تا یاد بگیرد؛
+     * مانند ناظر فقط‌خواندنی رفتار می‌کند اما هیچ ابزار دیگری ندارد.
+     */
+    public function isTrainee(): bool
+    {
+        return $this->role === 'trainee';
+    }
+
+    /**
+     * پنل‌نشینِ فقط‌مشاهده: ناظر یا کارآموز. پاسخ‌گویی و تغییر وضعیت ندارد.
+     */
+    public function isReadOnlyViewer(): bool
+    {
+        return $this->isObserver() || $this->isTrainee();
+    }
+
+    /**
      * ناظر اکانت — علاوه بر نظارت، تیم پشتیبان خودش را مدیریت می‌کند.
      * با ناظر فقط‌خواندنی یکی نیست و دسترسی‌های بیشتری دارد.
      */
@@ -71,7 +87,7 @@ class User extends Authenticatable
      */
     public function canReadTranscripts(): bool
     {
-        return in_array($this->role, ['support', 'observer', 'account_observer'], true);
+        return in_array($this->role, ['support', 'observer', 'account_observer', 'trainee'], true);
     }
 
     public function shifts()

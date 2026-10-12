@@ -19,7 +19,6 @@ class StoreAdminRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:10', 'max:20', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:8', 'max:255', 'not_regex:/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u'],
         ];
@@ -29,9 +28,6 @@ class StoreAdminRequest extends FormRequest
     {
         return [
             'name.required' => 'نام سوپر ادمین الزامی است.',
-            'email.required' => 'ایمیل الزامی است.',
-            'email.email' => 'ایمیل معتبر وارد کنید.',
-            'email.unique' => 'این ایمیل قبلاً ثبت شده است.',
             'phone.required' => 'شماره تلفن الزامی است.',
             'phone.unique' => 'این شماره تلفن قبلاً ثبت شده است.',
             'password.required' => 'رمز عبور الزامی است.',

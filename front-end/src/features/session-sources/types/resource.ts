@@ -10,8 +10,7 @@ export interface Resource {
     title: string;
     description: string | null;
     type?: string;
-    file_url: string;
-    category: string | null;
+file_url: string;
     channel: SupportChannel;
     created_by?: number;
     created_at: string;

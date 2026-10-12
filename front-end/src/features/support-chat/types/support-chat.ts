@@ -2,7 +2,6 @@ export type SupportStudentRow = {
     student: {
         id: number;
         name: string;
-        email: string | null;
         phone: string | null;
     };
     conversations_count: number;
@@ -28,7 +27,6 @@ export type SupportConversationSummary = {
     student: {
         id: number;
         name: string;
-        email: string | null;
         phone: string | null;
     } | null;
     support: { id: number; name: string } | null;

@@ -52,9 +52,9 @@ export default function StudentShell({ children }: { children: ReactNode }) {
         >
             <header className="sticky top-0 z-30 shrink-0 border-b border-hairline bg-glass backdrop-blur-xl">
                 <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
-                    {/* گروه چپ؛ روی دسکتاپ سمت راست خالی می‌ماند چون نام
-                        کاربر و سهمیه داخل همین گروه آمده‌اند. */}
-                    <div className="ms-auto flex items-center gap-1.5">
+                    {/* گروه اول از سمت راست: سهمیه و دکمه‌های کنترل؛ همبرگر همین‌جا
+                        اولین فرزند است و در موبایل گوشه‌ی بالا سمت راست می‌نشیند. */}
+                    <div className="flex items-center gap-1.5">
                         {/* تعداد گفتگوی باقی‌مانده — روی دسکتاپ همیشه دیده می‌شود */}
                         {profile ? (
                             <span className="hidden items-center gap-1.5 rounded-full border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink md:flex">

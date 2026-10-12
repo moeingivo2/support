@@ -98,7 +98,6 @@ class SupportChatController extends Controller
                 'student' => [
                     'id' => $student->id,
                     'name' => $student->name,
-                    'email' => $student->email,
                     'phone' => $student->phone,
                 ],
                 'conversations_count' => (int) $row->conversations_count,
@@ -120,7 +119,7 @@ class SupportChatController extends Controller
             // با باز کردن پروفایل یک دانشجو، فقط گفتگوهای همان نفر می‌آید.
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
             ->with([
-                'student:id,name,email,phone',
+                'student:id,name,phone',
                 'support:id,name',
                 'rating:id,conversation_id,rating_value,closure_actor,submitted_at',
             ])
@@ -198,10 +197,24 @@ class SupportChatController extends Controller
     private function unreadTotal(Request $request, ?int $ownerId): int
     {
         return (int) Cache::remember(
-            'support:unread_total:'.$request->user()->id.':'.($ownerId ?? 'team'),
+            $this->unreadTotalKey($request, $ownerId),
             2,
             fn (): int => (int) $this->conversationScope($request, $ownerId)->sum('unread_support_count'),
         );
+    }
+
+    /**
+     * بعد از خواندن یا ارسال پیام، شمارنده‌ی کش‌شده باید فوراً از بین
+     * برود؛ وگرنه تا ۲ ثانیه‌ی بعد poll همان عددِ قدیمی را نشان می‌دهد.
+     */
+    private function forgetUnreadTotal(Request $request, ?int $ownerId): void
+    {
+        Cache::forget($this->unreadTotalKey($request, $ownerId));
+    }
+
+    private function unreadTotalKey(Request $request, ?int $ownerId): string
+    {
+        return 'support:unread_total:'.$request->user()->id.':'.($ownerId ?? 'team');
     }
 
     /**
@@ -323,13 +336,13 @@ class SupportChatController extends Controller
         // شرط، ناظر می‌توانست با یک owner_id معتبر به گفتگوی هر پشتیبان دیگری
         // هم دسترسی بزند.
         abort_unless($ownerId === null || $model->support_id === $ownerId, 403);
-        // فقط ناظرِ فقط‌خواندنی هیچ تغییری روی گفتگو نمی‌گذارد. ناظر اکانت
-        // خودش پشتیبان است و مثل بقیه شمارنده را برمی‌دارد؛ وگرنه نشانگر
-        // «خوانده‌نشده» او هیچ‌وقت صفر نمی‌شد.
-        $isObserver = $request->user()->isObserver();
+        // فقط ناظرِ فقط‌خواندنی و کارآموز هیچ تغییری روی گفتگو نمی‌گذارند.
+        // ناظر اکانت خودش پشتیبان است و مثل بقیه شمارنده را برمی‌دارد؛ وگرنه
+        // نشانگر «خوانده‌نشده» او هیچ‌وقت صفر نمی‌شد.
+        $isReadOnly = $request->user()->isReadOnlyViewer();
 
-        if ($isObserver) {
-            // ناظر فقط‌خواندنی است: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
+        if ($isReadOnly) {
+            // ناظر و کارآموز فقط‌خواندنی هستند: نه خوانده‌نشده پاک می‌شود، نه مسئولیت گفتگو جابه‌جا می‌شود
             if (Cache::add('observer-access:'.$request->user()->id.':'.$model->id, true, 60)) {
                 $this->logObserverAccess($request, $model);
             }
@@ -347,15 +360,16 @@ class SupportChatController extends Controller
                     'support_last_read_at' => now(),
                     'support_id' => $request->user()->isSupport() ? $request->user()->id : $model->support_id,
                 ]);
+                $this->forgetUnreadTotal($request, $ownerId);
             }
         }
 
         return response()->json([
             'data' => [
                 'conversation' => $this->summary(
-                    $model->load(['student:id,name,email,phone', 'support:id,name', 'rating'])
+                    $model->load(['student:id,name,phone', 'support:id,name', 'rating'])
                 ),
-                'profile' => $request->user()->isObserver() ? null : $this->studentProfile($model),
+                'profile' => $request->user()->isReadOnlyViewer() ? null : $this->studentProfile($model),
                 // سقف تعداد پیام تا یک گفتگوی طولانی کل حافظه را پر نکند.
                 // ترتیب نزولی نگه داشته می‌شود: MessageList فرض می‌کند
                 // messages[0] جدیدترین است و روی آن اسکرول می‌کند. معکوس‌کردن
@@ -423,6 +437,8 @@ class SupportChatController extends Controller
                 'errors' => ['attachment' => [$exception->getMessage()]],
             ], 422);
         }
+
+        $this->forgetUnreadTotal($request, null);
 
         return response()->json([
             'message' => 'پاسخ ارسال شد.',
@@ -561,7 +577,6 @@ class SupportChatController extends Controller
             'student' => $conversation->student ? [
                 'id' => $conversation->student->id,
                 'name' => $conversation->student->name,
-                'email' => $conversation->student->email,
                 'phone' => $conversation->student->phone,
             ] : null,
             'support' => $conversation->support ? [

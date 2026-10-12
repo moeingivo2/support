@@ -5,7 +5,6 @@ import type { LaravelPagination, Resource } from "../types/resource";
 export type RequiredFilesFilters = {
     page: number;
     search?: string;
-    category?: string;
     channel?: ChannelFilter;
 };
 
@@ -20,7 +19,6 @@ export type ResourcePayload = {
     title: string;
     description: string;
     file_url: string;
-    category: string;
     channel?: SupportChannel;
 };
 
@@ -36,7 +34,7 @@ export function formatResourceDate(date: string): string {
     );
 }
 
-// فیلتر type/search/category سمت سرور اعمال می‌شود و صفحه‌بندی لاراول حفظ می‌شود.
+// فیلتر type/search سمت سرور اعمال می‌شود و صفحه‌بندی لاراول حفظ می‌شود.
 export async function getRequiredFiles(
     filters: RequiredFilesFilters,
 ): Promise<RequiredFilesPage> {
@@ -46,7 +44,6 @@ export async function getRequiredFiles(
             page: filters.page,
             type: "required_file",
             search: filters.search?.trim() || undefined,
-            category: filters.category?.trim() || undefined,
             channel: filters.channel === "all" ? undefined : filters.channel,
         },
     );

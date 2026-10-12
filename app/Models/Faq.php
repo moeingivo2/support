@@ -12,7 +12,6 @@ class Faq extends Model
     protected $fillable = [
         'question',
         'answer',
-        'category',
         'channel',
         'order',
         'is_active',

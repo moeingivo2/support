@@ -31,14 +31,12 @@ import { useToast } from "@/shared/ui/toast";
 
 type AdminFormState = {
     name: string;
-    email: string;
     phone: string;
     password: string;
 };
 
 const emptyForm: AdminFormState = {
     name: "",
-    email: "",
     phone: "",
     password: "",
 };
@@ -73,7 +71,6 @@ export default function ManageAdminsPage() {
         setEditingAdmin(admin);
         setForm({
             name: admin.name,
-            email: admin.email ?? "",
             phone: admin.phone ?? "",
             password: "",
         });
@@ -206,21 +203,6 @@ export default function ManageAdminsPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="admin-email">ایمیل</Label>
-                            <Input
-                                id="admin-email"
-                                type="email"
-                                dir="ltr"
-                                required
-                                value={form.email}
-                                onChange={(event) =>
-                                    updateField("email", event.target.value)
-                                }
-                                placeholder="admin@example.com"
-                                disabled={isSaving}
-                            />
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="admin-phone">شماره موبایل</Label>
                             <Input
                                 id="admin-phone"
@@ -327,12 +309,6 @@ export default function ManageAdminsPage() {
                                                         </StatusPill>
                                                     ) : null}
                                                 </div>
-                                                <p
-                                                    dir="ltr"
-                                                    className="mt-1 text-right text-xs text-ink-2"
-                                                >
-                                                    {admin.email}
-                                                </p>
                                                 <p
                                                     dir="ltr"
                                                     className="mt-1 text-right text-xs text-ink-2"

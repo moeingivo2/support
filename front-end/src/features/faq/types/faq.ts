@@ -4,7 +4,6 @@ export interface Faq {
     id: number;
     question: string;
     answer: string;
-    category: string | null;
     channel: SupportChannel;
     order: number;
     is_active: boolean;

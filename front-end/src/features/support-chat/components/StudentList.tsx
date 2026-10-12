@@ -32,7 +32,7 @@ export function StudentList({
         normalised === ""
             ? students
             : students.filter((row) =>
-                  `${row.student.name} ${row.student.phone ?? ""} ${row.student.email ?? ""}`
+                  `${row.student.name} ${row.student.phone ?? ""}`
                       .toLowerCase()
                       .includes(normalised),
               );

@@ -15,7 +15,6 @@ class Resource extends Model
         'type',
         'channel',
         'file_url',
-        'category',
         'created_by',
     ];
 

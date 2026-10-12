@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-    login: z
+    phone: z
         .string()
         .trim()
-        .min(3, "شماره تلفن یا ایمیل را وارد کنید.")
-        .max(190, "مقدار وارد شده بیش از حد طولانی است."),
+        .min(4, "شماره موبایل را وارد کنید.")
+        .max(32, "شماره موبایل بیش از حد طولانی است."),
     password: z
         .string()
         .min(1, "رمز عبور الزامی است.")

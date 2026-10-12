@@ -9,10 +9,15 @@ export function getStudentProfile(): Promise<{ data: StudentProfilePayload }> {
     return getJson<{ data: StudentProfilePayload }>("/api/student/profile");
 }
 
-export type UpgradePayload = {
+export type UpgradeCourseSelection = {
     course: "offline" | "in_person" | "school";
     track?: "ai" | "web" | null;
     sessions?: number[];
+    attended_course: string;
+};
+
+export type UpgradePayload = {
+    courses: UpgradeCourseSelection[];
     extra_chats: number;
     note?: string | null;
 };

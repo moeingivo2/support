@@ -4,7 +4,6 @@ export type StudentProfilePayload = {
     phone: string | null;
     /** شماره با صفر ابتدایی برای نمایش */
     phone_display: string | null;
-    email: string | null;
     course: "offline" | "in_person" | "school";
     course_label: string;
     track: "ai" | "web" | null;

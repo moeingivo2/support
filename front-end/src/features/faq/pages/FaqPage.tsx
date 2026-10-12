@@ -3,12 +3,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
 import { useFaqs } from "../hooks/useFaqs";
 import {
-    categoryLabel,
     deleteFaq,
     faqKeys,
     updateFaq,
     createFaq,
-    FAQ_CATEGORIES,
     type FaqPayload,
 } from "../services/faq-service";
 import { FaqFormDialog } from "../components/FaqFormDialog";
@@ -17,7 +15,6 @@ import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { StatusPill } from "@/shared/ui/status-pill";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { useToast } from "@/shared/ui/toast";
 import {
@@ -32,13 +29,11 @@ import {
     Trash2,
 } from "lucide-react";
 import { HttpApiError } from "@/shared/api/http";
-import { cn } from "@/shared/lib/utils";
 import type { Faq } from "../types/faq";
 import { ChannelPicker } from "@/shared/ui/channel-picker";
 import type { ChannelFilter } from "@/shared/lib/content-channel";
 
 export default function FaqPage() {
-    const [category, setCategory] = useState("");
     const [searchInput, setSearchInput] = useState("");
     const search = useDebouncedValue(searchInput, 400);
     const [channel, setChannel] = useState<ChannelFilter>("all");
@@ -51,7 +46,7 @@ export default function FaqPage() {
     >();
     const queryClient = useQueryClient();
     const toast = useToast();
-    const faqsQuery = useFaqs(category, search, channel);
+    const faqsQuery = useFaqs(search, channel);
 
     const faqs = faqsQuery.data ?? [];
 
@@ -155,23 +150,6 @@ export default function FaqPage() {
                         aria-label="جستجوی سوالات متداول"
                     />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <FilterButton
-                        active={category === ""}
-                        onClick={() => setCategory("")}
-                    >
-                        همه
-                    </FilterButton>
-                    {FAQ_CATEGORIES.map((item) => (
-                        <FilterButton
-                            key={item.value}
-                            active={category === item.value}
-                            onClick={() => setCategory(item.value)}
-                        >
-                            {item.label}
-                        </FilterButton>
-                    ))}
-                </div>
             </div>
 
             {faqsQuery.isError ? (
@@ -217,9 +195,6 @@ export default function FaqPage() {
                                     <p className="text-sm font-bold text-ink">
                                         {faq.question}
                                     </p>
-                                    <StatusPill tone="info">
-                                        {categoryLabel(faq.category)}
-                                    </StatusPill>
                                 </div>
                                 <span className="flex shrink-0 items-center gap-1">
                                     <Button
@@ -296,30 +271,5 @@ export default function FaqPage() {
                 }}
             />
         </div>
-    );
-}
-
-function FilterButton({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={cn(
-                "rounded-full px-4 py-2 text-xs font-semibold transition",
-                active
-                    ? "bg-active-blue text-on-primary"
-                    : "bg-surface-2 text-ink hover:bg-surface-3 hover:text-ink",
-            )}
-        >
-            {children}
-        </button>
     );
 }

@@ -39,11 +39,6 @@ export function SessionSourceCard({
     return (
         <Card className="flex h-full flex-col gap-5 p-6">
             <div className="flex flex-wrap items-center gap-3">
-                {resource.category ? (
-                    <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-ink ring-1 ring-primary-ring">
-                        {resource.category}
-                    </span>
-                ) : null}
                 {onEdit || onDelete ? (
                 <span className="mr-auto flex items-center gap-1">
                     {onEdit ? <Button

@@ -20,12 +20,6 @@ class UpdateAdminRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($this->route('admin')),
-            ],
             'phone' => [
                 'required',
                 'string',
@@ -41,9 +35,6 @@ class UpdateAdminRequest extends FormRequest
     {
         return [
             'name.required' => 'نام سوپر ادمین الزامی است.',
-            'email.required' => 'ایمیل الزامی است.',
-            'email.email' => 'ایمیل معتبر وارد کنید.',
-            'email.unique' => 'این ایمیل قبلاً ثبت شده است.',
             'phone.required' => 'شماره تلفن الزامی است.',
             'phone.unique' => 'این شماره تلفن قبلاً ثبت شده است.',
             'password.min' => 'رمز عبور باید حداقل ۸ کاراکتر باشد.',

@@ -16,7 +16,6 @@ class StoreFaqRequest extends FormRequest
         return [
             'question' => 'required|string|max:500',
             'answer' => 'required|string',
-            'category' => 'nullable|string|max:100',
             // فقط سوپر ادمین این را تعیین می‌کند؛ برای بقیه از کانال خودِ
             // کاربر پر می‌شود و مقدار ارسالی نادیده گرفته می‌شود.
             'channel' => 'nullable|in:web,ai',

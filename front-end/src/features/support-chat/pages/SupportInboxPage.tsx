@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Bell,
@@ -58,9 +58,9 @@ export default function SupportInboxPage() {
     // حالت کد در کادر ارسال مشترک با چت دانشجو نگه‌داری می‌شود.
     const [codeMode, setCodeMode] = useState(false);
 
-    // ناظر فقط‌خواندنی است: نه پاسخ می‌دهد و نه گفتگو را می‌بندد
-    const isObserver = user?.role === "observer";
-    const isReadOnlyObserver = user?.role === "observer";
+    // ناظر و کارآموز فقط‌خواندنی هستند: نه پاسخ می‌دهند و نه گفتگو را می‌بندند
+    const isReadOnlyViewer =
+        user?.role === "observer" || user?.role === "trainee";
     const isImpersonatingSupport = Boolean(observerUser);
 
     const activeId = searchParams.get("c")
@@ -81,7 +81,7 @@ export default function SupportInboxPage() {
     const notificationsQuery = useNewMessageAlert(
         activeId,
         ownerId,
-        !isReadOnlyObserver,
+        !isReadOnlyViewer,
     );
     const conversationQuery = useSupportConversation(activeId, ownerId);
     const students = studentsQuery.data?.data ?? [];
@@ -92,6 +92,25 @@ export default function SupportInboxPage() {
     const unreadTotal = notificationsQuery.data?.unread_total ?? 0;
     const activeConversation = conversationQuery.data?.data.conversation ?? null;
     const isClosed = activeConversation?.is_closed ?? false;
+
+    // وقتی پشتیبان گفتگو را باز می‌کند، سمت سرور شمارنده‌ی خوانده‌نشده صفر
+    // و کش نوتیفیکیشن پاک می‌شود؛ این‌جا فقط باید پرس‌وجوی نوتیفیکیشن را
+    // دوباره بخوانیم تا نشانگر فوراً خالی شود — نه صبر تا poll بعدی.
+    const clearedConversationRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (
+            activeId === null
+            || activeConversation === null
+            || activeConversation.unread_count !== 0
+            || clearedConversationRef.current === activeId
+        ) {
+            return;
+        }
+        clearedConversationRef.current = activeId;
+        void queryClient.invalidateQueries({
+            queryKey: supportChatKeys.notifications,
+        });
+    }, [activeId, activeConversation, queryClient]);
 
     function selectConversation(id: number) {
         setMessageSearch("");
@@ -118,9 +137,9 @@ export default function SupportInboxPage() {
         mutationFn: ({
             body,
             codeMode,
-            language,
-            attachment,
-            signal,
+language,
+                attachment,
+                signal,
         }: {
             body: string;
             codeMode: boolean;
@@ -148,6 +167,10 @@ export default function SupportInboxPage() {
             void queryClient.invalidateQueries({
                 queryKey: supportChatKeys.inbox(studentId),
             });
+            // ارسال پاسخ باعث حذف «خواندن‌نشده» و به‌روزشدن رونوشت تیم می‌شود
+            void queryClient.invalidateQueries({
+                queryKey: supportChatKeys.notifications,
+            });
         },
     });
 
@@ -170,6 +193,9 @@ export default function SupportInboxPage() {
             });
             // بستن گفتگو وضعیت امتیازدهی را تغییر می‌دهد
             void queryClient.invalidateQueries({ queryKey: rankKeys.board });
+            void queryClient.invalidateQueries({
+                queryKey: supportChatKeys.notifications,
+            });
             toast.success(response.message);
         },
         onError: (error: unknown) => {
@@ -319,7 +345,7 @@ export default function SupportInboxPage() {
                             </span>
                         ) : null}
 
-                        {isObserver ? (
+                        {isReadOnlyViewer ? (
                             <StatusPill tone="info" className="max-sm:hidden">
                                 <Eye className="size-3" />
                                 فقط‌خواندنی
@@ -350,13 +376,13 @@ export default function SupportInboxPage() {
                             </StatusPill>
                         ) : null}
 
-                        {isReadOnlyObserver ? null : (
+                        {isReadOnlyViewer ? null : (
                             <NotificationSoundToggle />
                         )}
 
                         {activeId !== null &&
                         !isClosed &&
-                        !isReadOnlyObserver ? (
+                        !isReadOnlyViewer ? (
                             <Button
                                 type="button"
                                 variant="danger"
@@ -388,7 +414,7 @@ export default function SupportInboxPage() {
                     </div>
                 ) : (
                     <>
-                        {profile && !isReadOnlyObserver ? (
+                        {profile && !isReadOnlyViewer ? (
                             <div className="flex shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-hairline bg-sunken px-4 py-2 text-[11px] text-ink-2">
                                 <span className="flex shrink-0 items-center gap-1">
                                     <GraduationCap className="size-3.5 text-alret-gold" />
@@ -426,7 +452,7 @@ export default function SupportInboxPage() {
                             </div>
                         ) : null}
 
-                        {profile?.roadmap_url && !isReadOnlyObserver ? (
+                        {profile?.roadmap_url && !isReadOnlyViewer ? (
                             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-primary-soft px-4 py-2">
                                 <div><p className="text-sm font-bold text-ink">رودمپ دوره آفلاین</p><p className="mt-1 text-xs text-ink-2">فایل بارگذاری‌شده هنگام ثبت‌نام دانشجو</p></div>
                                 <Button type="button" variant="ghost" onClick={async () => {
@@ -451,10 +477,10 @@ export default function SupportInboxPage() {
                             // ناظر فقط‌خواندنی باید ببیند هر پیام را چه کسی
                             // و با چه نقشی فرستاده؛ ناظر اکانت خودش پشتیبان
                             // است و مثل بقیه پاسخ می‌دهد.
-                            showAttribution={isObserver}
+                            showAttribution={isReadOnlyViewer}
                         />
 
-                        {isClosed || isReadOnlyObserver ? (
+                        {isClosed || isReadOnlyViewer ? (
                             <div className="space-y-2 border-t border-hairline bg-sunken px-4 py-4 text-center">
                                 {isClosed ? (
                                     <>
@@ -493,11 +519,11 @@ export default function SupportInboxPage() {
                                     </>
                                 ) : null}
 
-                                {isReadOnlyObserver ? (
-                                    <p className="text-xs leading-6 text-ink-2">
-                                        شما با نقش ناظر وارد شده‌اید؛ مشاهده‌ی
-                                        گفتگو مجاز است اما پاسخ‌دادن یا بستن آن
-                                        نیست. هر دسترسی شما ثبت می‌شود.
+                                {isReadOnlyViewer ? (
+<p className="text-xs leading-6 text-ink-2">
+                                        شما با نقش ناظر یا کارآموز وارد شده‌اید؛
+                                        مشاهده‌ی گفتگو مجاز است اما پاسخ‌دادن یا
+                                        بستن آن نیست. هر دسترسی شما ثبت می‌شود.
                                     </p>
                                 ) : null}
                             </div>
@@ -533,3 +559,4 @@ export default function SupportInboxPage() {
         </div>
     );
 }
+

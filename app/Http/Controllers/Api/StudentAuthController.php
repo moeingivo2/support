@@ -52,7 +52,6 @@ class StudentAuthController extends Controller
                 $user = User::create([
                     'name' => trim($request->input('first_name').' '.$request->input('last_name')),
                     'phone' => $phone,
-                    'email' => null,
                     'password' => Hash::make($request->input('password')),
                     'role' => 'student',
                 ]);

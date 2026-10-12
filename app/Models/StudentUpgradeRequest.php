@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\CourseTrack;
-use App\Support\CourseType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,9 +12,7 @@ class StudentUpgradeRequest extends Model
 
     protected $fillable = [
         'student_id',
-        'course',
-        'track',
-        'purchased_sessions',
+        'courses',
         'extra_chats',
         'status',
         'note',
@@ -28,9 +24,7 @@ class StudentUpgradeRequest extends Model
     protected function casts(): array
     {
         return [
-            'course' => CourseType::class,
-            'track' => CourseTrack::class,
-            'purchased_sessions' => 'array',
+            'courses' => 'array',
         ];
     }
 

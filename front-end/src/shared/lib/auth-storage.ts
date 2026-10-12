@@ -70,12 +70,17 @@ export function clearAuth(): void {
     clearStoredObserverSession();
 }
 
-export type PanelRole = "admin" | "support" | "observer" | "account_observer" | "student";
+export type PanelRole =
+    | "admin"
+    | "support"
+    | "observer"
+    | "account_observer"
+    | "trainee"
+    | "student";
 
 export interface PanelUser {
     id: number;
     name: string;
-    email: string | null;
     phone: string | null;
     role: PanelRole;
     support_type?: "web" | "ai" | null;

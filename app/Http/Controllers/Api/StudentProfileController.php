@@ -26,11 +26,13 @@ class StudentProfileController extends Controller
 
     /**
      * ثبت درخواست ارتقای دوره یا افزایش تعداد چت
+     *
+     * کاربر می‌تواند همزمان چند دوره را انتخاب کند؛ برای هر دوره، رشته و
+     * «نام دوره‌ای که در آن شرکت کرده» ثبت می‌شود تا پشتیبان صحتش را بسنجد.
      */
     public function upgrade(StoreUpgradeRequest $request): JsonResponse
     {
         $profile = $this->profile($request);
-        $course = CourseType::from((string) $request->input('course'));
 
         $pending = StudentUpgradeRequest::query()
             ->where('student_id', $profile->user_id)
@@ -43,17 +45,11 @@ class StudentProfileController extends Controller
             ], 422);
         }
 
-        $sessions = $course === CourseType::Offline
-            ? $this->normalizeSessions($request->input('sessions', []))
-            : null;
+        $courses = $this->normalizeCourses($request->input('courses', []));
 
         StudentUpgradeRequest::create([
             'student_id' => $profile->user_id,
-            'course' => $course,
-            'track' => $course === CourseType::Offline
-                ? CourseTrack::from((string) $request->input('track'))
-                : null,
-            'purchased_sessions' => $sessions,
+            'courses' => $courses,
             'extra_chats' => (int) $request->input('extra_chats'),
             'note' => $request->input('note'),
         ]);
@@ -76,6 +72,40 @@ class StudentProfileController extends Controller
         }
 
         return $profile;
+    }
+
+    /**
+     * @param  array<int, mixed>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeCourses(array $items): array
+    {
+        $courses = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item) || ! isset($item['course'])) {
+                continue;
+            }
+
+            $course = CourseType::from((string) $item['course']);
+
+            $usesTrack = $course !== CourseType::InPerson;
+
+            $courses[] = [
+                'course' => $course->value,
+                'track' => $usesTrack && ! empty($item['track'])
+                    ? CourseTrack::from((string) $item['track'])->value
+                    : null,
+                'sessions' => $usesTrack && $course === CourseType::Offline
+                    ? $this->normalizeSessions($item['sessions'] ?? [])
+                    : [],
+                'attended_course' => isset($item['attended_course'])
+                    ? trim((string) $item['attended_course'])
+                    : null,
+            ];
+        }
+
+        return $courses;
     }
 
     /**

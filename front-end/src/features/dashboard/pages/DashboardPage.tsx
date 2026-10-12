@@ -92,7 +92,7 @@ function AdminDashboard({
         <div className="mx-auto w-full max-w-6xl space-y-6">
             <Card className="p-6 md:p-7">
                 <h1 className="mt-2 text-3xl font-bold text-ink md:text-4xl">
-                    پنل سوپر ادمین
+                    داشبورد نظارت
                 </h1>
                 <p className="mt-3 max-w-xl text-sm leading-6 text-ink-2">
                     وقت بخیر {userName || "…"} — نظارت بر عملکرد تیم پشتیبانی
@@ -182,7 +182,7 @@ function AdminDashboard({
                     id="admin-quick-links"
                     className="text-xl font-bold text-ink"
                 >
-                    دسترسی سریع سوپر ادمین
+                    دسترسی سریع
                 </h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Card className="p-0">
@@ -231,7 +231,7 @@ function AdminDashboard({
                             </span>
                             <span className="min-w-0 flex-1">
                                 <span className="block text-sm font-semibold text-ink">
-                                    مدیریت سوپر ادمین‌ها
+                                    مدیریت مدیران
                                 </span>
                                 <span className="block text-xs text-ink-2">
                                     ایجاد، ویرایش و حذف حساب‌های مدیریتی

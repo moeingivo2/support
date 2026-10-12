@@ -47,11 +47,6 @@ export function RequiredFileCard({
                     <FileKindIcon fileUrl={resource.file_url} />
                 </span>
                 <div className="flex items-center gap-1">
-                    {resource.category ? (
-                        <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-ink">
-                            {resource.category}
-                        </span>
-                    ) : null}
                     <Button
                         variant="ghost"
                         size="icon"

@@ -29,19 +29,17 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // ورود (چه با ایمیل چه با شماره تلفن)
+    // ورود فقط با شماره موبایل
     public function login(Request $request)
     {
         $request->validate([
-            'login' => 'required|string',
+            'phone' => 'required|string|max:32',
             'password' => 'required',
         ]);
 
-        $field = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $user = User::where('phone', $request->phone)->first();
 
-        $user = User::where($field, $request->login)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'اطلاعات ورود اشتباه است'], 401);
         }
 
@@ -57,6 +55,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'خروج موفق']);
     }
 

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ShiftReportController;
 use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\StudentAuthController;
 use App\Http\Controllers\Api\StudentProfileController;
+use App\Http\Controllers\Api\StudentUpgradeRequestController;
 use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\SupportRankingController;
 use App\Http\Controllers\Api\VideoController;
@@ -119,7 +120,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     Route::middleware('role:admin,support,account_observer')->prefix('faqs')->group(function () {
         Route::get('/', [FaqController::class, 'index']);
-        Route::get('/categories', [FaqController::class, 'categories']);
         Route::post('/', [FaqController::class, 'store']);
         Route::get('/{id}', [FaqController::class, 'show']);
         Route::put('/{id}', [FaqController::class, 'update']);
@@ -132,6 +132,20 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/{id}', [VideoController::class, 'show']);
         Route::put('/{id}', [VideoController::class, 'update']);
         Route::delete('/{id}', [VideoController::class, 'destroy']);
+    });
+
+    // درخواست‌های ارتقا — دانشجو چند دوره را درخواست می‌دهد و پشتیبان
+    // صحت‌سنجی و تأیید/رد می‌کند. تأیید فقط سهمیه چت را افزایش می‌دهد.
+    Route::prefix('upgrade-requests')->group(function () {
+        Route::middleware('role:support,account_observer,admin')->group(function () {
+            Route::get('/', [StudentUpgradeRequestController::class, 'index']);
+            Route::get('/{upgrade}', [StudentUpgradeRequestController::class, 'show']);
+        });
+
+        Route::middleware('role:support,account_observer')->group(function () {
+            Route::post('/{upgrade}/approve', [StudentUpgradeRequestController::class, 'approve']);
+            Route::post('/{upgrade}/reject', [StudentUpgradeRequestController::class, 'reject']);
+        });
     });
 
     // گزارش‌های خودکار پایان شیفت — فقط سوپر ادمین و ناظرها؛ پشتیبان‌ها
@@ -162,8 +176,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // صندوق ورودی مشترک — پشتیبان و ناظر.
-    // ناظر فقط‌خواندنی است و سوپر ادمین طبق سیاست به متن گفتگو دسترسی ندارد.
-    Route::middleware('role:support,observer,account_observer')->prefix('support/conversations')->group(function () {
+    // ناظر و کارآموز فقط‌خواندنی هستند و سوپر ادمین طبق سیاست به متن گفتگو دسترسی ندارد.
+    Route::middleware('role:support,observer,account_observer,trainee')->prefix('support/conversations')->group(function () {
         Route::get('/managed-supports', [SupportChatController::class, 'assignedSupports'])->middleware('role:account_observer');
         Route::post('/managed-supports/{support}/impersonate', [SupportChatController::class, 'impersonate'])->middleware('role:account_observer');
         Route::get('/', [SupportChatController::class, 'index']);

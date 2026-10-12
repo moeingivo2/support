@@ -12,45 +12,43 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // با updateOrCreate ایمیل، کلید تطبیق است و بقیه‌ی فیلدها به‌روز می‌شوند.
-        // سیدر باید idempotent باشد؛ create() ساده با هر اجرای دوم روی
-        // users_email_unique خطا می‌دهد و کاربران واقعی ثبت‌نام‌کرده را دست نمی‌زند.
+        // ورود فقط با شماره موبایل است؛ شماره کلید تطبیق سیدر (idempotent) است.
         $users = [
             [
                 'name' => 'فرزان اسلامی',
-                'email' => 'admin@example.com',
+                'phone' => '09120000001',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
             ],
             [
                 'name' => 'سارا محمدی',
-                'email' => 'sara@example.com',
+                'phone' => '09120000002',
                 'password' => Hash::make('password'),
                 'role' => 'support',
                 'support_type' => 'web',
             ],
             [
                 'name' => 'محمد علیاری',
-                'email' => 'mohammad@example.com',
+                'phone' => '09120000003',
                 'password' => Hash::make('password'),
                 'role' => 'support',
                 'support_type' => 'ai',
             ],
             [
                 'name' => 'احمد رضایی',
-                'email' => 'ahmad@example.com',
+                'phone' => '09120000004',
                 'password' => Hash::make('password'),
                 'role' => 'student',
             ],
             [
                 'name' => 'فاطمه حسینی',
-                'email' => 'fatemeh@example.com',
+                'phone' => '09120000005',
                 'password' => Hash::make('password'),
                 'role' => 'student',
             ],
             [
                 'name' => 'ناظر سیستم',
-                'email' => 'observer@example.com',
+                'phone' => '09120000006',
                 'password' => Hash::make('password'),
                 'role' => 'observer',
             ],
@@ -58,7 +56,7 @@ class UserSeeder extends Seeder
 
         foreach ($users as $user) {
             User::updateOrCreate(
-                ['email' => $user['email']],
+                ['phone' => $user['phone']],
                 $user,
             );
         }

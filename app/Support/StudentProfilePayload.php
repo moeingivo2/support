@@ -24,7 +24,6 @@ class StudentProfilePayload
             'phone_display' => $profile->user?->phone !== null
                 ? IranianPhone::display($profile->user->phone)
                 : null,
-            'email' => $profile->user?->email,
             'course' => $profile->course->value,
             'course_label' => $profile->course->label(),
             'track' => $profile->track?->value,

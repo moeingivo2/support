@@ -42,37 +42,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             <Logo size={44} />
                             <span>
                                 <span className="block text-sm font-bold text-ink">
-                                    {user?.role === "admin"
-                                        ? "پنل سوپر ادمین"
-                                        : user?.role === "observer"
-                                          ? "پنل ناظر"
-                                          : user?.role === "account_observer"
-                                            ? "پنل ناظر اکانت"
-                                          : "پنل پشتیبانی"}
+                                    AIO Support
                                 </span>
                                 <span className="block text-xs text-ink-2">
-                                    AIO Support
+                                    پنل پشتیبانی
                                 </span>
                             </span>
                         </Link>
-                        <span
-                            className={cn(
-                                "mb-6 mr-1 inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold ring-1",
-                                user?.role === "admin" || user?.role === "observer"
-                                    ? "bg-warn-soft text-alret-gold ring-warn-ring"
-                                    : "bg-primary-soft text-accent-ink ring-primary-ring",
-                            )}
-                        >
-                            {user?.role === "admin"
-                                ? "دسترسی سوپر ادمین"
-                                : user?.role === "observer"
-                                  ? "دسترسی ناظر — فقط‌خواندنی"
-                                  : user?.role === "account_observer"
-                                    ? "ناظر اکانت — دسترسی پشتیبانی"
-                                  : user?.support_type === "ai"
-                                    ? "پشتیبان هوش مصنوعی"
-                                    : "پشتیبان وب"}
-                        </span>
                         <DesktopNavigation
                             navigation={navigation}
                             activePath={activePath}

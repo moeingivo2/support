@@ -37,13 +37,13 @@ export type StudentRegisterResponse = {
 };
 
 export async function login(
-    loginValue: string,
+    phone: string,
     password: string,
 ): Promise<LoginResponse> {
-    return postJson<{ login: string; password: string }, LoginResponse>(
+    return postJson<{ phone: string; password: string }, LoginResponse>(
         "/api/login",
         {
-            login: loginValue,
+            phone,
             password,
         },
     );

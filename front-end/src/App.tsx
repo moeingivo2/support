@@ -10,6 +10,7 @@ import ForgotPasswordPage from "@/features/student-auth/pages/ForgotPasswordPage
 import { ChatRoute } from "@/features/student-chat/routes";
 import { AccountRoute } from "@/features/student-account/routes";
 import { SupportInboxRoute } from "@/features/support-chat/routes";
+import { UpgradeRequestsRoute } from "@/features/upgrade-requests/routes";
 import DashboardRoute from "@/features/dashboard/routes";
 import SupportShiftsRoute from "@/features/support-shifts/routes";
 import StudentComplaintsRoute from "@/features/student-complaints/routes";
@@ -61,10 +62,16 @@ const reportsPanelPaths = new Set(["/all-reports"]);
  * دسترسی متن گفتگو فقط برای پشتیبان و ناظر (فقط‌خواندنی) است.
  */
 const transcriptPaths = new Set(["/inbox"]);
+/**
+ * بررسی درخواست‌های ارتقا فقط برای پشتیبان، ناظر اکانت و سوپر ادمین است.
+ * ناظر فقط‌خواندنی و کارآموز اجازه‌ی رسیدگی ندارند.
+ */
+const upgradeRequestPaths = new Set(["/upgrade-requests"]);
 
 const routeComponents: Record<string, React.ComponentType> = {
     "/": DashboardRoute,
     "/inbox": SupportInboxRoute,
+    "/upgrade-requests": UpgradeRequestsRoute,
     "/support-shifts": SupportShiftsRoute,
     "/student-complaints": StudentComplaintsRoute,
     "/sessions": SessionSourcesRoute,
@@ -85,21 +92,28 @@ function PanelRoutes() {
     const { user } = useAuth();
     const isAdmin = user?.role === "admin";
     const isObserver = user?.role === "observer";
-    /** مقصد پیش‌فرض ناظر — داشبورد شیفتی ندارد */
-    const homePath = isObserver ? "/inbox" : "/";
+    const isTrainee = user?.role === "trainee";
+    /** مقصد پیش‌فرض ناظر و کارآموز — داشبورد شیفتی ندارند */
+    const homePath =
+        isObserver || isTrainee ? "/inbox" : "/";
 
     function renderWithGuard(path: string) {
         if (isAdmin && transcriptPaths.has(path))
             return <Navigate to={homePath} replace />;
-        if (supportOnlyPaths.has(path) && (isAdmin || isObserver))
+        if (supportOnlyPaths.has(path) && (isAdmin || isObserver || isTrainee))
             return <Navigate to={homePath} replace />;
         if (accountObserverOnlyPaths.has(path) && user?.role !== "account_observer")
             return <Navigate to={homePath} replace />;
         if (supportPanelPaths.has(path) && !["support", "observer", "account_observer", "admin"].includes(user?.role ?? ""))
             return <Navigate to={homePath} replace />;
-        if (contentChannelPaths.has(path) && user?.role === "observer")
+        if (contentChannelPaths.has(path) && (user?.role === "observer" || isTrainee))
             return <Navigate to={homePath} replace />;
         if (adminOnlyPaths.has(path) && !isAdmin)
+            return <Navigate to={homePath} replace />;
+        if (
+            upgradeRequestPaths.has(path) &&
+            !["support", "account_observer", "admin"].includes(user?.role ?? "")
+        )
             return <Navigate to={homePath} replace />;
         if (
             reportsPanelPaths.has(path) &&

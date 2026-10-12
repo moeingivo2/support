@@ -6,6 +6,7 @@ import {
     FileSpreadsheet,
     FileWarning,
     FolderOpen,
+    GraduationCap,
     LayoutDashboard,
     MessageSquareWarning,
     MessagesSquare,
@@ -34,6 +35,7 @@ const adminNavigation: NavItem[] = [
         icon: FileSpreadsheet,
     },
     { label: "رتبه‌بندی پشتیبان‌ها", path: "/support-ranking", icon: Trophy },
+    { label: "درخواست ارتقا", path: "/upgrade-requests", icon: GraduationCap },
     { label: "مدیریت سوپر ادمین‌ها", path: "/manage-admins", icon: UserCog },
     {
         label: "نارضایتی دانشجویان",
@@ -53,6 +55,7 @@ const adminNavigation: NavItem[] = [
 const supportNavigation: NavItem[] = [
     { label: "داشبورد", path: "/", icon: LayoutDashboard },
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
+    { label: "درخواست ارتقا", path: "/upgrade-requests", icon: GraduationCap },
     { label: "شیفت من", path: "/support-shifts", icon: CalendarClock },
     {
         label: "نارضایتی دانشجویان",
@@ -82,6 +85,12 @@ const observerNavigation: NavItem[] = [
     { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
 ];
 
+// کارآموز فقط‌خواندنی است و مانند ناظر به متن گفتگوها دسترسی دارد،
+// اما ابزار پشتیبانی، شیفت و گزارش ندارد.
+const traineeNavigation: NavItem[] = [
+    { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
+];
+
 const accountObserverNavigation: NavItem[] = [
     ...supportNavigation.filter((item) => item.path !== "/mentor-feedback"),
     {
@@ -96,6 +105,7 @@ const accountObserverNavigation: NavItem[] = [
 export function getNavigation(user: PanelUser | null): NavItem[] {
     if (user?.role === "admin") return adminNavigation;
     if (user?.role === "observer") return observerNavigation;
+    if (user?.role === "trainee") return traineeNavigation;
     if (user?.role === "account_observer") return accountObserverNavigation;
     return supportNavigation;
 }

@@ -210,7 +210,7 @@ export function CodeEditor({
                     autoComplete="off"
                     autoCorrect="off"
                     aria-label="کد پیام"
-                    placeholder="copy & paste code hear"
+                    placeholder="کد خود را اینجا جایگذاری کنید"
                     className="h-[min(17rem,42vh)] min-h-36 min-w-0 flex-1 resize-none overflow-auto whitespace-pre rounded-none border-0 bg-transparent px-3 py-3 font-mono text-left text-[13px] leading-6 text-ink outline-none transition-none placeholder:font-sans placeholder:text-sm placeholder:text-ink-3 hover:border-transparent  focus-visible:border-0 focus-visible:bg-transparent focus-visible:shadow-none disabled:cursor-not-allowed sm:h-[min(22rem,55vh)] sm:px-4"
                 />
             </div>
@@ -244,7 +244,7 @@ export function CodeEditor({
                 ) : (
                     <p className="flex items-center gap-1 text-[11px] text-ink-3" dir="ltr">
                         <CornerDownLeft className="size-3" aria-hidden="true" />
-                        Ctrl/⌘ + Enter to send
+                        Ctrl/⌘ + Enter برای ارسال
                     </p>
                 )}
             </footer>

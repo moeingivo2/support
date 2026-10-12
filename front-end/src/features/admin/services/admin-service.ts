@@ -32,7 +32,6 @@ export type SupportListItem = Pick<
 export type AdminListItem = {
     id: number;
     name: string;
-    email: string | null;
     phone: string | null;
     role: "admin";
     created_at: string;
@@ -41,7 +40,6 @@ export type AdminListItem = {
 
 export type CreateAdminPayload = {
     name: string;
-    email: string;
     phone: string;
     password: string;
 };

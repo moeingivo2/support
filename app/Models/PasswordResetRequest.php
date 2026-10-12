@@ -10,7 +10,6 @@ class PasswordResetRequest extends Model
     use HasFactory;
 
     protected $fillable = [
-        'email',
         'phone',
         'status',
         'note',

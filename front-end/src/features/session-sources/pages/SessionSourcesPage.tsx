@@ -27,7 +27,6 @@ import { useToast } from "@/shared/ui/toast";
 const INITIAL_FILTERS = {
     page: 1,
     search: "",
-    category: "",
 };
 
 const INITIAL_CHANNEL: ChannelFilter = "all";
@@ -36,7 +35,6 @@ const INITIAL_CHANNEL: ChannelFilter = "all";
 type PanelFilters = {
     page: number;
     search: string;
-    category: string;
     channel?: ChannelFilter;
 };
 
@@ -165,7 +163,6 @@ export default function SessionSourcesPage() {
 
             <SessionSourceFilters
                 search={searchInput}
-                category={filters.category}
                 onSearchChange={setSearchInput}
                 onSearchSubmit={() =>
                     setFilters((current) => ({
@@ -173,9 +170,6 @@ export default function SessionSourcesPage() {
                         page: 1,
                         search: searchInput,
                     }))
-                }
-                onCategoryChange={(category) =>
-                    setFilters((current) => ({ ...current, page: 1, category }))
                 }
             />
 

@@ -35,11 +35,6 @@ class ResourceController extends Controller
             $this->applyVisibleChannel($query, $request->user());
         }
 
-        // فیلتر بر اساس دسته‌بندی
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
-        }
-
         // جستجو بر اساس عنوان
         if ($request->has('search')) {
             $query->where('title', 'like', '%'.$request->search.'%');
@@ -55,7 +50,6 @@ class ResourceController extends Controller
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'category' => ['nullable', 'string', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
@@ -63,11 +57,7 @@ class ResourceController extends Controller
         $query = Resource::query()
             ->where('type', 'session_source')
             ->whereIn('channel', $this->studentChannels($request->user()))
-            ->select(['id', 'title', 'description', 'file_url', 'category', 'channel', 'created_at']);
-
-        if (! empty($validated['category'])) {
-            $query->where('category', $validated['category']);
-        }
+            ->select(['id', 'title', 'description', 'file_url', 'channel', 'created_at']);
 
         if (! empty($validated['search'])) {
             $search = $validated['search'];
@@ -109,7 +99,6 @@ class ResourceController extends Controller
             // بخش از خودِ کاربر می‌آید، مگر سوپر ادمین خودش انتخاب کند.
             'channel' => $this->channelForNewContent($request),
             'file_url' => $fileUrl,
-            'category' => $request->category,
             'created_by' => $request->user()->id,
         ]);
 
@@ -136,7 +125,6 @@ class ResourceController extends Controller
             'type' => 'sometimes|required|in:session_source,required_file,other',
             'channel' => 'sometimes|in:web,ai',
             'file_url' => 'nullable|url',
-            'category' => 'nullable|string|max:100',
         ]);
 
         if ($request->hasFile('file')) {
@@ -151,7 +139,7 @@ class ResourceController extends Controller
             $request->merge(['file_url' => $this->attachmentUrl($path)]);
         }
 
-        $changes = $request->only(['title', 'description', 'type', 'file_url', 'category']);
+        $changes = $request->only(['title', 'description', 'type', 'file_url']);
 
         if ($request->user()->isAdmin() && $request->has('channel')) {
             $changes['channel'] = $request->string('channel')->toString();
