@@ -83,7 +83,7 @@ export function VoicePlayer({
     }
 
     return (
-        <div className="flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-hairline bg-sunken p-2.5" dir="rtl">
+        <div className="flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-hairline bg-sunken p-2.5 max-md:rounded-xl max-md:border-0 max-md:bg-transparent max-md:px-0 max-md:py-1" dir="rtl">
             <audio
                 ref={audioRef}
                 src={objectUrl ?? undefined}

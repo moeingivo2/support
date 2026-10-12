@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/shared/api/logo";
 import { Button } from "@/shared/ui/button";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
+import { cn } from "@/shared/lib/utils";
 import { useAuth } from "@/shared/services/auth-context";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
 import { chatKeys, getConversations } from "@/features/student-chat/services/chat-service";
@@ -72,7 +73,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="md:hidden"
+                                    className="size-11 shrink-0 rounded-xl border-hairline bg-surface min-[1025px]:hidden"
                                     aria-label="باز کردن منو"
                                 >
                                     <Menu />
@@ -80,15 +81,24 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                             </Dialog.Trigger>
                             <Dialog.Portal>
                                 <Dialog.Overlay className="fixed inset-0 z-40 bg-overlay backdrop-blur-sm" />
-                                <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-[360px] flex-col border-l border-hairline bg-surface">
-                                    <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-3">
-                                        <Dialog.Title className="text-sm font-bold text-ink">
-                                            منو
-                                        </Dialog.Title>
+                                <Dialog.Content dir="rtl" className="fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-[360px] flex-col border-l border-hairline bg-surface">
+                                    <div className="flex min-h-16 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <Logo size={36} />
+                                            <div className="min-w-0">
+                                                <Dialog.Title className="text-sm font-bold text-ink">
+                                                    منوی دانشجو
+                                                </Dialog.Title>
+                                                <Dialog.Description className="text-xs text-ink-2">
+                                                    گفتگوها و حساب کاربری
+                                                </Dialog.Description>
+                                            </div>
+                                        </div>
                                         <Dialog.Close asChild>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                className="size-11 shrink-0"
                                                 aria-label="بستن منو"
                                             >
                                                 <X />
@@ -97,7 +107,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                     </div>
 
                                     {/* فهرست گفتگوها زیر بخش گفتگو */}
-                                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
                                         <div className="mb-3 flex items-center gap-2">
                                             <MessagesSquare
                                                 className="size-4 text-accent-ink"
@@ -109,7 +119,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                         </div>
 
                                         <Button
-                                            className="mb-3 w-full"
+                                            className="mb-3 min-h-11 w-full"
                                             onClick={() => {
                                                 setIsMenuOpen(false);
                                                 navigate("/chat");
@@ -147,11 +157,11 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                                                     }}
                                                                     className={
                                                                         active
-                                                                            ? "flex w-full items-center gap-2 rounded-2xl border border-primary-line bg-primary-soft px-3 py-2.5 text-start text-sm font-bold text-accent-ink"
-                                                                            : "flex w-full items-center gap-2 rounded-2xl border border-hairline bg-surface-2 px-3 py-2.5 text-start text-sm font-medium text-ink transition-colors duration-150 ease-out hover:bg-surface-3"
+                                                                            ? "flex min-h-11 w-full items-center gap-2 rounded-2xl border border-primary-line bg-primary-soft px-3 py-2.5 text-start text-sm font-bold text-accent-ink"
+                                                                            : "flex min-h-11 w-full items-center gap-2 rounded-2xl border border-hairline bg-surface-2 px-3 py-2.5 text-start text-sm font-medium text-ink transition-colors duration-150 ease-out hover:bg-surface-3"
                                                                     }
                                                                 >
-                                                                    <span className="shrink-0 text-xs font-bold text-ink-2">
+                                                                    <span className="min-w-0 flex-1 truncate">
                                                                         {
                                                                             conversation.title
                                                                         }
@@ -175,7 +185,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                     </div>
 
                                     {/* پروفایل؛ با زدن روی آن صفحه‌ی حساب باز می‌شود */}
-                                    <div className="border-t border-hairline px-4 py-3">
+                                    <div className="shrink-0 border-t border-hairline px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                                         <Link
                                             to="/account"
                                             onClick={() =>
@@ -216,20 +226,55 @@ export default function StudentShell({ children }: { children: ReactNode }) {
 
                         <Link
                             to="/chat"
-                            aria-label="خانه"
-                            className="flex items-center gap-2.5 rounded-2xl px-1 md:hidden"
+                            aria-label="خانه پشتیبانی"
+                            className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                         >
-                            <Logo size={36} />
+                            <span className="shrink-0">
+                                <Logo size={36} />
+                            </span>
+                            <span className="hidden min-w-0 sm:block">
+                                <span className="block truncate text-sm font-bold text-ink">
+                                    پشتیبانی دانشجو
+                                </span>
+                                <span className="block text-xs text-ink-2">
+                                    AIO Support
+                                </span>
+                            </span>
+                        </Link>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2 md:gap-3">
+                        {profile ? (
+                            <span className="hidden h-10 items-center gap-2 rounded-xl border border-primary-line bg-primary-soft px-3 text-xs font-semibold text-accent-ink md:inline-flex">
+                                <Wallet className="size-4" aria-hidden="true" />
+                                <span className="font-bold">
+                                    {toPersianDigits(profile.remaining_chats)}
+                                </span>
+                                گفتگوی باقی‌مانده
+                            </span>
+                        ) : null}
+
+                        <Link
+                            to="/account"
+                            aria-label="مشاهده حساب کاربری"
+                            className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-hairline bg-surface px-1.5 transition-colors duration-150 ease-out hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 md:pe-3"
+                        >
+                            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary-soft text-sm font-bold text-accent-ink">
+                                {user?.name?.trim().charAt(0) || "؟"}
+                            </span>
+                            <span className="hidden max-w-32 truncate text-sm font-semibold text-ink lg:block">
+                                {user?.name ?? "کاربر"}
+                            </span>
                         </Link>
 
-                        <div className="hidden md:block">
-                            <ThemeToggle />
-                        </div>
+                        <span className="hidden h-6 w-px bg-hairline md:block" aria-hidden="true" />
+                        <ThemeToggle className="size-10 rounded-xl border-hairline bg-surface" />
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={handleLogout}
                             aria-label="خروج از حساب"
+                            className="size-10 rounded-xl border-hairline bg-surface"
                         >
                             <LogOut />
                         </Button>
@@ -237,7 +282,10 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                 </div>
             </header>
 
-            <main className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 md:px-7 md:py-6">
+            <main className={cn(
+                "mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-3 md:px-7 md:py-6",
+                location.pathname === "/chat" && "max-md:overflow-hidden max-md:p-0",
+            )}>
                 {children}
             </main>
         </div>

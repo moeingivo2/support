@@ -9,7 +9,7 @@
     color-scheme: dark;
 
     /* پس‌زمینه و سطوح */
-    --c-bg: #121010;
+    --c-bg: #17191d;
     --c-surface: #191717;
     --c-surface-2: #201d1d;
     --c-surface-3: #2a2626;
@@ -591,6 +591,13 @@
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+
+    @media (max-width: 767px) {
+        .chat-composer-toolbar .composer-tool {
+            border-color: transparent;
+            background: transparent;
+        }
     }
 
     @media (min-width: 768px) {
