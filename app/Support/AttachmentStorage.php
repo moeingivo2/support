@@ -21,8 +21,19 @@ class AttachmentStorage
      * @var array<int, string>
      */
     public const ALLOWED_EXTENSIONS = [
-        'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt',
+        // تصویر
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
+        // سند و متن
+        'pdf', 'txt', 'csv', 'md', 'json', 'xml',
+        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+        'odt', 'ods', 'odp', 'rtf',
+        // صدا
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
+        // ویدیو
+        'mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg',
+        '3gp', '3g2', 'wmv', 'flv', 'ogv',
+        // فشرده
+        'zip', 'rar', '7z', 'tar', 'gz',
     ];
 
     /**
@@ -46,8 +57,23 @@ class AttachmentStorage
         'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/gif',
         'image/webp', 'application/pdf', 'text/plain', 'text/csv',
         'application/vnd.ms-excel', 'application/octet-stream',
+        // سندهای اداری و متن‌های ساخت‌یافته
+        'application/msword', 'application/rtf', 'text/rtf', 'text/markdown',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        'application/json', 'application/xml', 'text/xml',
+        // آرشیوها
+        'application/zip', 'application/x-zip-compressed',
+        'application/x-rar-compressed', 'application/vnd.rar',
+        'application/x-7z-compressed', 'application/x-tar',
+        'application/gzip', 'application/x-gzip',
         'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
-        'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/aac', 'video/mp4',
+        'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/aac',
     ];
 
     /**
@@ -86,6 +112,21 @@ class AttachmentStorage
     ];
 
     /**
+     * نوع‌های مجاز برای پسوندهای ویدیویی.
+     *
+     * finfo نوع ظرف ویدیو را برمی‌گرداند (مثل `video/quicktime` برای mov)،
+     * پس این‌ها از فهرست عمومی جدا هستند تا با پسوند عکس/سند قاطی نشوند.
+     *
+     * @var array<int, string>
+     */
+    private const VIDEO_MIMES = [
+        'video/mp4', 'video/x-m4v', 'video/quicktime',
+        'video/x-msvideo', 'video/x-matroska', 'video/mpeg',
+        'video/3gpp', 'video/3gpp2', 'video/x-ms-wmv',
+        'video/x-flv', 'video/ogg', 'video/webm',
+    ];
+
+    /**
      * پسوندهایی که هر گروه نوع برایشان پذیرفته می‌شود.
      *
      * @var array<string, array<int, string>>
@@ -93,6 +134,7 @@ class AttachmentStorage
     private const EXTENSION_GROUPS = [
         'audio' => ['webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac'],
         'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
+        'video' => ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2', 'wmv', 'flv', 'ogv'],
     ];
 
     /**
@@ -187,6 +229,7 @@ class AttachmentStorage
         $groupMimes = match ($this->extensionGroup($extension)) {
             'audio' => self::AUDIO_MIMES,
             'image' => self::IMAGE_MIMES,
+            'video' => self::VIDEO_MIMES,
             default => null,
         };
 
