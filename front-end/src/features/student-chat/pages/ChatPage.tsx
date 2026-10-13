@@ -26,6 +26,10 @@ import { ChatSidebar } from "../components/ChatSidebar";
 import { CloseConversationDialog } from "../components/CloseConversationDialog";
 import { RateConversationDialog } from "../components/RateConversationDialog";
 import { MessageList } from "../components/MessageList";
+import {
+    RatingFollowUpDialog,
+    type RatingFollowUp,
+} from "../components/RatingFollowUpDialog";
 import { SupportTicketRequest } from "../components/SupportTicketRequest";
 
 const EMPTY_HINT =
@@ -37,12 +41,6 @@ type RatingSubmission = {
     conversationId: number | null;
     ratingValue: number;
     description?: string;
-};
-
-type RatingFollowUp = {
-    studentId: number;
-    conversationId: number;
-    ratingValue: number;
 };
 
 export default function ChatPage() {
@@ -209,6 +207,13 @@ export default function ChatPage() {
             setDialogError(message);
         },
     });
+
+    const closeRatingFollowUp = () => {
+        setRatingFollowUp(null);
+        window.requestAnimationFrame(() => {
+            conversationTitleRef.current?.focus();
+        });
+    };
 
     const sidebar = (
         <ChatSidebar
@@ -456,6 +461,13 @@ export default function ChatPage() {
                     onConfirm={(ratingValue, description) =>
                         rateMutation.mutate({ conversationId: activeId, ratingValue, description })
                     }
+                />
+            ) : null}
+
+            {ratingFollowUp !== null ? (
+                <RatingFollowUpDialog
+                    followUp={ratingFollowUp}
+                    onClose={closeRatingFollowUp}
                 />
             ) : null}
         </div>
