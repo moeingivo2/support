@@ -52,16 +52,15 @@ export default function StudentShell({ children }: { children: ReactNode }) {
             className="app-canvas relative flex h-dvh flex-col overflow-hidden"
         >
             <header className="sticky top-0 z-30 shrink-0 border-b border-hairline bg-glass backdrop-blur-xl">
-                <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
-                    {/* گروه اول از سمت راست: سهمیه و دکمه‌های کنترل؛ همبرگر همین‌جا
-                        اولین فرزند است و در موبایل گوشه‌ی بالا سمت راست می‌نشیند. */}
+                <div className="mx-auto flex h-16 w-full max-w-[1500px] justify-between items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
                     <div className="flex items-center gap-1.5">
-                        {/* تعداد گفتگوی باقی‌مانده — روی دسکتاپ همیشه دیده می‌شود */}
                         {profile ? (
-                            <span className="hidden items-center gap-1.5 rounded-full border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink md:flex">
+                            <span
+                                title={`${toPersianDigits(profile.remaining_chats)} گفتگوی باقی‌مانده`}
+                                className="hidden items-center gap-1.5 rounded-full cursor-pointer border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink md:flex"
+                            >
                                 <Wallet className="size-3.5" aria-hidden="true" />
-                                {toPersianDigits(profile.remaining_chats)}{" "}
-                                گفتگوی باقی‌مانده
+                                {toPersianDigits(profile.remaining_chats)}
                             </span>
                         ) : null}
 
@@ -244,7 +243,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2 md:gap-3">
-                        {profile ? (
+                        {/* {profile ? (
                             <span className="hidden h-10 items-center gap-2 rounded-xl border border-primary-line bg-primary-soft px-3 text-xs font-semibold text-accent-ink md:inline-flex">
                                 <Wallet className="size-4" aria-hidden="true" />
                                 <span className="font-bold">
@@ -252,7 +251,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                 </span>
                                 گفتگوی باقی‌مانده
                             </span>
-                        ) : null}
+                        ) : null} */}
 
                         <Link
                             to="/account"

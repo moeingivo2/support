@@ -331,7 +331,7 @@ export default function AccountPage() {
                 ) : (studentFaqsQuery.data ?? []).length === 0 ? (
                     <Card className="p-5 text-sm text-ink-2">سوالی یافت نشد.</Card>
                 ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid items-start gap-3 md:grid-cols-2">
                         {studentFaqsQuery.data?.map((faq) => (
                             <details key={faq.id} className="rounded-2xl border border-hairline bg-glass p-4">
                                 <summary className="cursor-pointer text-sm font-bold text-ink">{faq.question}</summary>

@@ -59,7 +59,7 @@ export function Input({
                 // تا ۶۴۰ پیکسل عرض، هدف لمسی ۴۸ پیکسل و متن ۱۶ پیکسل است؛
                 // متن زیر ۱۶ پیکسل باعث زوم خودکار مرورگر موبایل هنگام فوکوس می‌شود.
                 // min-w-0 تا ورودی داخل ردیف‌های flex از عرض کارت بیرون نزند.
-                "h-12 w-full min-w-0 rounded-2xl border border-hairline bg-sunken px-3.5 text-base leading-6 text-ink outline-none transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out placeholder:text-ink-3 hover:border-hairline-strong  focus-visible:border-primary-line-2 focus-visible:bg-surface-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent),0_12px_25px_-18px_var(--c-glow-accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:px-4 sm:text-sm",
+                "h-12 w-full min-w-0 rounded-2xl border border-hairline bg-sunken pl-3.5 pr-10 text-base leading-6 text-ink outline-none transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out placeholder:text-ink-3 hover:border-hairline-strong focus-visible:border-primary-line-2 focus-visible:bg-surface-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent),0_12px_25px_-18px_var(--c-glow-accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:pl-4 sm:pr-10 sm:text-sm",
                 isPassword && keyboardError && "border-danger-line focus-visible:border-danger-line",
                 className,
             )}
