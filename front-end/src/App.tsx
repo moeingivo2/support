@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import AppShell from "@/shell/components/app-shell";
 import StudentShell from "@/shell/components/student-shell";
@@ -153,6 +153,11 @@ function PanelRoutes() {
 }
 
 function StudentRoutes() {
+    const [searchParams] = useSearchParams();
+    const entryPath = searchParams.get("request") === "support"
+        ? "/chat?request=support"
+        : "/chat";
+
     return (
         <StudentShell>
             <Suspense fallback={<PageFallback />}>
@@ -160,7 +165,7 @@ function StudentRoutes() {
                     <Route path="/chat" element={<ChatRoute />} />
                     <Route path="/account" element={<AccountRoute />} />
                     <Route path="/mentor-feedback" element={<MentorFeedbackPage />} />
-                    <Route path="*" element={<Navigate to="/chat" replace />} />
+                    <Route path="*" element={<Navigate to={entryPath} replace />} />
                 </Routes>
             </Suspense>
         </StudentShell>

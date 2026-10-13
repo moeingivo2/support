@@ -112,7 +112,7 @@ export function ChatComposer({
 
     if (voiceState === "recording") {
         return (
-            <div className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:p-4">
+            <div className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:bg-surface max-md:pl-[max(0.75rem,env(safe-area-inset-left))] max-md:pr-[max(0.75rem,env(safe-area-inset-right))] md:p-4">
                 {!isOnline ? <Alert tone="danger">اتصال اینترنت برقرار نیست.</Alert> : null}
                 <VoiceRecorder
                     autoStart
@@ -132,7 +132,7 @@ export function ChatComposer({
     return (
         <form
             onSubmit={(event) => void handleSubmit(event)}
-            className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:px-4 md:py-3"
+            className="space-y-2 border-t border-hairline bg-sunken p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl max-md:sticky max-md:bottom-0 max-md:z-20 max-md:shrink-0 max-md:bg-surface max-md:pl-[max(0.75rem,env(safe-area-inset-left))] max-md:pr-[max(0.75rem,env(safe-area-inset-right))] max-md:backdrop-blur-none md:px-4 md:py-3"
         >
             {!isOnline && sendState !== "failed" ? <Alert tone="danger">اتصال اینترنت برقرار نیست. پیام یا فایل را پس از بازگشت اتصال می‌توانید ارسال کنید.</Alert> : null}
             {sendState === "failed" && sendError ? (
@@ -193,7 +193,7 @@ export function ChatComposer({
                     onClose={() => onCodeModeChange(false)}
                 />
             ) : (
-                <div className="chat-composer-shell min-w-0 rounded-2xl border border-hairline bg-surface-2 transition-colors focus-within:border-primary-line-2 focus-within:ring-2 focus-within:ring-primary-ring-2">
+                <div className="chat-composer-shell min-w-0 rounded-2xl border border-hairline bg-surface-2 transition-colors focus-within:border-primary-line-2 focus-within:ring-2 focus-within:ring-primary-ring-2 max-md:border-0 max-md:bg-sunken">
                     <ChatTextarea
                         value={body}
                         onChange={(event) => { setBody(event.target.value); setSendState("idle"); setSendError(null); }}
@@ -204,9 +204,9 @@ export function ChatComposer({
                         disabled={isSending || isDisabled}
                         minHeight={48}
                         maxHeight={136}
-                        className="max-h-[136px] min-h-12 resize-none rounded-b-none rounded-t-2xl border-0 bg-transparent px-4 py-3 shadow-none focus-visible:bg-transparent focus-visible:shadow-none sm:min-h-12 sm:py-3"
+                        className="max-h-[136px] min-h-12 resize-none rounded-b-none rounded-t-2xl border-0 bg-transparent px-4 py-3 shadow-none focus-visible:bg-transparent focus-visible:shadow-none max-md:px-3 sm:min-h-12 sm:py-3"
                     />
-                    <div className="flex items-center gap-2 border-t border-hairline/70 px-2 py-1.5">
+                    <div className="flex items-center gap-8 border-t border-hairline/70 px-2 py-1.5 max-md:gap-0 max-md:border-0 max-md:px-1 max-md:py-1">
                         <input
                             ref={imageInputRef}
                             type="file"
@@ -239,7 +239,7 @@ export function ChatComposer({
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
                                 {attachment ? (
-                                <Button type="submit" disabled={!canSend} className="min-w-0 shrink md:h-9 md:px-3 md:text-xs md:shadow-none">
+                                <Button type="submit" disabled={!canSend} className="min-w-0 shrink max-md:shadow-none md:h-9 md:px-3 md:text-xs md:shadow-none">
                                     {sendState === "sending" || isSending ? <Loader2 className="animate-spin" /> : sendState === "sent" ? <Check /> : <Send />}
                                     <span className="truncate">
                                         {isSending
@@ -250,7 +250,7 @@ export function ChatComposer({
                                     </span>
                                 </Button>
                                 ) : (
-                                    <SendButton disabled={!canSend} aria-label={codeMode ? "ارسال کد" : "ارسال پیام"} className="md:size-9 md:rounded-xl md:shadow-none">
+                                    <SendButton disabled={!canSend} aria-label={codeMode ? "ارسال کد" : "ارسال پیام"} className="max-md:shadow-none md:size-9 md:rounded-xl md:shadow-none">
                                         {isSending ? <Loader2 className="animate-spin" /> : <Send />}
                                     </SendButton>
                                 )}

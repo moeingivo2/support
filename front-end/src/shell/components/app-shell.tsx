@@ -33,7 +33,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     فلکس آیتم‌ها جلوی کوچک‌شدن ستون کنار منو را می‌گیرد و
                     با ۱۳ آیتمِ منو، موارد پایین از صفحه بیرون می‌افتند و
                     `overflow-y-auto` روی منو هیچ‌وقت فعال نمی‌شود. */}
-                <aside className="hidden h-full w-[276px] shrink-0 flex-col overflow-hidden border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:flex">
+                <aside className="hidden h-full w-[276px] shrink-0 flex-col overflow-hidden border-l border-hairline bg-glass px-5 py-6 shadow-[-18px_0_45px_-35px_rgb(0_0_0/0.28)] backdrop-blur-xl min-[1025px]:flex">
                     <div className="flex min-h-0 w-full flex-1 flex-col">
                         <Link
                             to={user?.role === "observer" ? "/inbox" : "/"}
@@ -70,7 +70,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="lg:hidden"
+                                    className="size-11 shrink-0 min-[1025px]:hidden"
                                     aria-label="باز کردن منو"
                                 >
                                     <Menu />
@@ -83,17 +83,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                         <Dialog.Title className="text-sm font-bold text-ink">
                                             منوی پنل
                                         </Dialog.Title>
-                                        <div className="flex items-center gap-1">
-                                            <ThemeToggle />
+                                        <div className="flex flex-row-reverse items-center gap-1">
                                             <Dialog.Close asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    className="size-11 shrink-0"
                                                     aria-label="بستن منو"
                                                 >
                                                     <X />
                                                 </Button>
                                             </Dialog.Close>
+                                            <ThemeToggle />
                                         </div>
                                     </div>
                                     <MobileNavigation
@@ -221,7 +222,7 @@ function NavigationLink({
             to={item.path}
             onClick={onNavigate}
             className={cn(
-                "group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-transparent px-4 py-2.5 text-sm font-medium transition-colors duration-150 ease-out before:absolute before:right-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-active-blue before:opacity-0 before:shadow-[0_0_14px_var(--c-glow-accent)] before:transition-opacity",
+                "group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-transparent px-4 py-2.5 text-sm font-medium transition-colors duration-150 ease-out before:absolute before:right-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-active-blue before:opacity-0 before:shadow-[0_0_14px_var(--c-glow-accent)] before:transition-opacity max-[1025px]:min-h-11",
                 active
                     ? "border-primary-line bg-primary-soft text-accent-ink shadow-[0_10px_25px_-22px_var(--c-glow-accent)] before:opacity-100"
                     : "text-ink-2 hover:border-hairline hover:bg-surface-2 hover:text-ink",

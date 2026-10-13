@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "react-router-dom";
-import { Loader2, LogIn, Phone, ShieldCheck } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2, LogIn, MessageSquarePlus, Phone, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/shared/services/auth-context";
 import { HttpApiError } from "@/shared/api/http";
 import { Logo } from "@/shared/api/logo";
@@ -21,6 +21,8 @@ import {
 
 export default function StudentLoginPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const isSupportRequest = searchParams.get("request") === "support";
     const { loginStudentAccount } = useAuth();
     const [serverError, setServerError] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ export default function StudentLoginPage() {
         formState: { errors, isSubmitting },
         handleSubmit,
         register,
+        setFocus,
         setValue,
     } = useForm<StudentLoginFormInput, unknown, StudentLoginFormValues>({
         defaultValues: { phone: "", password: "" },
@@ -41,7 +44,7 @@ export default function StudentLoginPage() {
             await loginStudentAccount(values.phone, values.password);
 
             // سرور نقش را بررسی می‌کند؛ پیام خطای نمایندگی هرگز افشا نمی‌شود
-            navigate("/chat", { replace: true });
+            navigate(isSupportRequest ? "/chat?request=support" : "/chat", { replace: true });
         } catch (error) {
             if (error instanceof HttpApiError && error.fieldErrors) {
                 const fieldMessages = Object.values(error.fieldErrors).flat();
@@ -56,14 +59,14 @@ export default function StudentLoginPage() {
 
     return (
         <div dir="rtl" className="app-canvas relative min-h-screen px-4 py-10">
-            <ThemeToggle className="absolute top-5 left-5" />
-
             <div className="relative mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-md items-center justify-center">
                 <div className="w-full space-y-6">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                        <Logo size={58} />
-                        <div>
-                            <h1 className="text-2xl font-bold text-ink">
+                    <header className="flex items-start gap-3 text-start sm:gap-4">
+                        <span className="shrink-0">
+                            <Logo size={58} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-xl font-bold text-ink sm:text-2xl">
                                 ورود به aiosupport
                             </h1>
                             <p className="mt-2 text-sm leading-7 text-ink-2">
@@ -71,7 +74,8 @@ export default function StudentLoginPage() {
                                 شوید.
                             </p>
                         </div>
-                    </div>
+                        <ThemeToggle className="shrink-0" />
+                    </header>
 
                     <Card className="p-6 md:p-7">
                         <form
@@ -81,6 +85,11 @@ export default function StudentLoginPage() {
                         >
                             {serverError ? (
                                 <Alert tone="danger">{serverError}</Alert>
+                            ) : null}
+                            {isSupportRequest ? (
+                                <Alert tone="info" role="status">
+                                    برای ارسال تیکت پشتیبانی وارد حساب خود شوید. فرم درخواست پس از ورود باز می‌شود.
+                                </Alert>
                             ) : null}
 
                             <div className="space-y-2">
@@ -167,11 +176,18 @@ export default function StudentLoginPage() {
                         </form>
                     </Card>
 
+                    <Button variant="ghost" asChild className="w-full">
+                        <Link to="/login?request=support" onClick={() => setFocus("phone")}>
+                            <MessageSquarePlus aria-hidden="true" />
+                            درخواست تیکت پشتیبانی
+                        </Link>
+                    </Button>
+
                     <div className="space-y-3 text-center">
                         <p className="text-sm text-ink-2">
                             حساب کاربری ندارید؟{" "}
                             <Link
-                                to="/register"
+                                to={isSupportRequest ? "/register?request=support" : "/register"}
                                 className="font-bold text-accent-ink underline-offset-4 transition-colors hover:text-alret-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                             >
                                 ثبت‌نام کنید

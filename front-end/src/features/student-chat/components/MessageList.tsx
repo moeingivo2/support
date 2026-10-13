@@ -115,7 +115,7 @@ export function MessageList({
 
     if (isPending) {
         return (
-            <div className="space-y-4 p-5">
+            <div className="space-y-4 p-5 max-md:space-y-3 max-md:p-3">
                 <Skeleton className="h-16 w-2/3" />
                 <Skeleton className="ms-auto h-12 w-1/2" />
                 <Skeleton className="h-20 w-3/4" />
@@ -157,29 +157,29 @@ export function MessageList({
 
     return (
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="shrink-0 space-y-2 border-b border-hairline px-3 py-2 md:px-5">
+            <div className="shrink-0 space-y-2 border-b border-hairline px-3 py-2 max-md:space-y-1.5 max-md:border-0 max-md:py-1.5 max-md:pl-[max(0.75rem,env(safe-area-inset-left))] max-md:pr-[max(0.75rem,env(safe-area-inset-right))] md:px-5">
                 <div className="relative">
                     <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden="true" />
-                    <Input type="search" value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="جستجو در پیام‌های این گفتگو…" aria-label="جستجو در پیام‌های گفتگو" className="h-10 pe-9 ps-10" />
+                    <Input type="search" value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="جستجو در پیام‌های این گفتگو…" aria-label="جستجو در پیام‌های گفتگو" className="h-10 pe-9 ps-10 max-md:border-0" />
                     {search ? <Button type="button" variant="ghost" size="icon" aria-label="پاک کردن جستجو" className="absolute left-0 top-0 size-10" onClick={() => onSearchChange("")}><X className="size-4" /></Button> : null}
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5" aria-label="فیلتر نوع پیام">
                     {([ ["all", "همه", MessagesSquare], ["text", "متن", MessageSquareText], ["code", "کد", Code2], ["image", "تصویر", Image], ["file", "فایل", File], ["voice", "ویس", Mic] ] as const).map(([value, label, Icon]) => (
-                        <button key={value} type="button" aria-pressed={typeFilter === value} onClick={() => setTypeFilter(value)} className={typeFilter === value ? "inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-2.5 text-[11px] font-bold text-accent-ink ring-1 ring-primary-line" : "inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 text-[11px] font-medium text-ink-2 ring-1 ring-hairline hover:bg-surface-3"}>
-                            <Icon className="size-3.5" aria-hidden="true" />{label}
+                        <button key={value} type="button" aria-pressed={typeFilter === value} onClick={() => setTypeFilter(value)} className={typeFilter === value ? "inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-2.5 text-[11px] font-bold text-accent-ink ring-1 ring-primary-line max-md:rounded-lg max-md:text-xs max-md:ring-0" : "inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 text-[11px] font-medium text-ink-2 ring-1 ring-hairline hover:bg-surface-3 max-md:rounded-lg max-md:bg-transparent max-md:text-xs max-md:ring-0"}>
+                            <Icon className="size-3.5 max-md:hidden" aria-hidden="true" />{label}
                         </button>
                     ))}
                 </div>
                 {search || typeFilter !== "all" ? <p className="text-[11px] text-ink-3" aria-live="polite">{toPersianDigits(filteredMessages.length)} پیام از {toPersianDigits(messages.length)}</p> : null}
             </div>
-            <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
-                <div className="flex min-h-full flex-col justify-end gap-3">
+            <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4 max-md:overscroll-y-contain max-md:scroll-smooth max-md:py-3 max-md:pl-[max(0.75rem,env(safe-area-inset-left))] max-md:pr-[max(0.75rem,env(safe-area-inset-right))] max-md:scroll-pb-[max(0.75rem,env(safe-area-inset-bottom))] motion-reduce:scroll-auto md:p-5">
+                <div className="flex min-h-full flex-col justify-end gap-3 max-md:gap-2">
                     {filteredMessages.map((message) => <MessageBubble key={message.id} message={message} isOwn={message.sender.id !== null && message.sender.id === currentUserId} showAttribution={showAttribution} />)}
-                    {filteredMessages.length === 0 ? <p className="m-auto rounded-2xl border border-hairline bg-surface-2 px-4 py-3 text-center text-sm text-ink-2">پیامی با این عبارت پیدا نشد.</p> : null}
+                    {filteredMessages.length === 0 ? <p className="m-auto rounded-2xl border border-hairline bg-surface-2 px-4 py-3 text-center text-sm text-ink-2 max-md:border-0">پیامی با این عبارت پیدا نشد.</p> : null}
                     <div ref={endRef} className="shrink-0" />
                 </div>
             </div>
-            {isAtBottom ? null : <Button type="button" variant="primary" onClick={() => scrollToLatest()} className="absolute bottom-4 end-4 z-10 gap-1.5 rounded-full shadow-[0_10px_28px_-12px_var(--c-glow-accent)]"><ArrowDown className="size-4" />آخرین پیام</Button>}
+            {isAtBottom ? null : <Button type="button" variant="primary" onClick={() => scrollToLatest()} className="absolute bottom-4 end-4 z-10 gap-1.5 rounded-full shadow-[0_10px_28px_-12px_var(--c-glow-accent)] max-md:bottom-3 max-md:end-3 max-md:shadow-none"><ArrowDown className="size-4" />آخرین پیام</Button>}
         </div>
     );
 }

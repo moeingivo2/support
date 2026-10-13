@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Lock, MessageSquareWarning, MessagesSquare, Star } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -26,11 +26,24 @@ import { ChatSidebar } from "../components/ChatSidebar";
 import { CloseConversationDialog } from "../components/CloseConversationDialog";
 import { RateConversationDialog } from "../components/RateConversationDialog";
 import { MessageList } from "../components/MessageList";
+import { SupportTicketRequest } from "../components/SupportTicketRequest";
 
 const EMPTY_HINT =
     "پیام خود را بنویسید یا تصویر، فایل و پیام صوتی بفرستید. برای خوانایی بیشتر پشتیبانی، دکمه «حالت کد» را روشن کنید.";
 
 type LifecycleDialogMode = "close" | "rate" | null;
+
+type RatingSubmission = {
+    conversationId: number | null;
+    ratingValue: number;
+    description?: string;
+};
+
+type RatingFollowUp = {
+    studentId: number;
+    conversationId: number;
+    ratingValue: number;
+};
 
 export default function ChatPage() {
     const toast = useToast();
@@ -43,6 +56,8 @@ export default function ChatPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<LifecycleDialogMode>(null);
     const [dialogError, setDialogError] = useState<string | null>(null);
+    const [ratingFollowUp, setRatingFollowUp] = useState<RatingFollowUp | null>(null);
+    const conversationTitleRef = useRef<HTMLHeadingElement>(null);
 
     const activeId = searchParams.get("c")
         ? Number(searchParams.get("c"))
@@ -137,21 +152,22 @@ export default function ChatPage() {
 
     const closeMutation = useMutation({
         mutationFn: ({
+            conversationId,
             ratingValue,
             description,
-        }: {
-            ratingValue: number;
-            description?: string;
-        }) => {
-            if (activeId === null)
+        }: RatingSubmission) => {
+            if (conversationId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
-            return closeConversation(activeId, ratingValue, description);
+            return closeConversation(conversationId, ratingValue, description);
         },
-        onSuccess: (response) => {
+        onSuccess: (response, { conversationId, ratingValue }) => {
             setDialogMode(null);
             setDialogError(null);
-            invalidateConversation(activeId);
+            invalidateConversation(conversationId);
             toast.success(response.message);
+            if (ratingValue <= 3 && conversationId !== null && user !== null) {
+                setRatingFollowUp({ studentId: user.id, conversationId, ratingValue });
+            }
         },
         onError: (error: unknown) => {
             const message =
@@ -166,21 +182,22 @@ export default function ChatPage() {
 
     const rateMutation = useMutation({
         mutationFn: ({
+            conversationId,
             ratingValue,
             description,
-        }: {
-            ratingValue: number;
-            description?: string;
-        }) => {
-            if (activeId === null)
+        }: RatingSubmission) => {
+            if (conversationId === null)
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
-            return rateConversation(activeId, ratingValue, description);
+            return rateConversation(conversationId, ratingValue, description);
         },
-        onSuccess: (response) => {
+        onSuccess: (response, { conversationId, ratingValue }) => {
             setDialogMode(null);
             setDialogError(null);
-            invalidateConversation(activeId);
+            invalidateConversation(conversationId);
             toast.success(response.message);
+            if (ratingValue <= 3 && conversationId !== null && user !== null) {
+                setRatingFollowUp({ studentId: user.id, conversationId, ratingValue });
+            }
         },
         onError: (error: unknown) => {
             const message =
@@ -210,17 +227,17 @@ export default function ChatPage() {
         // روی گوشی فاصله‌ها صفر می‌شود تا چت تمام صفحه را بگیرد؛ فهرست
         // گفتگوها و پروفایل در منوی همبرگری پوسته می‌مانند.
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 gap-4 md:gap-4">
-            {/* lg:flex لازم است: Card ذاتاً display:block است و بدون آن
+            {/* min-[1025px]:flex لازم است: Card ذاتاً display:block است و بدون آن
                 flex-column بی‌اثر می‌ماند، ارتفاع کارت بی‌کران می‌شود و
                 اسکرول داخلی از کار می‌افتد. */}
-            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden lg:flex xl:w-[22rem]">
+            <Card className="hidden w-80 shrink-0 flex-col overflow-hidden min-[1025px]:flex xl:w-[22rem]">
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     {sidebar}
                 </div>
             </Card>
 
             {isSidebarOpen ? (
-                <div className="fixed inset-0 z-40 lg:hidden">
+                <div className="fixed inset-0 z-40 min-[1025px]:hidden">
                     <button
                         type="button"
                         aria-label="بستن فهرست گفتگوها"
@@ -235,7 +252,7 @@ export default function ChatPage() {
                 </div>
             ) : null}
 
-            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 md:rounded-3xl md:border">
+            <Card className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 max-md:bg-surface max-md:bg-none max-md:shadow-none max-md:hover:shadow-none max-md:before:hidden md:rounded-3xl md:border">
                 {/* روی گوشی فقط نام گفتگو و وضعیت می‌ماند؛ فهرست به منوی
                     همبرگری رفته و تنها «بستن گفتگو» دسترسی می‌ماند. */}
                 <header className="flex shrink-0 items-center gap-2 border-b border-hairline bg-sunken px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
@@ -243,7 +260,7 @@ export default function ChatPage() {
                         <MessagesSquare className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                        <h1 className="truncate text-sm font-bold text-ink">
+                        <h1 ref={conversationTitleRef} tabIndex={-1} className="truncate text-sm font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2">
                             {activeId === null
                                 ? "گفتگو با پشتیبانی"
                                 : (messagesQuery.data?.data.conversation
@@ -297,7 +314,7 @@ export default function ChatPage() {
                         <p className="max-w-md text-sm leading-8 text-ink-2">
                             {EMPTY_HINT}
                         </p>
-                        <div className="flex justify-center">
+                        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
                             <Button
                                 onClick={() => createMutation.mutate()}
                                 disabled={createMutation.isPending}
@@ -305,6 +322,7 @@ export default function ChatPage() {
                                 <MessagesSquare />
                                 شروع گفتگوی جدید
                             </Button>
+                            <SupportTicketRequest />
                         </div>
                         {/* پیمایش درون‌برنامه‌ای؛ window.location کل
                             برنامه را دوباره بارگذاری می‌کرد. */}
@@ -422,7 +440,7 @@ export default function ChatPage() {
                         setDialogError(null);
                     }}
                     onConfirm={(ratingValue, description) =>
-                        closeMutation.mutate({ ratingValue, description })
+                        closeMutation.mutate({ conversationId: activeId, ratingValue, description })
                     }
                 />
             ) : null}
@@ -436,7 +454,7 @@ export default function ChatPage() {
                         setDialogError(null);
                     }}
                     onConfirm={(ratingValue, description) =>
-                        rateMutation.mutate({ ratingValue, description })
+                        rateMutation.mutate({ conversationId: activeId, ratingValue, description })
                     }
                 />
             ) : null}

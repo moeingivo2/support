@@ -12,51 +12,45 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // ورود فقط با شماره موبایل است؛ شماره کلید تطبیق سیدر (idempotent) است.
         $users = [
+            // سوپر ادمین
             [
                 'name' => 'فرزان اسلامی',
                 'phone' => '09120000001',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
             ],
+            // ناظر پشتیبان (observer)
             [
-                'name' => 'سارا محمدی',
-                'phone' => '09120000002',
-                'password' => Hash::make('password'),
+                'name' => 'ناظر پشتیبان',
+                'phone' => '09300778494',
+                'password' => Hash::make('12345678'),
+                'role' => 'observer',
+            ],
+            // پشتیبان عادی (support)
+            [
+                'name' => 'پشتیبان عادی',
+                'phone' => '09307605480',
+                'password' => Hash::make('12345678'),
                 'role' => 'support',
                 'support_type' => 'web',
             ],
+            // کاربر عادی (student)
             [
-                'name' => 'محمد علیاری',
-                'phone' => '09120000003',
-                'password' => Hash::make('password'),
-                'role' => 'support',
-                'support_type' => 'ai',
-            ],
-            [
-                'name' => 'احمد رضایی',
-                'phone' => '09120000004',
-                'password' => Hash::make('password'),
+                'name' => 'کاربر عادی',
+                'phone' => '09123456789',
+                'password' => Hash::make('12345678'),
                 'role' => 'student',
-            ],
-            [
-                'name' => 'فاطمه حسینی',
-                'phone' => '09120000005',
-                'password' => Hash::make('password'),
-                'role' => 'student',
-            ],
-            [
-                'name' => 'ناظر سیستم',
-                'phone' => '09120000006',
-                'password' => Hash::make('password'),
-                'role' => 'observer',
             ],
         ];
 
         foreach ($users as $user) {
+            // اگر ایمیل داریم با ایمیل جستجو می‌کنیم، وگرنه با تلفن
+            $matchKey = $user['email'] ?? $user['phone'];
+            $matchField = isset($user['email']) ? 'email' : 'phone';
+
             User::updateOrCreate(
-                ['phone' => $user['phone']],
+                [$matchField => $matchKey],
                 $user,
             );
         }

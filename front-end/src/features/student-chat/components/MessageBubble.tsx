@@ -146,15 +146,15 @@ export function MessageBubble({
         >
             <div
                 className={cn(
-                    "group relative max-w-[min(78%,34rem)] overflow-hidden rounded-3xl border px-4 py-3 shadow-[var(--c-shadow-soft)] transition-colors duration-150 ease-out ",
+                    "group relative min-w-0 max-w-[min(78%,34rem)] overflow-hidden rounded-3xl border px-4 py-3 shadow-[var(--c-shadow-soft)] transition-colors duration-150 ease-out max-md:max-w-[90%] max-md:rounded-2xl max-md:border-0 max-md:px-3 max-md:py-2.5 max-md:shadow-none",
                     isOwn
                         ? "border-primary-line bg-primary-soft"
                         : "border-hairline bg-surface-2",
                     actorRole === "system" && "border-dashed",
                 )}
             >
-                <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-2">
-                    <span className="font-bold text-ink">
+                <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-2 max-md:gap-y-0.5">
+                    <span className="font-bold text-ink max-md:min-w-0 max-md:font-medium max-md:wrap-anywhere">
                         {showAttribution ? authorName : isOwn ? "شما" : (message.sender.name ?? "پشتیبان")}
                     </span>
 
@@ -177,13 +177,13 @@ export function MessageBubble({
                         </span>
                     ) : null}
 
-                    <span dir="ltr">
+                    <span dir="ltr" className="max-md:ms-auto max-md:shrink-0">
                         {formatMessageTime(message.created_at)}
                     </span>
                 </div>
 
                 {message.type === "text" && message.body ? (
-                    <p className="text-sm leading-7 whitespace-pre-wrap text-ink">
+                    <p className="text-sm leading-7 whitespace-pre-wrap text-ink max-md:text-[15px] max-md:leading-6 max-md:wrap-anywhere">
                         {message.body}
                     </p>
                 ) : null}
@@ -201,7 +201,7 @@ export function MessageBubble({
                                 {copied ? "کپی شد" : "کپی"}
                             </Button>
                         </div>
-                        <pre className="max-w-full overflow-x-auto rounded-2xl border border-hairline bg-black/45 p-3 text-left text-[13px] leading-6 text-emerald-200">
+                        <pre className="max-w-full overflow-x-auto rounded-2xl border border-hairline bg-black/45 p-3 text-left text-[13px] leading-6 text-emerald-200 max-md:rounded-xl max-md:border-0">
                             <code>{message.body}</code>
                         </pre>
                     </div>
@@ -210,11 +210,11 @@ export function MessageBubble({
                 {message.type === "image" && message.url ? (
                     <div ref={imagePlaceholderRef} className="min-h-12">
                         {imageUrl ? (
-                            <a href={imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-hairline transition-opacity hover:opacity-90">
+                            <a href={imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-hairline transition-opacity hover:opacity-90 max-md:rounded-xl max-md:border-0">
                                 <img src={imageUrl} alt={message.attachment_name ?? "تصویر ارسالی"} loading="lazy" className="max-h-72 w-full object-cover" />
                             </a>
                         ) : (
-                            <p className="rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-xs text-ink-2" role={imageLoadFailed ? "alert" : undefined}>
+                            <p className="rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-xs text-ink-2 max-md:border-0 max-md:bg-transparent max-md:px-0" role={imageLoadFailed ? "alert" : undefined}>
                                 {imageLoading ? "در حال دریافت تصویر…" : imageLoadFailed ? "دریافت تصویر ناموفق بود." : "تصویر هنگام نمایش دریافت می‌شود."}
                             </p>
                         )}
@@ -230,7 +230,7 @@ export function MessageBubble({
                 ) : null}
 
                 {message.type === "file" ? (
-                    <div className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3">
+                    <div className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-hairline bg-sunken p-3 max-md:gap-2 max-md:rounded-xl max-md:border-0 max-md:bg-transparent max-md:p-0">
                         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-warn-soft text-alret-gold">
                             {message.attachment_mime?.includes("pdf") ? (
                                 <FileText className="size-4" />
@@ -255,7 +255,7 @@ export function MessageBubble({
                 {message.body &&
                 message.type !== "text" &&
                 message.type !== "code" ? (
-                    <p className="mt-2 text-sm leading-7 whitespace-pre-wrap text-ink">
+                    <p className="mt-2 text-sm leading-7 whitespace-pre-wrap text-ink max-md:text-[15px] max-md:leading-6 max-md:wrap-anywhere">
                         {message.body}
                     </p>
                 ) : null}

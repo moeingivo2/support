@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
     Check,
     FileUp,
     GraduationCap,
     Loader2,
+    MessageSquarePlus,
     School,
     UserRound,
     Wifi,
@@ -31,6 +32,7 @@ import {
     COURSE_OPTIONS,
     TOTAL_SESSIONS,
     TRACK_OPTIONS,
+    type CourseOption,
 } from "../constants/courses";
 
 type RegisterMode = "account" | "course";
@@ -46,9 +48,12 @@ const COURSE_ICONS = {
 
 export default function StudentRegisterPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const isSupportRequest = searchParams.get("request") === "support";
     const { registerStudentAccount } = useAuth();
     const [mode, setMode] = useState<RegisterMode>("account");
     const [serverError, setServerError] = useState<string | null>(null);
+    const [selectedCourses, setSelectedCourses] = useState<CourseOption["value"][]>(["offline"]);
     const roadmapInputRef = useRef<HTMLInputElement | null>(null);
 
     const {
@@ -91,6 +96,11 @@ export default function StudentRegisterPage() {
 
     const onSubmit = async (values: StudentRegisterFormValues) => {
         setServerError(null);
+        if (selectedCourses.length === 0) {
+            setMode("course");
+            setServerError("حداقل یک دوره را انتخاب کنید.");
+            return;
+        }
 
         const isOffline = values.course === "offline";
 
@@ -106,7 +116,7 @@ export default function StudentRegisterPage() {
                 sessions: isOffline ? values.sessions : [],
                 roadmap: isOffline ? (values.roadmap ?? null) : null,
             });
-            navigate("/chat", { replace: true });
+            navigate(isSupportRequest ? "/chat?request=support" : "/chat", { replace: true });
         } catch (error) {
             if (error instanceof HttpApiError && error.fieldErrors) {
                 const fields = Object.keys(error.fieldErrors);
@@ -136,25 +146,50 @@ export default function StudentRegisterPage() {
         setValue("sessions", next, { shouldValidate: true });
     }
 
+    function selectPrimaryCourse(value: CourseOption["value"]) {
+        setValue("course", value, { shouldValidate: true });
+        if (value !== "offline") {
+            setValue("roadmap", null);
+            setValue("track", null);
+            setValue("sessions", []);
+            if (roadmapInputRef.current) {
+                roadmapInputRef.current.value = "";
+            }
+        }
+    }
+
+    function toggleCourse(value: CourseOption["value"]) {
+        const next = selectedCourses.includes(value)
+            ? selectedCourses.filter((item) => item !== value)
+            : [...selectedCourses, value];
+        setSelectedCourses(next);
+
+        const nextPrimaryCourse = next[0];
+        if (nextPrimaryCourse !== undefined && !next.includes(course)) {
+            selectPrimaryCourse(nextPrimaryCourse);
+        }
+    }
+
     return (
         <div dir="rtl" className="app-canvas relative min-h-screen px-4 py-10">
-            <ThemeToggle className="absolute top-5 left-5" />
-
             <div className="relative mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-2xl items-center justify-center">
                 <div className="w-full space-y-6">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                        <Logo size={58} />
-                        <div>
-                            <h1 className="text-2xl font-bold text-ink">
+                    <header className="flex items-start gap-3 text-start sm:gap-4">
+                        <span className="shrink-0">
+                            <Logo size={58} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-xl font-bold text-ink sm:text-2xl">
                                 ثبت‌نام در aiosupport
                             </h1>
                             <p className="mt-2 text-sm leading-7 text-ink-2">
                                 {mode === "account"
                                     ? "مرحله اول: اطلاعات حساب کاربری خود را وارد کنید."
-                                    : "مرحله دوم: دوره‌ای که خریداری کرده‌اید را انتخاب کنید."}
+                                    : "مرحله دوم: دوره‌هایی که خریداری کرده‌اید را انتخاب کنید."}
                             </p>
                         </div>
-                    </div>
+                        <ThemeToggle className="shrink-0" />
+                    </header>
 
                     <div
                         className="flex items-center justify-center gap-2"
@@ -181,6 +216,11 @@ export default function StudentRegisterPage() {
                         >
                             {serverError ? (
                                 <Alert tone="danger">{serverError}</Alert>
+                            ) : null}
+                            {isSupportRequest ? (
+                                <Alert tone="info" role="status">
+                                    پس از ثبت‌نام، فرم درخواست تیکت پشتیبانی باز می‌شود. اگر حساب دارید، وارد شوید.
+                                </Alert>
                             ) : null}
 
                             <div
@@ -325,51 +365,38 @@ export default function StudentRegisterPage() {
                                     mode === "account" && "hidden",
                                 )}
                             >
-                                <fieldset className="space-y-3">
+                                <fieldset className="space-y-3" aria-describedby="student-courses-hint">
                                     <legend className="mb-3 text-sm font-semibold text-ink">
-                                        دوره
+                                        دوره‌ها
                                     </legend>
+                                    <p id="student-courses-hint" className="text-xs leading-6 text-ink-2">
+                                        می‌توانید چند دوره را انتخاب کنید. ثبت‌نام با دوره اصلی انجام می‌شود.
+                                    </p>
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                         {COURSE_OPTIONS.map((option) => {
                                             const Icon =
                                                 COURSE_ICONS[option.value];
                                             const selected =
-                                                course === option.value;
+                                                selectedCourses.includes(option.value);
                                             return (
-                                                <button
+                                                <label
                                                     key={option.value}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setValue(
-                                                            "course",
-                                                            option.value,
-                                                            {
-                                                                shouldValidate: true,
-                                                            },
-                                                        );
-                                                        if (
-                                                            option.value !==
-                                                            "offline"
-                                                        ) {
-                                                            setValue("roadmap", null);
-                                                            setValue(
-                                                                "track",
-                                                                null,
-                                                            );
-                                                            setValue(
-                                                                "sessions",
-                                                                [],
-                                                            );
-                                                        }
-                                                    }}
-                                                    aria-pressed={selected}
                                                     className={cn(
-                                                        "group flex flex-col items-start gap-2 rounded-3xl border p-4 text-right transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                                        "group relative flex cursor-pointer flex-col items-start gap-2 rounded-3xl border p-4 text-start transition-colors duration-150 ease-out focus-within:ring-2 focus-within:ring-primary-ring-2",
                                                         selected
                                                             ? "border-primary-line-2 bg-primary-soft shadow-[0_14px_34px_-22px_var(--c-glow-accent)]"
                                                             : "border-hairline bg-surface-2  hover:border-hairline hover:bg-surface-2",
                                                     )}
                                                 >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selected}
+                                                        onChange={() => toggleCourse(option.value)}
+                                                        aria-labelledby={`student-course-${option.value}-label`}
+                                                        aria-describedby={`student-course-${option.value}-description`}
+                                                        className="absolute top-4 end-4 size-5 cursor-pointer accent-active-blue focus-visible:outline-none"
+                                                        disabled={isSubmitting}
+                                                    />
                                                     <span
                                                         className={cn(
                                                             "grid size-10 place-items-center rounded-2xl transition-colors",
@@ -380,16 +407,36 @@ export default function StudentRegisterPage() {
                                                     >
                                                         <Icon className="size-5" />
                                                     </span>
-                                                    <span className="text-sm font-bold text-ink">
+                                                    <span id={`student-course-${option.value}-label`} className="text-sm font-bold text-ink">
                                                         {option.label}
                                                     </span>
-                                                    <span className="text-xs leading-5 text-ink-2">
+                                                    <span id={`student-course-${option.value}-description`} className="text-xs leading-5 text-ink-2">
                                                         {option.description}
                                                     </span>
-                                                </button>
+                                                </label>
                                             );
                                         })}
                                     </div>
+                                    {selectedCourses.length === 0 ? (
+                                        <p role="alert" className="text-xs font-medium text-err-text">
+                                            حداقل یک دوره را انتخاب کنید.
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="student-primary-course">دوره اصلی</Label>
+                                            <select
+                                                id="student-primary-course"
+                                                value={course}
+                                                onChange={(event) => selectPrimaryCourse(event.target.value as CourseOption["value"])}
+                                                disabled={isSubmitting}
+                                                className="h-11 w-full rounded-2xl border border-hairline bg-sunken px-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 sm:text-sm"
+                                            >
+                                                {COURSE_OPTIONS.filter((option) => selectedCourses.includes(option.value)).map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     {errors.course ? (
                                         <p className="text-xs font-medium text-err-text">
                                             {errors.course.message}
@@ -560,7 +607,7 @@ export default function StudentRegisterPage() {
                                     <Button
                                         type="submit"
                                         className="w-full sm:w-auto"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || selectedCourses.length === 0}
                                     >
                                         {isSubmitting ? (
                                             <Loader2 className="animate-spin" />
@@ -585,10 +632,17 @@ export default function StudentRegisterPage() {
                         </form>
                     </Card>
 
+                    <Button variant="ghost" asChild className="w-full">
+                        <Link to="/register?request=support">
+                            <MessageSquarePlus aria-hidden="true" />
+                            درخواست تیکت پشتیبانی
+                        </Link>
+                    </Button>
+
                     <p className="text-center text-sm text-ink-2">
                         قبلاً ثبت‌نام کرده‌اید؟{" "}
                         <Link
-                            to="/login"
+                            to={isSupportRequest ? "/login?request=support" : "/login"}
                             className="font-bold text-accent-ink underline-offset-4 transition-colors hover:text-alret-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                         >
                             وارد شوید
