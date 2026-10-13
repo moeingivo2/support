@@ -23,10 +23,17 @@ class AttachmentStorage
     public const ALLOWED_EXTENSIONS = [
         // تصویر
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
-        'pdf', 'txt',
+        // سند و متن
+        'pdf', 'txt', 'csv', 'md', 'json', 'xml',
+        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+        'odt', 'ods', 'odp', 'rtf',
+        // صدا
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
+        // ویدیو
         'mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg',
         '3gp', '3g2', 'wmv', 'flv', 'ogv',
+        // فشرده
+        'zip', 'rar', '7z', 'tar', 'gz',
     ];
 
     /**
@@ -48,10 +55,19 @@ class AttachmentStorage
      */
     public const ALLOWED_MIMES = [
         'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/gif',
-        'image/webp', 'application/pdf', 'text/plain', 'text/csv',
-        'application/vnd.ms-excel', 'application/octet-stream',
-        'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
-        'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/aac',
+        'image/webp', 'image/bmp', 'image/x-ms-bmp',
+        'application/pdf', 'text/plain', 'text/csv', 'text/rtf', 'text/markdown',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text', 'application/vnd.oasis.opendocument.spreadsheet', 'application/vnd.oasis.opendocument.presentation',
+        'application/json', 'application/xml', 'text/xml', 'application/octet-stream',
+        'text/html', 'text/css', 'text/javascript', 'application/javascript', 'application/typescript',
+        'text/x-python', 'text/x-shellscript', 'application/x-shellscript', 'text/yaml', 'application/yaml',
+        'application/x-httpd-php', 'text/x-php', 'application/php',
+        'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip', 'application/x-gzip',
+        'audio/webm', 'video/webm', 'audio/ogg', 'application/ogg', 'audio/oga', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'video/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/vnd.wave', 'audio/aac', 'audio/aacp',
+        'video/mp4', 'video/x-m4v', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/mpeg', 'video/3gpp', 'video/3gpp2', 'video/x-ms-wmv', 'video/x-flv', 'video/ogg', 'video/webm',
     ];
 
     /**
@@ -71,6 +87,10 @@ class AttachmentStorage
      * @var array<int, string>
      */
     private const AUDIO_MIMES = [
+                'application/zip', 'application/x-zip-compressed',
+        'application/x-rar-compressed', 'application/vnd.rar',
+        'application/x-7z-compressed', 'application/x-tar',
+        'application/gzip', 'application/x-gzip',
         'audio/webm', 'video/webm',
         'audio/ogg', 'application/ogg', 'audio/oga',
         'audio/mpeg', 'audio/mp3',
@@ -113,6 +133,13 @@ class AttachmentStorage
         'audio' => ['webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac'],
         'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
         'video' => ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2', 'wmv', 'flv', 'ogv'],
+        'code'  => [
+            'php','phtml','js','jsx','ts','tsx','mjs','cjs',
+            'py','rb','java','go','cpp','cc','c','h','hpp',
+            'cs','rs','kt','swift','dart','lua','sh','bash',
+            'zsh','ps1','psm1','sql','yaml','yml','toml','ini',
+            'htm','html','css','scss','sass','less','svg','txt','md','json','xml',
+        ],
     ];
 
     /**
@@ -208,6 +235,7 @@ class AttachmentStorage
             'audio' => self::AUDIO_MIMES,
             'image' => self::IMAGE_MIMES,
             'video' => self::VIDEO_MIMES,
+            'code'  => self::ALLOWED_MIMES,
             default => null,
         };
 
