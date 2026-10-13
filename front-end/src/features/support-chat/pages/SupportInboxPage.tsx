@@ -94,8 +94,9 @@ export default function SupportInboxPage() {
     const isClosed = activeConversation?.is_closed ?? false;
 
     // وقتی پشتیبان گفتگو را باز می‌کند، سمت سرور شمارنده‌ی خوانده‌نشده صفر
-    // و کش نوتیفیکیشن پاک می‌شود؛ این‌جا فقط باید پرس‌وجوی نوتیفیکیشن را
-    // دوباره بخوانیم تا نشانگر فوراً خالی شود — نه صبر تا poll بعدی.
+    // و کش نوتیفیکیشن پاک می‌شود؛ این‌جا باید هم نشانگر نوتیفیکیشن و هم
+    // ردیف‌های فهرست (صندوق ورودی و دانشجوها) دوباره خوانده شوند تا نشانگر
+    // «خوانده‌نشده»‌ی همان ردیف فوراً خالی شود — نه صبر تا poll بعدی.
     const clearedConversationRef = useRef<number | null>(null);
     useEffect(() => {
         if (
@@ -110,6 +111,12 @@ export default function SupportInboxPage() {
         void queryClient.invalidateQueries({
             queryKey: supportChatKeys.notifications,
         });
+        void queryClient.invalidateQueries({
+            queryKey: supportChatKeys.inboxAll,
+        });
+        void queryClient.invalidateQueries({
+            queryKey: supportChatKeys.students,
+        });
     }, [activeId, activeConversation, queryClient]);
 
     function selectConversation(id: number) {
@@ -117,7 +124,16 @@ export default function SupportInboxPage() {
         setIsListOpen(false);
         setIsCloseDialogOpen(false);
         setDialogError(null);
-        setSearchParams({ c: String(id) }, { replace: true });
+        // `s` حفظ می‌شود تا با باز کردن یک گفتگو، فهرست گفتگوهای همان دانشجو
+        // در ستون کنار باقی بماند و ردیف تازه‌خوانده‌شده همان‌جا به‌روز شود.
+        setSearchParams(
+            (previous) => {
+                const next = new URLSearchParams(previous);
+                next.set("c", String(id));
+                return next;
+            },
+            { replace: true },
+        );
     }
 
     /** باز کردن پروفایل یک دانشجو: فقط گفتگوهای همان نفر. */
@@ -164,8 +180,14 @@ language,
                     queryKey: supportChatKeys.conversation(activeId),
                 });
             }
+            // پاسخ، مالکیت/پشتیبان مسئول و آخرین پیام را عوض می‌کند، پس همه‌ی
+            // نمای‌های فهرست باید نو شوند تا برچسب «تخصیص‌نیافته» فوراً جابه‌جا
+            // شود، نه با هارد رفرش.
             void queryClient.invalidateQueries({
-                queryKey: supportChatKeys.inbox(studentId),
+                queryKey: supportChatKeys.inboxAll,
+            });
+            void queryClient.invalidateQueries({
+                queryKey: supportChatKeys.students,
             });
             // ارسال پاسخ باعث حذف «خواندن‌نشده» و به‌روزشدن رونوشت تیم می‌شود
             void queryClient.invalidateQueries({
@@ -189,7 +211,10 @@ language,
                 });
             }
             void queryClient.invalidateQueries({
-                queryKey: supportChatKeys.inbox(studentId),
+                queryKey: supportChatKeys.inboxAll,
+            });
+            void queryClient.invalidateQueries({
+                queryKey: supportChatKeys.students,
             });
             // بستن گفتگو وضعیت امتیازدهی را تغییر می‌دهد
             void queryClient.invalidateQueries({ queryKey: rankKeys.board });

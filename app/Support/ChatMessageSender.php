@@ -95,10 +95,10 @@ class ChatMessageSender
             'last_message_preview' => $message->preview(),
             'last_message_at' => $message->created_at,
             $unreadColumn => DB::raw('"'.$unreadColumn.'" + 1'),
-            // فقط پشتیبان مالکیت گفتگو را برمی‌دارد؛ پاسخ ناظر اکانت به نام
-            // خودش نباید گفتگو را از پشتیبانِ مسئول جدا کند یا گفتگوی بدون
-            // پشتیبان را از دید بقیه‌ی تیم پنهان کند.
-            'support_id' => $isStudentSender || ! $sender->isSupport() ? $conversation->support_id : $sender->id,
+            // هر پاسخ کارمند (پشتیبان یا ناظر اکانت) مالکیت گفتگو را به
+            // پاسخ‌دهنده می‌سپارد تا ردیف فهرست به‌جای «تخصیص‌نیافته» نام او
+            // را نشان دهد. پاسخ دانشجو مالکیت را دست‌نخورده می‌گذارد.
+            'support_id' => $isStudentSender ? $conversation->support_id : $sender->id,
         ]);
 
         $conversation->refresh();

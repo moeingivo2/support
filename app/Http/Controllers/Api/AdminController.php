@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminRegisterSupportRequest;
+use App\Http\Requests\AdminRegisterTraineeRequest;
 use App\Http\Requests\StoreAdminRequest;
 use App\Http\Requests\UpdateAdminRequest;
 use App\Http\Requests\UpdateSupportRequest;
@@ -87,6 +88,49 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => 'پشتیبان با موفقیت حذف شد.',
+        ]);
+    }
+
+    /**
+     * ثبت کارآموز — پشتیبانِ فقط‌مشاهده که فقط متن گفتگوها را می‌بیند.
+     * کارآموز نوع پشتیبانی ندارد و وارد هیچ کانال پاسخ‌گویی نمی‌شود.
+     */
+    public function storeTrainee(AdminRegisterTraineeRequest $request): JsonResponse
+    {
+        $trainee = User::create([
+            'name' => $request->string('name')->toString(),
+            'phone' => $request->string('phone')->toString(),
+            'password' => Hash::make($request->string('password')->toString()),
+            'role' => 'trainee',
+            'support_type' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'کارآموز با موفقیت ثبت شد.',
+            'user' => $trainee,
+        ], 201);
+    }
+
+    public function trainees(Request $request): JsonResponse
+    {
+        $trainees = User::query()
+            ->where('role', 'trainee')
+            ->select(['id', 'name', 'phone', 'role', 'created_at'])
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['data' => $trainees]);
+    }
+
+    public function destroyTrainee(User $trainee): JsonResponse
+    {
+        abort_unless($trainee->isTrainee(), 404);
+
+        $trainee->tokens()->delete();
+        $trainee->delete();
+
+        return response()->json([
+            'message' => 'کارآموز با موفقیت حذف شد.',
         ]);
     }
 

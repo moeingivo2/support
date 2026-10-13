@@ -15,6 +15,7 @@ import {
     UserRoundCog,
     UserCog,
     UserPlus,
+    Users,
 } from "lucide-react";
 import type { PanelUser } from "@/shared/lib/auth-storage";
 
@@ -44,6 +45,7 @@ const adminNavigation: NavItem[] = [
     },
     { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
     { label: "ثبت پشتیبان جدید", path: "/register-support", icon: UserPlus },
+    { label: "کارآموزها", path: "/manage-trainees", icon: Users },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
     { label: "سوالات متداول", path: "/faq", icon: FileWarning },

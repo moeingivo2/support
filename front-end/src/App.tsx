@@ -22,6 +22,7 @@ import {
     ActivityReportRoute,
     AllReportsRoute,
     ManageAdminsRoute,
+    ManageTraineesRoute,
     RegisterSupportRoute,
     SupportRankingRoute,
 } from "@/features/admin/routes";
@@ -50,6 +51,7 @@ const adminOnlyPaths = new Set([
     "/register-support",
     "/activity-report",
     "/manage-admins",
+    "/manage-trainees",
     "/support-ranking",
 ]);
 /**
@@ -67,6 +69,11 @@ const transcriptPaths = new Set(["/inbox"]);
  * ناظر فقط‌خواندنی و کارآموز اجازه‌ی رسیدگی ندارند.
  */
 const upgradeRequestPaths = new Set(["/upgrade-requests"]);
+/**
+ * کارآموز فقط‌خواندنی است و تنها صفحه‌ی گفتگوی دانشجویان را می‌بیند؛ هر مسیر
+ * دیگری (حتی داشبورد) او را به همان یک صفحه برمی‌گرداند.
+ */
+const traineeAllowedPaths = new Set(["/inbox"]);
 
 const routeComponents: Record<string, React.ComponentType> = {
     "/": DashboardRoute,
@@ -82,6 +89,7 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/activity-report": ActivityReportRoute,
     "/manage-admins": ManageAdminsRoute,
     "/register-support": RegisterSupportRoute,
+    "/manage-trainees": ManageTraineesRoute,
     "/support-ranking": SupportRankingRoute,
     "/observer-schedules": ObserverSchedulesPage,
     "/team-supervision": TeamSupervisionPage,
@@ -98,6 +106,8 @@ function PanelRoutes() {
         isObserver || isTrainee ? "/inbox" : "/";
 
     function renderWithGuard(path: string) {
+        if (isTrainee && !traineeAllowedPaths.has(path))
+            return <Navigate to="/inbox" replace />;
         if (isAdmin && transcriptPaths.has(path))
             return <Navigate to={homePath} replace />;
         if (supportOnlyPaths.has(path) && (isAdmin || isObserver || isTrainee))

@@ -38,7 +38,10 @@ Route::post('/password/forgot', [PasswordResetRequestController::class, 'store']
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    Route::get('/dashboard', [DashboardController::class, 'index']);
+    // داشبورد آمار فقط برای نقش‌هایی است که در منو آن را می‌بینند؛ کارآموز و
+    // ناظر فقط‌خواندنی داشبوردی ندارند.
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware('role:admin,support,account_observer');
 
     // پیوست‌ها با نوع امن و به‌صورت دانلود سرو می‌شوند تا کد اجرا نشود
     Route::get('/attachments/{path}', [AttachmentController::class, 'show'])
@@ -53,6 +56,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/supports/{support}', [AdminController::class, 'destroySupport']);
         Route::put('/supports/{support}/account-observer', [AdminController::class, 'grantAccountObserver']);
         Route::delete('/supports/{support}/account-observer', [AdminController::class, 'revokeAccountObserver']);
+
+        // کارآموز — پشتیبانِ فقط‌مشاهده؛ سوپر ادمین حسابش را می‌سازد
+        Route::get('/trainees', [AdminController::class, 'trainees']);
+        Route::post('/trainees', [AdminController::class, 'storeTrainee']);
+        Route::delete('/trainees/{trainee}', [AdminController::class, 'destroyTrainee']);
         Route::get('/activity-report/export', [ActivityReportController::class, 'export'])->middleware('throttle:exports');
         Route::get('/admins', [AdminController::class, 'admins']);
         Route::post('/admins', [AdminController::class, 'storeAdmin']);

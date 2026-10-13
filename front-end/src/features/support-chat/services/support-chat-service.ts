@@ -12,11 +12,15 @@ import type {
 } from "../types/support-chat";
 
 export const supportChatKeys = {
+    // کلید پایه‌ی «صندوق ورودی» جدا از کلید «یک گفتگو» و «اعلان‌ها» است تا
+    // بتوان همه‌ی نمای‌های فهرست (هر `studentId`) را با یک پیشوند باطل کرد؛
+    // وگرنه پس از خواندن/پاسخ، ردیف‌های فهرست تا poll بعدی کهنه می‌ماندند.
+    inboxAll: ["support", "inbox"] as const,
     inbox: (studentId: number | null) =>
-        ["support", "conversations", { studentId }] as const,
+        ["support", "inbox", { studentId }] as const,
     students: ["support", "students"] as const,
-    conversation: (id: number) => ["support", "conversations", id] as const,
-    notifications: ["support", "conversations", "notifications"] as const,
+    conversation: (id: number) => ["support", "conversation", id] as const,
+    notifications: ["support", "notifications"] as const,
     teamSupervision: ["observer", "team-supervision"] as const,
 };
 

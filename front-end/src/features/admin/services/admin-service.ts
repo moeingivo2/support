@@ -4,6 +4,7 @@ import type { PanelUser } from "@/shared/lib/auth-storage";
 export const adminKeys = {
     supports: ["admin", "supports"] as const,
     admins: ["admin", "admins"] as const,
+    trainees: ["admin", "trainees"] as const,
 };
 
 export type SupportType = "web" | "ai";
@@ -51,6 +52,22 @@ export type UpdateAdminPayload = Omit<CreateAdminPayload, "password"> & {
 export type AdminMutationResponse = {
     message: string;
     user: AdminListItem;
+};
+
+export type TraineeListItem = Pick<PanelUser, "id" | "name" | "phone"> & {
+    role: "trainee";
+    created_at: string;
+};
+
+export type CreateTraineePayload = {
+    name: string;
+    phone: string;
+    password: string;
+};
+
+export type TraineeMutationResponse = {
+    message: string;
+    user: Pick<PanelUser, "id" | "name" | "phone" | "role">;
 };
 
 export function createSupport(
@@ -117,4 +134,21 @@ export function updateAdmin(
 
 export function deleteAdmin(adminId: number): Promise<{ message: string }> {
     return deleteJson<{ message: string }>(`/api/admin/admins/${adminId}`);
+}
+
+export function createTrainee(
+    payload: CreateTraineePayload,
+): Promise<TraineeMutationResponse> {
+    return postJson<CreateTraineePayload, TraineeMutationResponse>(
+        "/api/admin/trainees",
+        payload,
+    );
+}
+
+export function getTrainees(): Promise<{ data: TraineeListItem[] }> {
+    return getJson<{ data: TraineeListItem[] }>("/api/admin/trainees");
+}
+
+export function deleteTrainee(traineeId: number): Promise<{ message: string }> {
+    return deleteJson<{ message: string }>(`/api/admin/trainees/${traineeId}`);
 }
