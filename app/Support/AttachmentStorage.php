@@ -23,17 +23,10 @@ class AttachmentStorage
     public const ALLOWED_EXTENSIONS = [
         // تصویر
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
-        // سند و متن
-        'pdf', 'txt', 'csv', 'md', 'json', 'xml',
-        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-        'odt', 'ods', 'odp', 'rtf',
-        // صدا
+        'pdf', 'txt',
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
-        // ویدیو
         'mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg',
         '3gp', '3g2', 'wmv', 'flv', 'ogv',
-        // فشرده
-        'zip', 'rar', '7z', 'tar', 'gz',
     ];
 
     /**
@@ -57,21 +50,6 @@ class AttachmentStorage
         'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/gif',
         'image/webp', 'application/pdf', 'text/plain', 'text/csv',
         'application/vnd.ms-excel', 'application/octet-stream',
-        // سندهای اداری و متن‌های ساخت‌یافته
-        'application/msword', 'application/rtf', 'text/rtf', 'text/markdown',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.oasis.opendocument.text',
-        'application/vnd.oasis.opendocument.spreadsheet',
-        'application/vnd.oasis.opendocument.presentation',
-        'application/json', 'application/xml', 'text/xml',
-        // آرشیوها
-        'application/zip', 'application/x-zip-compressed',
-        'application/x-rar-compressed', 'application/vnd.rar',
-        'application/x-7z-compressed', 'application/x-tar',
-        'application/gzip', 'application/x-gzip',
         'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
         'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/aac',
     ];

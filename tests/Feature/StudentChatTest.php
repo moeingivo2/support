@@ -353,6 +353,21 @@ class StudentChatTest extends TestCase
         Storage::disk('public')->assertExists($message->attachment_path);
     }
 
+    public function test_student_can_send_a_video_attachment(): void
+    {
+        Storage::fake('public');
+        $student = $this->makeStudent();
+        $conversation = Conversation::create(['student_id' => $student->id]);
+        $this->actingAs($student, 'sanctum')
+            ->post('/api/conversations/'.$conversation->id.'/messages', [
+                'attachment' => UploadedFile::fake()->create('video.mp4', 1024, 'video/mp4'),
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.type', 'file');
+        $message = Message::where('conversation_id', $conversation->id)->firstOrFail();
+        Storage::disk('public')->assertExists($message->attachment_path);
+    }
+
     public function test_a_webm_container_named_as_an_image_is_still_rejected(): void
     {
         Storage::fake('public');
