@@ -7,6 +7,7 @@ import {
     useState,
     type ComponentProps,
 } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Input } from "@/shared/ui/input";
@@ -33,6 +34,12 @@ import { toPersianDigits } from "@/features/student-chat/utils/persian";
  */
 
 const WEEKDAY_LABELS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+
+/** پهنای پنجره‌ی تقویم (پیکسل) — باید با `w-72` هماهنگ باشد. */
+const CALENDAR_WIDTH = 288;
+
+/** ارتفاع تقریبی پنجره، برای تصمیمِ «باز شود بالا یا پایین». */
+const CALENDAR_HEIGHT = 340;
 
 /** تعداد روزهای هر ماه شمسی برای سال داده‌شده. */
 function daysInJalaliMonth(year: number, month: number): number {
@@ -128,11 +135,25 @@ export function JalaliDateInput({
     const [text, setText] = useState("");
     const [invalid, setInvalid] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const calendarId = useId();
 
+    // مختصاتِ پنجره‌ی شناور. تقویم داخل یک ‎Card‎ رندر می‌شود و Card
+    // ‎overflow-hidden‎ دارد، پس اگر ‎absolute‎ باشد بریده می‌شود؛ به
+    // ‎body‎ پورت می‌شود و با ‎position: fixed‎ خودش را جا می‌اندازد.
+    const [anchor, setAnchor] = useState<{
+        top: number;
+        left: number;
+        width: number;
+    } | null>(null);
+
     const selected = useMemo(() => gregorianParts(value), [value]);
-    const [viewYear, setViewYear] = useState(() => selected?.year ?? todayJalali().year);
-    const [viewMonth, setViewMonth] = useState(() => selected?.month ?? todayJalali().month);
+    const [viewYear, setViewYear] = useState(
+        () => selected?.year ?? todayJalali().year,
+    );
+    const [viewMonth, setViewMonth] = useState(
+        () => selected?.month ?? todayJalali().month,
+    );
 
     // هر بار که مقدار بیرونی عوض می‌شود، متن فیلد هم باید عوض شود.
     useEffect(() => {
@@ -140,12 +161,43 @@ export function JalaliDateInput({
         setInvalid(false);
     }, [selected?.year, selected?.month, selected?.day]);
 
+    const placePopup = useCallback(() => {
+        const box = wrapperRef.current?.getBoundingClientRect();
+
+        if (box === undefined) {
+            return;
+        }
+
+        const width = Math.max(box.width, CALENDAR_WIDTH);
+        const viewportWidth = window.innerWidth;
+        const margin = 8;
+
+        // اگر جا نبود، به سمت چپِ میدان دید می‌رود تا از لبه بیرون نزند.
+        const left = Math.min(
+            Math.max(box.left, margin),
+            Math.max(margin, viewportWidth - width - margin),
+        );
+
+        const below = window.innerHeight - box.bottom;
+        const flip = below < CALENDAR_HEIGHT + margin && box.top > below;
+
+        const top = flip
+            ? Math.max(margin, box.top - CALENDAR_HEIGHT - 8)
+            : box.bottom + 8;
+
+        setAnchor({ top, left, width });
+    }, []);
+
     // بستن تقویم با کلیک بیرون از آن.
     useEffect(() => {
         if (!open) return;
 
         const onPointerDown = (event: MouseEvent) => {
-            if (!wrapperRef.current?.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const insideAnchor = wrapperRef.current?.contains(target) ?? false;
+            const insidePopup = popupRef.current?.contains(target) ?? false;
+
+            if (!insideAnchor && !insidePopup) {
                 setOpen(false);
             }
         };
@@ -156,18 +208,36 @@ export function JalaliDateInput({
             }
         };
 
+        const onReflow = () => placePopup();
+
         document.addEventListener("mousedown", onPointerDown);
         document.addEventListener("keydown", onKeyDown);
+        window.addEventListener("resize", onReflow);
+        window.addEventListener("scroll", onReflow, true);
 
         return () => {
             document.removeEventListener("mousedown", onPointerDown);
             document.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("resize", onReflow);
+            window.removeEventListener("scroll", onReflow, true);
         };
-    }, [open]);
+    }, [open, placePopup]);
+
+    useEffect(() => {
+        if (open) {
+            placePopup();
+        } else {
+            setAnchor(null);
+        }
+    }, [open, placePopup]);
 
     const commit = useCallback(
         (jalali: JalaliDate) => {
-            const gregorian = jalaliToGregorian(jalali.year, jalali.month, jalali.day);
+            const gregorian = jalaliToGregorian(
+                jalali.year,
+                jalali.month,
+                jalali.day,
+            );
 
             if (gregorian === null) return;
 
@@ -193,14 +263,21 @@ export function JalaliDateInput({
             return;
         }
 
-        const gregorian = jalaliToGregorian(jalali.year, jalali.month, jalali.day);
+        const gregorian = jalaliToGregorian(
+            jalali.year,
+            jalali.month,
+            jalali.day,
+        );
 
         if (gregorian === null) {
             setInvalid(true);
             return;
         }
 
-        if ((min !== undefined && gregorian < min) || (max !== undefined && gregorian > max)) {
+        if (
+            (min !== undefined && gregorian < min) ||
+            (max !== undefined && gregorian > max)
+        ) {
             setInvalid(true);
             return;
         }
@@ -210,7 +287,10 @@ export function JalaliDateInput({
         onChange(gregorian);
     };
 
-    const days = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+    const days = useMemo(
+        () => buildMonthGrid(viewYear, viewMonth),
+        [viewYear, viewMonth],
+    );
     const today = todayJalali();
 
     return (
@@ -263,92 +343,115 @@ export function JalaliDateInput({
                 <CalendarDays className="size-4.5" aria-hidden />
             </button>
 
-            {open ? (
-                <div
-                    id={calendarId}
-                    role="dialog"
-                    aria-label="تقویم"
-                    className="absolute z-50 mt-2 w-72 rounded-2xl border border-hairline bg-surface-2 p-3 text-ink shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)]"
-                >
-                    <div className="mb-2 flex items-center justify-between gap-1">
-                        <button
-                            type="button"
-                            onClick={() => shiftMonth(-1)}
-                            aria-label="ماه قبل"
-                            className="grid size-8 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-primary-soft hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
-                        >
-                            <ChevronRight className="size-4" aria-hidden />
-                        </button>
-                        <span className="text-sm font-bold">
-                            {digits(jalaliMonthName(viewMonth))} {digits(viewYear)}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => shiftMonth(1)}
-                            aria-label="ماه بعد"
-                            className="grid size-8 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-primary-soft hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
-                        >
-                            <ChevronLeft className="size-4" aria-hidden />
-                        </button>
-                    </div>
+            {open && anchor !== null
+                ? createPortal(
+                      <div
+                          ref={popupRef}
+                          id={calendarId}
+                          role="dialog"
+                          aria-label="تقویم"
+                          // ‎fixed‎ + پورت به body: از ‎overflow-hidden‎ کارت و
+                          // ‎backdrop-filter‎ آن بیرون می‌ماند و بریده نمی‌شود.
+                          style={{
+                              top: `${anchor.top}px`,
+                              left: `${anchor.left}px`,
+                              width: `${anchor.width}px`,
+                          }}
+                          className="fixed z-[70] rounded-2xl border border-hairline-strong bg-surface p-3 text-ink shadow-[0_28px_80px_-28px_var(--c-shadow-color)] ring-1 ring-hairline-strong/40"
+                      >
+                          <div className="mb-2 flex items-center justify-between gap-1">
+                              <button
+                                  type="button"
+                                  onClick={() => shiftMonth(-1)}
+                                  aria-label="ماه قبل"
+                                  className="grid size-8 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-primary-soft hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                              >
+                                  <ChevronRight
+                                      className="size-4"
+                                      aria-hidden
+                                  />
+                              </button>
+                              <span className="text-sm font-bold">
+                                  {digits(jalaliMonthName(viewMonth))}{" "}
+                                  {digits(viewYear)}
+                              </span>
+                              <button
+                                  type="button"
+                                  onClick={() => shiftMonth(1)}
+                                  aria-label="ماه بعد"
+                                  className="grid size-8 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-primary-soft hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                              >
+                                  <ChevronLeft className="size-4" aria-hidden />
+                              </button>
+                          </div>
 
-                    <div className="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-ink-3">
-                        {WEEKDAY_LABELS.map((label, index) => (
-                            <span key={index} aria-hidden>
-                                {label}
-                            </span>
-                        ))}
-                    </div>
+                          <div className="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-ink-3">
+                              {WEEKDAY_LABELS.map((label, index) => (
+                                  <span key={index} aria-hidden>
+                                      {label}
+                                  </span>
+                              ))}
+                          </div>
 
-                    <div className="mt-1 grid grid-cols-7 gap-0.5">
-                        {days.map((cell) =>
-                            cell === null ? (
-                                <span key="pad" aria-hidden />
-                            ) : (
-                                <button
-                                    key={cell.day}
-                                    type="button"
-                                    onClick={() => commit({ year: viewYear, month: viewMonth, day: cell.day })}
-                                    aria-current={
-                                        today.year === viewYear &&
-                                        today.month === viewMonth &&
-                                        today.day === cell.day
-                                            ? "date"
-                                            : undefined
-                                    }
-                                    aria-pressed={
-                                        selected?.year === viewYear &&
-                                        selected?.month === viewMonth &&
-                                        selected?.day === cell.day
-                                    }
-                                    className={cn(
-                                        "grid h-9 place-items-center rounded-lg text-xs font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
-                                        selected?.year === viewYear &&
-                                            selected?.month === viewMonth &&
-                                            selected?.day === cell.day
-                                            ? "bg-accent text-white"
-                                            : today.year === viewYear &&
-                                                today.month === viewMonth &&
-                                                today.day === cell.day
-                                              ? "bg-primary-soft font-bold text-accent-ink"
-                                              : "text-ink-2 hover:bg-primary-soft hover:text-accent-ink",
-                                    )}
-                                >
-                                    {digits(pad2(cell.day))}
-                                </button>
-                            ),
-                        )}
-                    </div>
+                          <div className="mt-1 grid grid-cols-7 gap-0.5">
+                              {days.map((cell) =>
+                                  cell === null ? (
+                                      <span key="pad" aria-hidden />
+                                  ) : (
+                                      <button
+                                          key={cell.day}
+                                          type="button"
+                                          onClick={() =>
+                                              commit({
+                                                  year: viewYear,
+                                                  month: viewMonth,
+                                                  day: cell.day,
+                                              })
+                                          }
+                                          aria-current={
+                                              today.year === viewYear &&
+                                              today.month === viewMonth &&
+                                              today.day === cell.day
+                                                  ? "date"
+                                                  : undefined
+                                          }
+                                          aria-pressed={
+                                              selected?.year === viewYear &&
+                                              selected?.month === viewMonth &&
+                                              selected?.day === cell.day
+                                          }
+                                          className={cn(
+                                              "grid h-9 place-items-center rounded-lg text-xs font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2",
+                                              selected?.year === viewYear &&
+                                                  selected?.month ===
+                                                      viewMonth &&
+                                                  selected?.day === cell.day
+                                                  ? "bg-accent text-white"
+                                                  : today.year === viewYear &&
+                                                      today.month ===
+                                                          viewMonth &&
+                                                      today.day === cell.day
+                                                    ? "bg-primary-soft font-bold text-accent-ink"
+                                                    : "text-ink hover:bg-primary-soft hover:text-accent-ink",
+                                          )}
+                                      >
+                                          {digits(pad2(cell.day))}
+                                      </button>
+                                  ),
+                              )}
+                          </div>
 
-                    <button
-                        type="button"
-                        onClick={() => commit(today)}
-                        className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium text-accent-ink transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
-                    >
-                        امروز
-                    </button>
-                </div>
-            ) : null}
+                          <button
+                              type="button"
+                              onClick={() => commit(today)}
+                              className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium text-accent-ink transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                          >
+                              امروز
+                          </button>
+                      </div>,
+                      document.body,
+                  )
+                : null}
         </div>
     );
 
@@ -446,7 +549,9 @@ function gregorianParts(value: string): JalaliDate | null {
     }
 
     // محلی و نه UTC، وگرنه در منطقه‌ی زمانیِ جلوتر از UTC یک روز عقب می‌افتد.
-    return toJalaliParts(new Date(Number(year), Number(month) - 1, Number(day)));
+    return toJalaliParts(
+        new Date(Number(year), Number(month) - 1, Number(day)),
+    );
 }
 
 type MonthCell = { day: number } | null;
@@ -505,7 +610,10 @@ export function JalaliDateRangeInput({
         <div className={cn("grid gap-4 sm:grid-cols-2", className)}>
             <div className="space-y-2">
                 {fromLabel ? (
-                    <label className="block text-sm font-medium text-ink-2" htmlFor={fromId}>
+                    <label
+                        className="block text-sm font-medium text-ink-2"
+                        htmlFor={fromId}
+                    >
                         {fromLabel}
                     </label>
                 ) : null}
@@ -521,7 +629,10 @@ export function JalaliDateRangeInput({
             </div>
             <div className="space-y-2">
                 {toLabel ? (
-                    <label className="block text-sm font-medium text-ink-2" htmlFor={toId}>
+                    <label
+                        className="block text-sm font-medium text-ink-2"
+                        htmlFor={toId}
+                    >
                         {toLabel}
                     </label>
                 ) : null}

@@ -9,6 +9,7 @@ use App\Models\MessageRating;
 use App\Models\StudentProfile;
 use App\Support\ChatMessageSender;
 use App\Support\ConversationCloser;
+use App\Support\ShiftReportGenerator;
 use App\Support\StudentProfilePayload;
 use App\Support\UnsupportedAttachmentException;
 use Illuminate\Http\JsonResponse;
@@ -155,10 +156,10 @@ class ConversationController extends Controller
             'description' => 'توضیح نارضایتی',
         ]);
 
-        if ((int) $validated['rating_value'] <= 3 && blank($validated['description'] ?? null)) {
+        if ($this->ratingNeedsDescription((int) $validated['rating_value'], $validated['description'] ?? null)) {
             return response()->json([
                 'message' => 'توضیح دلیل نارضایتی الزامی است.',
-                'errors' => ['description' => ['امتیاز کمتر از ۴ ستاره نیازمند توضیح دلیل نارضایتی است.']],
+                'errors' => ['description' => [$this->descriptionRequiredMessage()]],
                 'status' => 422,
             ], 422);
         }
@@ -196,10 +197,10 @@ class ConversationController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
         ], [], ['rating_value' => 'امتیاز', 'description' => 'توضیح نارضایتی']);
 
-        if ((int) $validated['rating_value'] <= 3 && blank($validated['description'] ?? null)) {
+        if ($this->ratingNeedsDescription((int) $validated['rating_value'], $validated['description'] ?? null)) {
             return response()->json([
                 'message' => 'توضیح دلیل نارضایتی الزامی است.',
-                'errors' => ['description' => ['امتیاز کمتر از ۴ ستاره نیازمند توضیح دلیل نارضایتی است.']],
+                'errors' => ['description' => [$this->descriptionRequiredMessage()]],
                 'status' => 422,
             ], 422);
         }
@@ -229,6 +230,27 @@ class ConversationController extends Controller
         return Conversation::query()
             ->where('student_id', $request->user()->id)
             ->findOrFail($conversation);
+    }
+
+    /**
+     * آیا این امتیاز نیازمند توضیح است؟
+     *
+     * آستانه از {@see ShiftReportGenerator::UNSATISFIED_MAX_RATING} می‌آید تا
+     * «نارضایتی» در فرم امتیازدهی و در شمارشِ گزارش شیفت یکی باشد؛ وگرنه
+     * دانشجویی که مجبور به نوشتن دلیل است ولی در گزارش ناراضی شمرده
+     * نمی‌شود (یا برعکس).
+     */
+    private function ratingNeedsDescription(int $ratingValue, ?string $description): bool
+    {
+        return $ratingValue <= ShiftReportGenerator::UNSATISFIED_MAX_RATING
+            && blank($description);
+    }
+
+    private function descriptionRequiredMessage(): string
+    {
+        return 'امتیاز '
+            .ShiftReportGenerator::UNSATISFIED_MAX_RATING
+            .' ستاره یا کمتر نیازمند توضیح دلیل نارضایتی است.';
     }
 
     /**

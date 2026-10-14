@@ -149,19 +149,30 @@ class ConversationCloser
         ?string $closureActor,
         ?string $description = null,
     ): MessageRating {
-        return MessageRating::create([
+        $shift = ShiftAttribution::forConversation($conversation);
+
+        $rating = MessageRating::create([
             'conversation_id' => $conversation->id,
             'student_id' => $student->id,
             'support_agent_id' => $conversation->support_id,
             // شیفتی که پشتیبان در آن واقعاً جواب داده بود — نه شیفتی که
             // در لحظه‌ی ثبت امتیاز فعال است. دانشجو ممکن است روز بعد
             // امتیاز بدهد و آن‌وقت شیفتِ درست تمام شده است.
-            'shift_id' => ShiftAttribution::forConversation($conversation)?->id,
+            'shift_id' => $shift?->id,
             'rating_value' => $value,
             'description' => filled($description) ? $description : null,
             'closure_actor' => $closureActor,
             'submitted_at' => now(),
         ]);
+
+        // گزارش شیفت معمولاً موقع پایان شیفت ساخته شده، ولی این امتیاز
+        // شاید روزها بعد ثبت شده باشد. بدون تازه‌سازی، نارضایتی در عددِ
+        // گزارشِ همان شیفت دیده نمی‌شد.
+        if ($shift !== null) {
+            ShiftReportGenerator::refresh($shift);
+        }
+
+        return $rating;
     }
 
     /**
