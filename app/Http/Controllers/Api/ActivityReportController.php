@@ -8,6 +8,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Support\ActivityReportExcel;
 use App\Support\ChatActivityReport;
+use App\Support\SupportRanking;
 use Carbon\CarbonImmutable;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,7 +22,7 @@ class ActivityReportController extends Controller
     ): Response {
         $support = User::query()
             ->whereKey($request->integer('user_id'))
-            ->where('role', 'support')
+            ->whereIn('role', SupportRanking::RANKED_ROLES)
             ->firstOrFail();
 
         $from = CarbonImmutable::createFromFormat('!Y-m-d', (string) $request->input('from'));

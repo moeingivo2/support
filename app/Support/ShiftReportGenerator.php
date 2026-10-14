@@ -6,6 +6,7 @@ use App\Models\Message;
 use App\Models\MessageRating;
 use App\Models\Shift;
 use App\Models\ShiftReport;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * تولید خودکار گزارش پایان شیفت از لاگ گفتگوها.
@@ -36,10 +37,20 @@ final readonly class ShiftReportGenerator
             ->distinct()
             ->count('conversations.student_id');
 
+        // امتیازهایی که به همین شیفت نسبت داده شده‌اند، هر زمان که ثبت
+        // شده باشند شمرده می‌شوند. شرط ‎OR‎ فقط برای ردیف‌های قدیمی است که
+        // پیش از اضافه‌شدن ستون ‎shift_id‎ ثبت شده‌اند: آن‌ها با بازه‌ی
+        // زمانیِ ارسال تطبیق داده می‌شوند تا عددشان از دست نرود.
         $unsatisfied = MessageRating::query()
             ->where('support_agent_id', $shift->user_id)
             ->where('rating_value', '<=', 3)
-            ->whereBetween('submitted_at', [$from, $to])
+            ->where(function ($query) use ($shift, $from, $to): void {
+                $query->where('shift_id', $shift->id)
+                    ->orWhere(function ($legacy) use ($from, $to): void {
+                        $legacy->whereNull('shift_id')
+                            ->whereBetween('submitted_at', [$from, $to]);
+                    });
+            })
             ->distinct()
             ->count('student_id');
 
@@ -49,5 +60,27 @@ final readonly class ShiftReportGenerator
             'responded_students_count' => $responded,
             'unsatisfied_students_count' => $unsatisfied,
         ]);
+    }
+
+    /**
+     * فهرست گفتگوهای ناراضیِ نسبت‌داده‌شده به یک شیفت.
+     *
+     * @return Builder<MessageRating>
+     */
+    public static function unsatisfiedQuery(Shift $shift)
+    {
+        $from = $shift->start_time;
+        $to = $shift->end_time ?? now();
+
+        return MessageRating::query()
+            ->where('support_agent_id', $shift->user_id)
+            ->where('rating_value', '<=', 3)
+            ->where(function ($query) use ($shift, $from, $to): void {
+                $query->where('shift_id', $shift->id)
+                    ->orWhere(function ($legacy) use ($from, $to): void {
+                        $legacy->whereNull('shift_id')
+                            ->whereBetween('submitted_at', [$from, $to]);
+                    });
+            });
     }
 }

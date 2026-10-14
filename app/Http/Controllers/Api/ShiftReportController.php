@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MessageRating;
 use App\Models\ShiftReport;
+use App\Support\ShiftReportGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,19 +30,17 @@ class ShiftReportController extends Controller
 
     /**
      * جزئیات یک گزارش به‌همراه دلایل نارضایتی ثبت‌شده (امتیازهای کمتر از ۴)
-     * در بازه‌ی همان شیفت.
+     * که به همین شیفت نسبت داده شده‌اند.
+     *
+     * مبنا «شیفتی است که پشتیبان در آن جواب داده»، نه «زمانی که دانشجو
+     * امتیاز را زده»؛ وگرنه نارضایتیِ ثبت‌شده در روز بعد اصلاً دیده
+     * نمی‌شد.
      */
     public function show(Request $request, $id): JsonResponse
     {
         $report = ShiftReport::with(['shift', 'user'])->findOrFail($id);
 
-        $from = $report->shift->start_time;
-        $to = $report->shift->end_time ?? now();
-
-        $dissatisfactions = MessageRating::query()
-            ->where('support_agent_id', $report->user_id)
-            ->where('rating_value', '<=', 3)
-            ->whereBetween('submitted_at', [$from, $to])
+        $dissatisfactions = ShiftReportGenerator::unsatisfiedQuery($report->shift)
             ->with('student:id,name')
             ->orderBy('submitted_at')
             ->get()

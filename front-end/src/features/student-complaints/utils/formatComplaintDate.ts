@@ -1,6 +1,6 @@
+import { formatJalaliDateTime } from "@/shared/lib/jalali";
+
+/** تاریخ و ساعت ثبت نارضایتی، شمسی: «۲۲ مهر ۱۴۰۵، ۱۴:۳۰». */
 export function formatComplaintDateTime(date: string): string {
-    return new Intl.DateTimeFormat("fa-IR", {
-        dateStyle: "long",
-        timeStyle: "short",
-    }).format(new Date(date));
+    return formatJalaliDateTime(date);
 }

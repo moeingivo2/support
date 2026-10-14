@@ -153,6 +153,10 @@ class ConversationCloser
             'conversation_id' => $conversation->id,
             'student_id' => $student->id,
             'support_agent_id' => $conversation->support_id,
+            // شیفتی که پشتیبان در آن واقعاً جواب داده بود — نه شیفتی که
+            // در لحظه‌ی ثبت امتیاز فعال است. دانشجو ممکن است روز بعد
+            // امتیاز بدهد و آن‌وقت شیفتِ درست تمام شده است.
+            'shift_id' => ShiftAttribution::forConversation($conversation)?->id,
             'rating_value' => $value,
             'description' => filled($description) ? $description : null,
             'closure_actor' => $closureActor,

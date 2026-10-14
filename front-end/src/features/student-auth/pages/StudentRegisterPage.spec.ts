@@ -120,78 +120,7 @@ for (const path of ["/login", "/register"]) {
         }
     });
 }
-
-for (const path of ["/login", "/register"]) {
-    test(`support requests from ${path} open the form after authentication without changing auth payloads`, async ({ page }) => {
-        const posts: Array<{ path: string; payload: unknown }> = [];
-        let loginAttempts = 0;
-        await page.route("http://127.0.0.1:5174/api/**", async (route) => {
-            const request = route.request();
-            const pathname = new URL(request.url()).pathname;
-            if (request.method() === "POST") {
-                posts.push({ path: pathname, payload: request.postDataJSON() });
-                if (pathname === "/api/login/student" && ++loginAttempts === 1) {
-                    await route.fulfill({ status: 422, json: { message: "ورود ناموفق بود." } });
-                } else {
-                    await route.fulfill({ json: { user: { id: 1, name: "دانشجو", role: "student", email: null, phone: null }, token: "support-entry-preview" } });
-                }
-            } else {
-                await route.fulfill({ json: { data: pathname.includes("/profile") ? { remaining_chats: 12 } : [] } });
-            }
-        });
-        await page.goto(path);
-        await page.getByRole("button", { name: "ورود فوری به پنل" }).click();
-        await expect(page.getByRole("region", { name: "در حال ورود به پنل" })).toBeHidden();
-        await page.getByLabel("شماره موبایل", { exact: true }).fill("09123456789");
-        await page.getByRole("link", { name: "درخواست تیکت پشتیبانی", exact: true }).click();
-        await expect(page).toHaveURL(new RegExp(`${path}\\?request=support$`));
-        await expect(page.getByLabel("شماره موبایل", { exact: true })).toHaveValue("0912 345 6789");
-        await expect(page.getByRole("status").filter({ hasText: "تیکت پشتیبانی" })).toBeVisible();
-        expect(posts).toEqual([]);
-        await page.getByLabel("رمز عبور", { exact: true }).fill("password123");
-
-        if (path === "/register") {
-            await page.getByLabel("نام", { exact: true }).fill("دانشجو");
-            await page.getByLabel("نام خانوادگی", { exact: true }).fill("نمونه");
-            await page.getByLabel("تکرار رمز عبور", { exact: true }).fill("password123");
-            await page.getByRole("button", { name: "ادامه: انتخاب دوره" }).click();
-            await page.getByRole("checkbox", { name: "حضوری", exact: true }).check();
-            await page.getByRole("checkbox", { name: "آفلاین", exact: true }).uncheck();
-            await page.getByRole("button", { name: "ثبت‌نام و ورود", exact: true }).click();
-        } else {
-            await page.getByRole("button", { name: "ورود", exact: true }).click();
-            await expect(page.getByRole("alert")).toContainText("ورود ناموفق بود.");
-            await expect(page).toHaveURL(/\/login\?request=support$/);
-            await page.getByRole("button", { name: "ورود", exact: true }).click();
-        }
-
-        await expect(page).toHaveURL(/\/chat\?request=support$/);
-        await expect(page.getByRole("dialog", { name: "درخواست تیکت پشتیبانی", exact: true })).toBeVisible();
-        await expect(page.getByLabel("موضوع", { exact: true })).toBeFocused();
-        await expect(page.getByLabel("متن درخواست", { exact: true })).toBeVisible();
-        await expect(page.getByLabel("پیوست (اختیاری)")).toBeVisible();
-        expect(posts.every((request) => request.path === (path === "/login" ? "/api/login/student" : "/api/register/student"))).toBe(true);
-        expect(posts[0]?.payload).toEqual(path === "/login"
-            ? { phone: "0912 345 6789", password: "password123" }
-            : { first_name: "دانشجو", last_name: "نمونه", phone: "0912 345 6789", password: "password123", password_confirmation: "password123", course: "in_person", track: null, sessions: [] });
-        await page.keyboard.press("Escape");
-        await expect(page.getByRole("dialog")).toBeHidden();
-        await expect(page).toHaveURL(/\/chat$/);
-    });
-}
-
-test("switching between login and signup retains the support-request entry", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByRole("button", { name: "ورود فوری به پنل" }).click();
-    await expect(page.getByRole("region", { name: "در حال ورود به پنل" })).toBeHidden();
-    await page.getByRole("link", { name: "درخواست تیکت پشتیبانی", exact: true }).click();
-    await page.getByRole("link", { name: "ثبت‌نام کنید", exact: true }).click();
-    await expect(page).toHaveURL(/\/register\?request=support$/);
-    await page.getByRole("link", { name: "وارد شوید", exact: true }).click();
-    await expect(page).toHaveURL(/\/login\?request=support$/);
-});
-
-test("ordinary login opens chat without opening a support-request dialog", async ({ page }) => {
+test("ordinary login opens chat without a support dialog", async ({ page }) => {
     await page.route("http://127.0.0.1:5174/api/**", (route) => route.fulfill({ json: route.request().method() === "POST"
         ? { user: { id: 1, name: "دانشجو", role: "student", email: null, phone: null }, token: "ordinary-login-preview" }
         : { data: route.request().url().includes("/profile") ? { remaining_chats: 12 } : [] } }));
@@ -202,6 +131,7 @@ test("ordinary login opens chat without opening a support-request dialog", async
     await page.getByLabel("رمز عبور", { exact: true }).fill("password123");
     await page.getByRole("button", { name: "ورود", exact: true }).click();
     await expect(page).toHaveURL(/\/chat$/);
-    await expect(page.getByRole("button", { name: "درخواست تیکت پشتیبانی", exact: true })).toBeVisible();
     await expect(page.getByRole("dialog")).toBeHidden();
+    await expect(page.getByRole("button", { name: "شروع گفتگوی جدید" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "ثبت نارضایتی از منتور" })).toBeVisible();
 });

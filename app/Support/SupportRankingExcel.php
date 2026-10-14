@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Carbon\CarbonImmutable;
+
 /**
  * خروجی اکسل رتبه‌بندی پشتیبان‌ها بر پایه‌ی امتیاز دانشجویان.
  */
@@ -30,7 +32,7 @@ class SupportRankingExcel extends SpreadsheetWorkbook
             $this->row([$this->textCell('رتبه‌بندی پشتیبان‌ها بر اساس امتیاز دانشجویان', 'Title')], 'Title', 32),
             $this->row([
                 $this->textCell('تاریخ تولید', 'Label'),
-                $this->textCell(now()->format('Y-m-d H:i')),
+                $this->textCell(JalaliDate::formatWithTime(now())),
             ]),
             $this->row([
                 $this->textCell('قاعده شکست تساوی', 'Label'),
@@ -112,16 +114,16 @@ class SupportRankingExcel extends SpreadsheetWorkbook
 
     private function formatDate(mixed $value): string
     {
-        if ($value === null) {
+        if ($value instanceof \DateTimeInterface) {
+            return JalaliDate::formatWithTime($value);
+        }
+
+        // `CarbonImmutable::parse` روی رشته‌های غیرقابل‌تفسیر throw می‌کند و
+        // کل خروجی اکسل را 500 می‌کند؛ اینجا مثل قبل فقط «—» برمی‌گردانیم.
+        try {
+            return JalaliDate::formatWithTime(CarbonImmutable::parse((string) $value));
+        } catch (\Throwable) {
             return '—';
         }
-
-        if ($value instanceof \DateTimeInterface) {
-            return $value->format('Y-m-d H:i');
-        }
-
-        $timestamp = strtotime((string) $value);
-
-        return $timestamp === false ? '—' : date('Y-m-d H:i', $timestamp);
     }
 }

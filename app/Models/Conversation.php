@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ConversationStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,6 +53,25 @@ class Conversation extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
+    }
+
+    /**
+     * مرتب‌سازی فهرست گفتگوها: جدیدترین بالا.
+     *
+     * «جدیدترین» یعنی زمان آخرین پیام، و اگر گفتگو هنوز پیامی ندارد، زمان
+     * ساخت خودِ گفتگو. بدون این COALESCE، PostgreSQL در ‎ORDER BY … DESC‎
+     * مقدار NULL را اول می‌آورد (NULLS FIRST پیش‌فرضش است) و همه‌ی
+     * گفتگوهای خالی بالای فهرست می‌افتند؛ در حالی که ‎id‎ بزرگ‌تر یعنی
+     * گفتگوی جدیدتر.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeNewestFirst(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('COALESCE(last_message_at, created_at) DESC')
+            ->orderByDesc('id');
     }
 
     public function support(): BelongsTo

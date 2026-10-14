@@ -1,36 +1,35 @@
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
+import {
+    EMPTY_DATE,
+    formatJalaliDate,
+    formatJalaliTime,
+    formatRelativeJalali,
+} from "@/shared/lib/jalali";
 
+/**
+ * قالب‌بندی تاریخ گفتگو.
+ *
+ * لایه‌ی تبدیل به تقویم شمسی در `@/shared/lib/jalali` متمرکز است؛ این
+ * فایل فقط الگوی نمایشِ هر جایگاه را نگه می‌دارد. قبلاً هر فایل
+ * ‎Intl.DateTimeFormat("fa-IR")‎ خودش را می‌ساخت و همه جا جدا از هم
+ * تغییر می‌کردند.
+ */
+
+/** فقط ساعتِ پیام: «۱۴:۳۰»؛ رشته‌ی خالی برمی‌گرداند تا «۰۰:۰۰» نشان داده نشود. */
 export function formatMessageTime(isoDate: string | null): string {
     if (!isoDate) return "";
-    return toPersianDigits(
-        new Intl.DateTimeFormat("fa-IR", {
-            hour: "2-digit",
-            minute: "2-digit",
-        }).format(new Date(isoDate)),
-    );
+    return formatJalaliTime(isoDate);
 }
 
+/**
+ * تاریخِ کنار هر گفتگو در فهرست.
+ *
+ * برای پیام‌های امروز فقط ساعت، دیروز/پریروز اسمشان، و بقیه تاریخ کامل
+ * نشان داده می‌شود.
+ */
 export function formatConversationDate(isoDate: string | null): string {
     if (!isoDate) return "بدون پیام";
-    const date = new Date(isoDate);
-    const today = new Date();
-
-    const sameDay =
-        date.getFullYear() === today.getFullYear() &&
-        date.getMonth() === today.getMonth() &&
-        date.getDate() === today.getDate();
-
-    if (sameDay) {
-        return formatMessageTime(isoDate);
-    }
-
-    return toPersianDigits(
-        new Intl.DateTimeFormat("fa-IR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        }).format(date),
-    );
+    return formatRelativeJalali(isoDate);
 }
 
 export function formatFileSize(bytes: number | null): string {
@@ -52,13 +51,8 @@ export function formatDuration(seconds: number | null): string {
     return toPersianDigits(`${minutes}:${String(rest).padStart(2, "0")}`);
 }
 
+/** تاریخ عضویت دانشجو در پنل. */
 export function formatMembershipDate(isoDate: string | null): string {
-    if (!isoDate) return "—";
-    return toPersianDigits(
-        new Intl.DateTimeFormat("fa-IR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }).format(new Date(isoDate)),
-    );
+    if (!isoDate) return EMPTY_DATE;
+    return formatJalaliDate(isoDate);
 }

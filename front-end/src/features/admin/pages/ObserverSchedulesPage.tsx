@@ -6,6 +6,8 @@ import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+import { JalaliDateInput } from "@/shared/ui/jalali-date-input";
+import { formatJalaliDate } from "@/shared/lib/jalali";
 import { Label } from "@/shared/ui/label";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { useToast } from "@/shared/ui/toast";
@@ -72,7 +74,7 @@ export default function ObserverSchedulesPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2"><Label htmlFor="schedule-name">عنوان</Label><Input id="schedule-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="شیفت صبح" /></div>
                     <div className="space-y-2"><Label>نوع پاسخگویی</Label><p className="flex h-11 items-center rounded-xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink">{channel === "web" ? "پشتیبان وب" : "پشتیبان هوش مصنوعی"}</p><p className="text-xs text-ink-2">همه اعضای همین نوع — از جمله خودِ ناظر — در تیم شما هستند.</p></div>
-                    <div className="space-y-2"><Label htmlFor="schedule-date">تاریخ</Label><Input id="schedule-date" type="date" value={shiftDate} onChange={(event) => setShiftDate(event.target.value)} /></div>
+                    <div className="space-y-2"><Label htmlFor="schedule-date">تاریخ</Label><JalaliDateInput id="schedule-date" value={shiftDate} onChange={setShiftDate} /></div>
                     <div className="space-y-2"><Label>بازه کامل</Label><div className="flex items-center gap-2"><Input aria-label="شروع بازه" type="time" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /><span>تا</span><Input aria-label="پایان بازه" type="time" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></div></div>
                 </div>
                 <fieldset className="space-y-3"><legend className="text-sm font-semibold text-ink">اعضای تیم {channel === "web" ? "وب" : "هوش مصنوعی"} ({supports.length})</legend>{supportsQuery.isError ? <Alert tone="danger">فهرست اعضای تیم دریافت نشد.</Alert> : supports.length === 0 ? <p className="rounded-xl border border-hairline bg-surface-2 p-4 text-sm text-ink-2">هنوز عضوی با این نوع پاسخگویی ثبت نشده است.</p> : <div className="grid gap-2 sm:grid-cols-2">{supports.map((support) => <div key={support.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-surface-2 p-3"><label className="flex min-w-0 flex-1 items-center gap-3"><input type="checkbox" checked={selected.includes(support.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, support.id] : current.filter((id) => id !== support.id))} /><span className="truncate text-sm font-semibold text-ink">{support.name}{support.id === user?.id ? " (خودِ ناظر)" : ""}</span></label></div>)}</div>}</fieldset>
@@ -94,7 +96,7 @@ export default function ObserverSchedulesPage() {
 
                 <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-2"><Label htmlFor="rotation-name">عنوان</Label><Input id="rotation-name" value={rotationName} onChange={(event) => setRotationName(event.target.value)} placeholder="چرخش ماهانه" /></div>
-                    <div className="space-y-2"><Label htmlFor="rotation-start">روز شروع</Label><Input id="rotation-start" type="date" value={rotationStart} onChange={(event) => setRotationStart(event.target.value)} /></div>
+                    <div className="space-y-2"><Label htmlFor="rotation-start">روز شروع</Label><JalaliDateInput id="rotation-start" value={rotationStart} onChange={setRotationStart} /></div>
                     <div className="space-y-2"><Label htmlFor="rotation-weeks">تعداد هفته</Label><Input id="rotation-weeks" type="number" min={1} max={12} value={rotationWeeks} onChange={(event) => setRotationWeeks(Math.max(1, Math.min(12, Number(event.target.value) || 1)))} /></div>
                 </div>
 
@@ -152,7 +154,7 @@ export default function ObserverSchedulesPage() {
                 ) : null}
             </Card>
 
-            <section className="space-y-3"><h2 className="text-lg font-bold text-ink">شیفت‌های تعیین‌شده</h2>{(schedulesQuery.data?.data ?? []).map((schedule) => <Card key={schedule.id} className="space-y-3 p-5"><div className="flex items-center gap-2 font-semibold text-ink"><CalendarClock className="size-4" />{schedule.name} · {new Date(`${schedule.shift_date}T00:00:00`).toLocaleDateString("fa-IR")} · {clock(schedule.starts_at)} تا {clock(schedule.ends_at)}</div><div className="grid gap-2 sm:grid-cols-2">{schedule.assignments.map((assignment) => <p key={assignment.id} className="rounded-xl bg-surface-2 p-3 text-sm text-ink">{assignment.user.name}: {clock(assignment.starts_at)} تا {clock(assignment.ends_at)}</p>)}</div></Card>)}</section>
+            <section className="space-y-3"><h2 className="text-lg font-bold text-ink">شیفت‌های تعیین‌شده</h2>{(schedulesQuery.data?.data ?? []).map((schedule) => <Card key={schedule.id} className="space-y-3 p-5"><div className="flex items-center gap-2 font-semibold text-ink"><CalendarClock className="size-4" />{schedule.name} · {formatJalaliDate(schedule.shift_date)} · {clock(schedule.starts_at)} تا {clock(schedule.ends_at)}</div><div className="grid gap-2 sm:grid-cols-2">{schedule.assignments.map((assignment) => <p key={assignment.id} className="rounded-xl bg-surface-2 p-3 text-sm text-ink">{assignment.user.name}: {clock(assignment.starts_at)} تا {clock(assignment.ends_at)}</p>)}</div></Card>)}</section>
         </div>
     );
 }

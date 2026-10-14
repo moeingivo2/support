@@ -27,6 +27,13 @@ class AttachmentStorage
         'pdf', 'txt', 'csv', 'md', 'json', 'xml',
         'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'odt', 'ods', 'odp', 'rtf',
+        // کد و استایل (فقط به‌صورت دانلودی سرو می‌شوند، هرگز اجرا/رندر نمی‌شوند)
+        'py', 'css', 'scss', 'sass', 'less',
+        'js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx',
+        'sql', 'yaml', 'yml', 'toml', 'ini', 'env',
+        'sh', 'bash', 'zsh', 'ps1',
+        'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'java',
+        'go', 'rs', 'rb', 'kt', 'swift', 'dart', 'lua', 'pl', 'r',
         // صدا
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
         // ویدیو
@@ -51,23 +58,49 @@ class AttachmentStorage
     /**
      * نوع‌های واقعی مجاز (بررسی سمت سرور با finfo، نه هدر مرورگر).
      *
+     * این فهرست «کف» است و به‌تنهایی کافی نیست: هر نوع فقط وقتی پذیرفته
+     * می‌شود که با خانواده‌ی پسوندش هم بخواند (نگاه کن به
+     * {@see self::isAllowedMime()} و {@see self::EXTENSION_GROUPS}).
+     * بدون این شرط، یک فایل متنیِ HTML با نام ‎.png‎ هم پذیرفته می‌شد.
+     *
      * @var array<int, string>
      */
     public const ALLOWED_MIMES = [
         'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/gif',
         'image/webp', 'image/bmp', 'image/x-ms-bmp',
-        'application/pdf', 'text/plain', 'text/csv', 'text/rtf', 'text/markdown',
-        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.oasis.opendocument.text', 'application/vnd.oasis.opendocument.spreadsheet', 'application/vnd.oasis.opendocument.presentation',
-        'application/json', 'application/xml', 'text/xml', 'application/octet-stream',
-        'text/html', 'text/css', 'text/javascript', 'application/javascript', 'application/typescript',
-        'text/x-python', 'text/x-shellscript', 'application/x-shellscript', 'text/yaml', 'application/yaml',
-        'application/x-httpd-php', 'text/x-php', 'application/php',
-        'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip', 'application/x-gzip',
-        'audio/webm', 'video/webm', 'audio/ogg', 'application/ogg', 'audio/oga', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'video/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/vnd.wave', 'audio/aac', 'audio/aacp',
-        'video/mp4', 'video/x-m4v', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/mpeg', 'video/3gpp', 'video/3gpp2', 'video/x-ms-wmv', 'video/x-flv', 'video/ogg', 'video/webm',
+        'application/pdf',
+        'text/plain', 'text/csv', 'text/markdown', 'text/rtf',
+        'text/css', 'text/javascript', 'application/javascript', 'application/typescript',
+        'application/x-shellscript', 'text/x-shellscript',
+        'application/json', 'application/xml', 'text/xml',
+        'text/yaml', 'application/yaml', 'text/x-yaml',
+        'text/x-c', 'text/x-c++', 'text/x-java', 'text/x-go', 'text/x-rust',
+        'text/x-ruby', 'text/x-swift', 'text/x-lua', 'text/x-perl', 'text/x-r',
+        'text/x-sql', 'text/x-toml', 'text/x-ini', 'text/x-python',
+        'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        'application/zip', 'application/x-zip-compressed',
+        'application/x-rar-compressed', 'application/vnd.rar',
+        'application/x-7z-compressed', 'application/x-tar',
+        'application/gzip', 'application/x-gzip',
+        'audio/webm', 'video/webm',
+        'audio/ogg', 'application/ogg', 'audio/oga',
+        'audio/mpeg', 'audio/mp3', 'audio/aac', 'audio/aacp',
+        'audio/mp4', 'audio/x-m4a',
+        'audio/wav', 'audio/x-wav', 'audio/vnd.wave',
+        'video/mp4', 'video/x-m4v', 'video/quicktime',
+        'video/x-msvideo', 'video/x-matroska', 'video/mpeg',
+        'video/3gpp', 'video/3gpp2', 'video/x-ms-wmv',
+        'video/x-flv', 'video/ogg',
+        // finfo برای بسیاری از فایل‌های اداری/آرشیوی/مدیای ناشناخته نوع
+        // دقیق برنمی‌گرداند. پذیرشِ عمومی فقط برای خانواده‌هایی است که
+        // در مرورگر اجرا نمی‌شوند؛ برای عکس و پسوندهای اجراشدنی ممنوع است.
+        'application/octet-stream',
     ];
 
     /**
@@ -87,20 +120,20 @@ class AttachmentStorage
      * @var array<int, string>
      */
     private const AUDIO_MIMES = [
-                'application/zip', 'application/x-zip-compressed',
-        'application/x-rar-compressed', 'application/vnd.rar',
-        'application/x-7z-compressed', 'application/x-tar',
-        'application/gzip', 'application/x-gzip',
         'audio/webm', 'video/webm',
         'audio/ogg', 'application/ogg', 'audio/oga',
         'audio/mpeg', 'audio/mp3',
         'audio/mp4', 'video/mp4', 'audio/x-m4a',
         'audio/wav', 'audio/x-wav', 'audio/vnd.wave',
         'audio/aac', 'audio/aacp',
+        'application/octet-stream',
     ];
 
     /**
      * نوع‌های مجاز برای پسوندهای تصویری.
+     *
+     * عمداً ‎application/octet-stream‎ اینجا نیست: یک متن یا باینریِ دلخواه
+     * که با پسوند ‎.png‎ نام‌گذاری شده نباید پذیرفته شود.
      *
      * @var array<int, string>
      */
@@ -122,6 +155,49 @@ class AttachmentStorage
         'video/x-msvideo', 'video/x-matroska', 'video/mpeg',
         'video/3gpp', 'video/3gpp2', 'video/x-ms-wmv',
         'video/x-flv', 'video/ogg', 'video/webm',
+        'application/octet-stream',
+    ];
+
+    /**
+     * نوع‌های مجاز برای پسوندهای فشرده.
+     *
+     * @var array<int, string>
+     */
+    private const ARCHIVE_MIMES = [
+        'application/zip', 'application/x-zip-compressed',
+        'application/x-rar-compressed', 'application/vnd.rar',
+        'application/x-7z-compressed', 'application/x-tar',
+        'application/gzip', 'application/x-gzip',
+        'application/octet-stream',
+    ];
+
+    /**
+     * نوع‌های مجاز برای پسوندهای متنی، کد و اسناد اداری.
+     *
+     * ‎text/html‎، ‎image/svg+xml‎ و انواع php اینجا نیستند: این‌ها با نام
+     * ‎.txt‎ یا ‎.py‎ هم از مسیر AttachmentController به‌صورت دانلودی سرو
+     * می‌شوند و وسوسه‌ی دور زدن پسوند را باز می‌کنند، در حالی که پسوند
+     * اصلی‌شان که در فهرست مجاز نیست.
+     *
+     * @var array<int, string>
+     */
+    private const TEXT_MIMES = [
+        'text/plain', 'text/csv', 'text/markdown', 'text/rtf',
+        'text/css', 'text/javascript', 'application/javascript',
+        'application/typescript', 'application/x-shellscript', 'text/x-shellscript',
+        'application/json', 'application/xml', 'text/xml',
+        'text/yaml', 'application/yaml', 'text/x-yaml',
+        'text/x-c', 'text/x-c++', 'text/x-java', 'text/x-go', 'text/x-rust',
+        'text/x-ruby', 'text/x-swift', 'text/x-lua', 'text/x-perl', 'text/x-r',
+        'text/x-sql', 'text/x-toml', 'text/x-ini', 'text/x-python',
+        'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        'application/octet-stream',
     ];
 
     /**
@@ -130,15 +206,21 @@ class AttachmentStorage
      * @var array<string, array<int, string>>
      */
     private const EXTENSION_GROUPS = [
-        'audio' => ['webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac'],
         'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
         'video' => ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2', 'wmv', 'flv', 'ogv'],
-        'code'  => [
-            'php','phtml','js','jsx','ts','tsx','mjs','cjs',
-            'py','rb','java','go','cpp','cc','c','h','hpp',
-            'cs','rs','kt','swift','dart','lua','sh','bash',
-            'zsh','ps1','psm1','sql','yaml','yml','toml','ini',
-            'htm','html','css','scss','sass','less','svg','txt','md','json','xml',
+        'audio' => ['webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac'],
+        'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
+        'pdf' => ['pdf'],
+        'text' => [
+            'txt', 'csv', 'md', 'json', 'xml', 'rtf',
+            'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+            'odt', 'ods', 'odp',
+            'py', 'css', 'scss', 'sass', 'less',
+            'js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx',
+            'sql', 'yaml', 'yml', 'toml', 'ini', 'env',
+            'sh', 'bash', 'zsh', 'ps1',
+            'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'java',
+            'go', 'rs', 'rb', 'kt', 'swift', 'dart', 'lua', 'pl', 'r',
         ],
     ];
 
@@ -214,11 +296,15 @@ class AttachmentStorage
     }
 
     /**
-     * نوع واقعی باید در فهرست مجاز باشد.
+     * نوع واقعی باید هم در فهرست مجاز باشد و هم با خانواده‌ی پسوندش بخواند.
      *
-     * برای اسناد (pdf و…) نوع‌های عمومیِ octet-stream پذیرفته می‌شود چون
-     * finfo برای بسیاری از فایل‌های اداری نوع دقیق برنمی‌گرداند؛ خطر اجرای
-     * کد از این مسیر وجود ندارد چون پسوند از قبل در لیست مجاز بوده است.
+     * دو شرط لازم است: اگر فقط فهرست سراسریِ {@see self::ALLOWED_MIMES}
+     * بررسی شود، یک متنِ HTML با نام ‎.png‎ یا ‎.py‎ پذیرفته می‌شد. اگر فقط
+     * خانواده‌ی پسوند بررسی شود، پسوندهایی مثل ‎.docx‎ که finfo برایشان
+     * نوع دقیق نمی‌دهد رد می‌شدند.
+     *
+     * ‎application/octet-stream‎ فقط در گروه‌هایی پذیرفته می‌شود که در مرورگر
+     * اجرا نمی‌شوند؛ IMAGE_MIMES عمداً آن را ندارد.
      */
     private function isAllowedMime(string $mime, string $extension): bool
     {
@@ -226,26 +312,21 @@ class AttachmentStorage
             return true;
         }
 
-        if (in_array($mime, self::ALLOWED_MIMES, true)) {
-            return true;
+        if (! in_array($mime, self::ALLOWED_MIMES, true)) {
+            return false;
         }
 
-        // نوع واقعی باید با گروه پسوند بخواند؛ مثال: ‎video/webm‎ برای ‎.webm‎
         $groupMimes = match ($this->extensionGroup($extension)) {
-            'audio' => self::AUDIO_MIMES,
             'image' => self::IMAGE_MIMES,
             'video' => self::VIDEO_MIMES,
-            'code'  => self::ALLOWED_MIMES,
+            'audio' => self::AUDIO_MIMES,
+            'archive' => self::ARCHIVE_MIMES,
+            'pdf' => ['application/pdf', 'application/octet-stream'],
+            'text' => self::TEXT_MIMES,
             default => null,
         };
 
-        if ($groupMimes !== null && in_array($mime, $groupMimes, true)) {
-            return true;
-        }
-
-        $isDocument = in_array($extension, self::ALLOWED_DOCUMENT_EXTENSIONS, true);
-
-        return $isDocument && $mime === 'application/octet-stream';
+        return $groupMimes !== null && in_array($mime, $groupMimes, true);
     }
 
     private function extensionGroup(string $extension): ?string

@@ -300,7 +300,7 @@ final readonly class ChatActivityReport
                     'student' => $conversation->student?->name ?? '—',
                     'course' => $profile?->course->label() ?? '—',
                     'track' => $profile?->track?->label() ?? '—',
-                    'date' => $startedAt->format('Y-m-d'),
+                    'date' => JalaliDate::format($startedAt),
                     'started_at' => $startedAt->format('H:i'),
                     'ended_at' => $endedAt->format('H:i'),
                     'duration_minutes' => max(0, (int) $startedAt->diffInMinutes($endedAt)),

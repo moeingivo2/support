@@ -17,7 +17,7 @@ import { HttpApiError } from "@/shared/api/http";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
+import { JalaliDateInput } from "@/shared/ui/jalali-date-input";
 import { Label } from "@/shared/ui/label";
 import { useToast } from "@/shared/ui/toast";
 
@@ -165,29 +165,21 @@ export default function ActivityReportPage() {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="activity-from">از تاریخ</Label>
-                                <Input
+                                <JalaliDateInput
                                     id="activity-from"
-                                    type="date"
-                                    dir="ltr"
-                                    required
                                     value={filters.from}
-                                    onChange={(event) =>
-                                        updateFilter("from", event.target.value)
-                                    }
+                                    onChange={(value) => updateFilter("from", value)}
+                                    max={filters.to || undefined}
                                     disabled={isDownloading}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="activity-to">تا تاریخ</Label>
-                                <Input
+                                <JalaliDateInput
                                     id="activity-to"
-                                    type="date"
-                                    dir="ltr"
-                                    required
                                     value={filters.to}
-                                    onChange={(event) =>
-                                        updateFilter("to", event.target.value)
-                                    }
+                                    onChange={(value) => updateFilter("to", value)}
+                                    min={filters.from || undefined}
                                     disabled={isDownloading}
                                 />
                             </div>

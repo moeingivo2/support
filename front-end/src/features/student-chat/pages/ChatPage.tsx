@@ -26,11 +26,6 @@ import { ChatSidebar } from "../components/ChatSidebar";
 import { CloseConversationDialog } from "../components/CloseConversationDialog";
 import { RateConversationDialog } from "../components/RateConversationDialog";
 import { MessageList } from "../components/MessageList";
-import {
-    RatingFollowUpDialog,
-    type RatingFollowUp,
-} from "../components/RatingFollowUpDialog";
-import { SupportTicketRequest } from "../components/SupportTicketRequest";
 
 const EMPTY_HINT =
     "پیام خود را بنویسید یا تصویر، فایل و پیام صوتی بفرستید. برای خوانایی بیشتر پشتیبانی، دکمه «حالت کد» را روشن کنید.";
@@ -54,7 +49,6 @@ export default function ChatPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<LifecycleDialogMode>(null);
     const [dialogError, setDialogError] = useState<string | null>(null);
-    const [ratingFollowUp, setRatingFollowUp] = useState<RatingFollowUp | null>(null);
     const conversationTitleRef = useRef<HTMLHeadingElement>(null);
 
     const activeId = searchParams.get("c")
@@ -158,14 +152,11 @@ export default function ChatPage() {
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
             return closeConversation(conversationId, ratingValue, description);
         },
-        onSuccess: (response, { conversationId, ratingValue }) => {
+        onSuccess: (response, { conversationId }) => {
             setDialogMode(null);
             setDialogError(null);
             invalidateConversation(conversationId);
             toast.success(response.message);
-            if (ratingValue <= 3 && conversationId !== null && user !== null) {
-                setRatingFollowUp({ studentId: user.id, conversationId, ratingValue });
-            }
         },
         onError: (error: unknown) => {
             const message =
@@ -188,14 +179,11 @@ export default function ChatPage() {
                 throw new Error("ابتدا یک گفتگو انتخاب کنید.");
             return rateConversation(conversationId, ratingValue, description);
         },
-        onSuccess: (response, { conversationId, ratingValue }) => {
+        onSuccess: (response, { conversationId }) => {
             setDialogMode(null);
             setDialogError(null);
             invalidateConversation(conversationId);
             toast.success(response.message);
-            if (ratingValue <= 3 && conversationId !== null && user !== null) {
-                setRatingFollowUp({ studentId: user.id, conversationId, ratingValue });
-            }
         },
         onError: (error: unknown) => {
             const message =
@@ -207,13 +195,6 @@ export default function ChatPage() {
             setDialogError(message);
         },
     });
-
-    const closeRatingFollowUp = () => {
-        setRatingFollowUp(null);
-        window.requestAnimationFrame(() => {
-            conversationTitleRef.current?.focus();
-        });
-    };
 
     const sidebar = (
         <ChatSidebar
@@ -319,16 +300,13 @@ export default function ChatPage() {
                         <p className="max-w-md text-sm leading-8 text-ink-2">
                             {EMPTY_HINT}
                         </p>
-                        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
-                            <Button
-                                onClick={() => createMutation.mutate()}
-                                disabled={createMutation.isPending}
-                            >
-                                <MessagesSquare />
-                                شروع گفتگوی جدید
-                            </Button>
-                            <SupportTicketRequest />
-                        </div>
+                        <Button
+                            onClick={() => createMutation.mutate()}
+                            disabled={createMutation.isPending}
+                        >
+                            <MessagesSquare />
+                            شروع گفتگوی جدید
+                        </Button>
                         {/* پیمایش درون‌برنامه‌ای؛ window.location کل
                             برنامه را دوباره بارگذاری می‌کرد. */}
                         <Button variant="ghost" asChild className="mx-auto">
@@ -461,13 +439,6 @@ export default function ChatPage() {
                     onConfirm={(ratingValue, description) =>
                         rateMutation.mutate({ conversationId: activeId, ratingValue, description })
                     }
-                />
-            ) : null}
-
-            {ratingFollowUp !== null ? (
-                <RatingFollowUpDialog
-                    followUp={ratingFollowUp}
-                    onClose={closeRatingFollowUp}
                 />
             ) : null}
         </div>

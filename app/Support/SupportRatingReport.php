@@ -114,6 +114,6 @@ class SupportRatingReport
 
     private function format(?CarbonInterface $date): string
     {
-        return $date?->format('Y-m-d H:i') ?? '—';
+        return JalaliDate::formatWithTime($date);
     }
 }

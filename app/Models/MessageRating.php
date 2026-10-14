@@ -18,6 +18,7 @@ class MessageRating extends Model
         'conversation_id',
         'student_id',
         'support_agent_id',
+        'shift_id',
         'rating_value',
         'description',
         'closure_actor',
@@ -35,6 +36,11 @@ class MessageRating extends Model
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     public function student(): BelongsTo

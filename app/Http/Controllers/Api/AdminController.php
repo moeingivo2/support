@@ -9,6 +9,7 @@ use App\Http\Requests\StoreAdminRequest;
 use App\Http\Requests\UpdateAdminRequest;
 use App\Http\Requests\UpdateSupportRequest;
 use App\Models\User;
+use App\Support\SupportRanking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -33,14 +34,17 @@ class AdminController extends Controller
 
     public function supports(Request $request): JsonResponse
     {
+        $role = $request->input('role');
+
         $supports = User::query()
-            ->where(function ($query) use ($request): void {
-                if ($request->input('role') === 'account_observer') {
-                    $query->where('role', 'account_observer');
-                } else {
-                    $query->where('role', 'support');
-                }
-            })
+            // بدون ‎role‎ یعنی «هر کسی که کار پشتیبانی می‌کند»: هم
+            // پشتیبان و هم ناظر. قبلاً فقط ‎support‎ برمی‌گشت، برای همین
+            // ناظرها در فهرست انتخابِ گزارش اکسل غایب بودند.
+            ->when(
+                in_array($role, ['account_observer', 'support'], true),
+                fn ($query) => $query->where('role', $role),
+                fn ($query) => $query->whereIn('role', SupportRanking::RANKED_ROLES),
+            )
             ->when($request->filled('support_type'), function ($query) use ($request): void {
                 $query->where('support_type', $request->input('support_type'));
             })

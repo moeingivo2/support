@@ -69,10 +69,13 @@ class SupportChatController extends Controller
                 DB::raw('count(*) as conversations_count'),
                 DB::raw('sum(unread_support_count) as unread_count'),
                 DB::raw('max(last_message_at) as last_message_at'),
+                DB::raw('max(created_at) as created_at'),
             ])
             ->when($studentId !== null, fn ($query) => $query->where('student_id', $studentId))
             ->groupBy('student_id')
-            ->orderByDesc('last_message_at')
+            // PostgreSQL در DESC مقدار NULL را اول می‌آورد؛ بدون COALESCE
+            // دانشجویانی که هنوز پیامی نگرفته‌اند بالای فهرست می‌افتادند.
+            ->orderByRaw('COALESCE(max(last_message_at), max(created_at)) DESC')
             ->limit(self::STUDENT_LIMIT)
             ->get();
 
@@ -123,8 +126,7 @@ class SupportChatController extends Controller
                 'support:id,name',
                 'rating:id,conversation_id,rating_value,closure_actor,submitted_at',
             ])
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('id')
+            ->newestFirst()
             ->limit(self::INBOX_LIMIT)
             ->get()
             ->map(fn (Conversation $conversation): array => $this->summary($conversation));
@@ -230,8 +232,7 @@ class SupportChatController extends Controller
         $unread = $this->conversationScope($request, $ownerId)
             ->where('unread_support_count', '>', 0)
             ->with('student:id,name')
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('id')
+            ->newestFirst()
             ->limit(self::NOTIFICATION_LIMIT)
             ->get();
 

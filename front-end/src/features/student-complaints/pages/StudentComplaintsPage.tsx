@@ -30,7 +30,10 @@ import { cn } from "@/shared/lib/utils";
 
 export default function StudentComplaintsPage() {
     const { user } = useAuth();
-    const isSupport = user?.role === "support";
+    // ناظر (account_observer) هم پشتیبان است: هم شیفت می‌دهد و هم خودش
+    // نارضایتی ثبت می‌کند. سرور (POST /api/complaints) هر دو نقش را
+    // می‌پذیرد، پس دکمه‌ی ثبت هم برای او باید دیده شود.
+    const isSupport = user?.role === "support" || user?.role === "account_observer";
     const [tab, setTab] = useState<"all" | "mine">("all");
     const [page, setPage] = useState(1);
     const [formOpen, setFormOpen] = useState(false);

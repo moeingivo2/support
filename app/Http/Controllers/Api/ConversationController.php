@@ -38,8 +38,7 @@ class ConversationController extends Controller
                 'support:id,name',
                 'rating:id,conversation_id,rating_value,closure_actor,submitted_at',
             ])
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('id')
+            ->newestFirst()
             ->limit(self::LIST_LIMIT)
             ->get()
             ->map(fn (Conversation $conversation): array => $this->summary($conversation));

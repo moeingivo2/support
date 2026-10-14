@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { useToast } from "@/shared/ui/toast";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
+import { formatJalaliDate } from "@/shared/lib/jalali";
 import {
     downloadSupportRanking,
     getSupportRanking,
@@ -254,13 +255,7 @@ export default function SupportRankingPage() {
                                                                     }
                                                                 </td>
                                                                 <td className="px-4 py-2 text-ink-2">
-                                                                    {rating.submitted_at
-                                                                        ? new Date(
-                                                                              rating.submitted_at,
-                                                                          ).toLocaleDateString(
-                                                                              "fa-IR",
-                                                                          )
-                                                                        : "—"}
+                                                                    {formatJalaliDate(rating.submitted_at)}
                                                                 </td>
                                                             </tr>
                                                         ))}

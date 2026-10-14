@@ -18,6 +18,17 @@ class SupportRanking
     public const TIE_BREAK_RULE = 'میانگین امتیاز نزولی، سپس تعداد امتیاز نزولی، سپس آخرین امتیاز نزولی';
 
     /**
+     * نقش‌هایی که در رتبه‌بندی امتیاز شرکت می‌کنند.
+     *
+     * `account_observer` (پشتیبان ناظر) شیفت برمی‌دارد و گفتگوی دانشجو را
+     * جواب می‌دهد و امتیازش روی `message_ratings.support_agent_id` ثبت
+     * می‌شود، پس باید کنار پشتیبان‌های عادی دیده شود.
+     *
+     * @var array<int, string>
+     */
+    public const RANKED_ROLES = ['support', 'account_observer'];
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     /**
@@ -30,7 +41,10 @@ class SupportRanking
     {
         $rows = User::query()
             ->leftJoin('message_ratings', 'message_ratings.support_agent_id', '=', 'users.id')
-            ->where('users.role', 'support')
+            // ناظر (account_observer) هم شیفت می‌دارد، هم گفتگو را جواب می‌دهد،
+            // پس رتبه‌بندی او هم مثل هر پشتیبان دیگری واقعی است. قبلاً فقط
+            // ‎role = 'support'‎ فیلتر می‌شد و ناظرها بی‌صدا حذف می‌شدند.
+            ->whereIn('users.role', self::RANKED_ROLES)
             ->groupBy('users.id', 'users.name', 'users.support_type')
             ->select([
                 'users.id as support_agent_id',
@@ -108,8 +122,8 @@ class SupportRanking
                 'rating_value' => $rating->rating_value,
                 'closure_actor' => $rating->closure_actor === 'student' ? 'دانشجو' : 'پشتیبان',
                 'conversation_status' => $rating->conversation?->status?->label() ?? '—',
-                'closed_at' => $rating->conversation?->closed_at?->format('Y-m-d H:i'),
-                'submitted_at' => $rating->submitted_at?->format('Y-m-d H:i'),
+                'closed_at' => JalaliDate::formatWithTime($rating->conversation?->closed_at),
+                'submitted_at' => JalaliDate::formatWithTime($rating->submitted_at),
             ])
             ->all();
     }

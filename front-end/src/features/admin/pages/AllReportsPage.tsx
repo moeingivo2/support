@@ -13,7 +13,7 @@ import { useAuth } from "@/shared/services/auth-context";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
+import { JalaliDateInput } from "@/shared/ui/jalali-date-input";
 import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { getPages, PageButton } from "@/shared/ui/pagination";
@@ -136,27 +136,21 @@ export default function AllReportsPage() {
 
                     <div className="space-y-2">
                         <Label htmlFor="filter-from">از تاریخ</Label>
-                        <Input
+                        <JalaliDateInput
                             id="filter-from"
-                            type="date"
-                            dir="ltr"
                             value={filters.from ?? ""}
-                            onChange={(event) =>
-                                updateFilter("from", event.target.value)
-                            }
+                            onChange={(value) => updateFilter("from", value)}
+                            max={filters.to ?? undefined}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="filter-to">تا تاریخ</Label>
-                        <Input
+                        <JalaliDateInput
                             id="filter-to"
-                            type="date"
-                            dir="ltr"
                             value={filters.to ?? ""}
-                            onChange={(event) =>
-                                updateFilter("to", event.target.value)
-                            }
+                            onChange={(value) => updateFilter("to", value)}
+                            min={filters.from ?? undefined}
                         />
                     </div>
                 </div>

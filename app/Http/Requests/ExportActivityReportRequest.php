@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\SupportRanking;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,8 @@ class ExportActivityReportRequest extends FormRequest
             'user_id' => [
                 'required',
                 'integer',
-                Rule::exists('users', 'id')->where('role', 'support'),
+                // ناظر هم شیفت می‌دهد، پس گزارش فعالیت او هم معتبر است.
+                Rule::exists('users', 'id')->whereIn('role', SupportRanking::RANKED_ROLES),
             ],
             'from' => ['required', 'date_format:Y-m-d'],
             'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],

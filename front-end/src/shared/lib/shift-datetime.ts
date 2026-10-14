@@ -9,6 +9,9 @@
  * تحمل می‌کنند و به‌جای کرش، «—» برمی‌گردانند.
  */
 
+import { toPersianDigits } from "@/features/student-chat/utils/persian";
+import { formatJalaliDate, formatJalaliDateTime } from "@/shared/lib/jalali";
+
 const TIME_ONLY = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
 
 /** مقدار «خالی» برای تاریخ/ساعتی که قابل نمایش نیست. */
@@ -44,38 +47,33 @@ export function parseShiftDateTime(
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+// قالب‌ها از لایه‌ی مشترکِ تاریخ شمسی می‌آیند تا همه‌ی صفحه‌ها یک
+// الگو داشته باشند و با عوض کردن قالب فقط همین‌جا کم شود.
 const timeFormatter = new Intl.DateTimeFormat("fa-IR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
 });
 
-const dateFormatter = new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" });
-
-const dateTimeFormatter = new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "long",
-    timeStyle: "short",
-});
-
 /** ساعت یک شیفت؛ بازه‌ی فقط‌ساعت («08:00:00») هم درست نمایش داده می‌شود. */
 export function safeShiftTime(value: string | null | undefined): string {
     const parsed = parseShiftDateTime(value);
 
-    return parsed === null ? EMPTY_VALUE : timeFormatter.format(parsed);
+    return parsed === null ? EMPTY_VALUE : toPersianDigits(timeFormatter.format(parsed));
 }
 
 /** تاریخ بلند یک شیفت؛ ورودی نامعتبر «—» می‌دهد. */
 export function safeShiftDate(value: string | null | undefined): string {
     const parsed = parseShiftDateTime(value);
 
-    return parsed === null ? EMPTY_VALUE : dateFormatter.format(parsed);
+    return parsed === null ? EMPTY_VALUE : formatJalaliDate(parsed);
 }
 
 /** تاریخ و ساعت با هم؛ ورودی نامعتبر «—» می‌دهد. */
 export function safeShiftDateTime(value: string | null | undefined): string {
     const parsed = parseShiftDateTime(value);
 
-    return parsed === null ? EMPTY_VALUE : dateTimeFormatter.format(parsed);
+    return parsed === null ? EMPTY_VALUE : formatJalaliDateTime(parsed);
 }
 
 /**

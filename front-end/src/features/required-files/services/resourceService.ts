@@ -1,6 +1,7 @@
 import { deleteJson, getJson, postJson, putJson } from "@/shared/api/http";
 import type { SupportChannel, ChannelFilter } from "@/shared/lib/content-channel";
 import type { LaravelPagination, Resource } from "../types/resource";
+import { formatJalaliDate } from "@/shared/lib/jalali";
 
 export type RequiredFilesFilters = {
     page: number;
@@ -29,9 +30,7 @@ export const requiredFileKeys = {
 };
 
 export function formatResourceDate(date: string): string {
-    return new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(
-        new Date(date),
-    );
+    return formatJalaliDate(date);
 }
 
 // فیلتر type/search سمت سرور اعمال می‌شود و صفحه‌بندی لاراول حفظ می‌شود.

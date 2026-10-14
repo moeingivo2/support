@@ -60,11 +60,11 @@ class ActivityReportExcel extends SpreadsheetWorkbook
                 $this->textCell('پشتیبان', 'Label'),
                 $this->textCell($support->name),
                 $this->textCell('بازه زمانی', 'Label'),
-                $this->textCell($from->format('Y-m-d').' تا '.$to->format('Y-m-d')),
+                $this->textCell(JalaliDate::format($from).' تا '.JalaliDate::format($to)),
             ]),
             $this->row([
                 $this->textCell('تاریخ تولید', 'Label'),
-                $this->textCell(now()->format('Y-m-d H:i')),
+                $this->textCell(JalaliDate::formatWithTime(now())),
             ]),
             $this->row([$this->textCell('خلاصه عملکرد', 'Section')], 'Section', 24),
         ];
@@ -179,7 +179,7 @@ class ActivityReportExcel extends SpreadsheetWorkbook
                 $this->numberCell($shift->id),
                 $this->textCell($support->name),
                 $this->textCell($this->dayName($shift->start_time)),
-                $this->textCell($shift->start_time->format('Y-m-d')),
+                $this->textCell(JalaliDate::format($shift->start_time)),
                 $this->textCell($shift->start_time->format('H:i')),
                 $this->textCell($shift->end_time?->format('H:i') ?? 'در حال انجام'),
                 $this->numberCell($durationMinutes),

@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     Check,
     FileUp,
     GraduationCap,
     Loader2,
-    MessageSquarePlus,
     School,
     UserRound,
     Wifi,
@@ -48,8 +47,6 @@ const COURSE_ICONS = {
 
 export default function StudentRegisterPage() {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const isSupportRequest = searchParams.get("request") === "support";
     const { registerStudentAccount } = useAuth();
     const [mode, setMode] = useState<RegisterMode>("account");
     const [serverError, setServerError] = useState<string | null>(null);
@@ -116,7 +113,7 @@ export default function StudentRegisterPage() {
                 sessions: isOffline ? values.sessions : [],
                 roadmap: isOffline ? (values.roadmap ?? null) : null,
             });
-            navigate(isSupportRequest ? "/chat?request=support" : "/chat", { replace: true });
+            navigate("/chat", { replace: true });
         } catch (error) {
             if (error instanceof HttpApiError && error.fieldErrors) {
                 const fields = Object.keys(error.fieldErrors);
@@ -216,11 +213,6 @@ export default function StudentRegisterPage() {
                         >
                             {serverError ? (
                                 <Alert tone="danger">{serverError}</Alert>
-                            ) : null}
-                            {isSupportRequest ? (
-                                <Alert tone="info" role="status">
-                                    پس از ثبت‌نام، فرم درخواست تیکت پشتیبانی باز می‌شود. اگر حساب دارید، وارد شوید.
-                                </Alert>
                             ) : null}
 
                             <div
@@ -632,17 +624,10 @@ export default function StudentRegisterPage() {
                         </form>
                     </Card>
 
-                    <Button variant="ghost" asChild className="w-full">
-                        <Link to="/register?request=support">
-                            <MessageSquarePlus aria-hidden="true" />
-                            درخواست تیکت پشتیبانی
-                        </Link>
-                    </Button>
-
                     <p className="text-center text-sm text-ink-2">
                         قبلاً ثبت‌نام کرده‌اید؟{" "}
                         <Link
-                            to={isSupportRequest ? "/login?request=support" : "/login"}
+                            to="/login"
                             className="font-bold text-accent-ink underline-offset-4 transition-colors hover:text-alret-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
                         >
                             وارد شوید
