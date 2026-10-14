@@ -31,15 +31,21 @@ import { ThemeProvider } from "@/shared/services/theme-context";
 import { ToastProvider } from "@/shared/ui/toast";
 import LoginSplash from "@/features/auth/components/LoginSplash";
 import { AppErrorBoundary } from "@/shared/ui/app-error-boundary";
-import ObserverSchedulesPage from "@/features/admin/pages/ObserverSchedulesPage";
+import ShiftSchedulingPage from "@/features/admin/pages/ShiftSchedulingPage";
 import TeamSupervisionPage from "@/features/support-chat/pages/TeamSupervisionPage";
 import MentorFeedbackPage from "@/features/student-complaints/pages/MentorFeedbackPage";
 
 const supportOnlyPaths = new Set(["/support-shifts"]);
 const accountObserverOnlyPaths = new Set([
-    "/observer-schedules",
     "/team-supervision",
 ]);
+/**
+ * تعیین و برنامه‌ریزی شیفت — سوپر ادمین و ناظر اکانت.
+ *
+ * این صفحه «برنامه‌ی کاری» را اعلام می‌کند و روی گزارش‌ها اثری ندارد؛
+ * گزارش شیفت از ساعت‌های واقعیِ کار ساخته می‌شود.
+ */
+const shiftSchedulingPaths = new Set(["/shift-scheduling"]);
 const supportPanelPaths = new Set(["/mentor-feedback"]);
 /**
  * محتوای پنل (سورس جلسات، فایل‌های مورد نیاز، سوالات متداول) به بخش «وب» و
@@ -91,7 +97,7 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/register-support": RegisterSupportRoute,
     "/manage-trainees": ManageTraineesRoute,
     "/support-ranking": SupportRankingRoute,
-    "/observer-schedules": ObserverSchedulesPage,
+    "/shift-scheduling": ShiftSchedulingPage,
     "/team-supervision": TeamSupervisionPage,
     "/mentor-feedback": MentorFeedbackPage,
 };
@@ -113,6 +119,11 @@ function PanelRoutes() {
         if (supportOnlyPaths.has(path) && (isAdmin || isObserver || isTrainee))
             return <Navigate to={homePath} replace />;
         if (accountObserverOnlyPaths.has(path) && user?.role !== "account_observer")
+            return <Navigate to={homePath} replace />;
+        if (
+            shiftSchedulingPaths.has(path) &&
+            !["admin", "account_observer"].includes(user?.role ?? "")
+        )
             return <Navigate to={homePath} replace />;
         if (supportPanelPaths.has(path) && !["support", "observer", "account_observer", "admin"].includes(user?.role ?? ""))
             return <Navigate to={homePath} replace />;

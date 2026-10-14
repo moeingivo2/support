@@ -14,35 +14,54 @@ import { useToast } from "@/shared/ui/toast";
 import { useAuth } from "@/shared/services/auth-context";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
 
-type Support = { id: number; name: string; phone: string | null; support_type: "web" | "ai" };
+type Support = { id: number; name: string; phone: string | null; role: string; support_type: "web" | "ai" | null };
 type Assignment = { id: number; starts_at: string; ends_at: string; user: Support };
-type Schedule = { id: number; name: string; channel: string; shift_date: string; starts_at: string; ends_at: string; assignments: Assignment[] };
+type Schedule = { id: number; name: string; channel: string; shift_date: string; starts_at: string; ends_at: string; assignments: Assignment[]; creator?: { id: number; name: string } | null };
 type Slot = { starts_at: string; ends_at: string };
 type RotationRow = { week: number; shift_date: string; starts_at: string; ends_at: string; support_id: number; support_name: string; conflict: boolean };
 type RotationPayload = { team: { id: number; name: string }[]; weeks: number; rows: RotationRow[] };
 
 function clock(value: string): string { return value.slice(0, 5); }
 
-export default function ObserverSchedulesPage() {
+/**
+ * تعیین و برنامه‌ریزی شیفت.
+ *
+ * این صفحه فقط «اعلام» می‌کند و روی گزارش‌ها اثری ندارد: گزارش‌های شیفت
+ * از جدول `shifts` خوانده می‌شوند که خودِ پشتیبان با دکمه‌ی شروع/پایان
+ * پر می‌کند. اینجا فقط بازه‌ی کاری هر نفر مشخص می‌شود.
+ */
+export default function ShiftSchedulingPage() {
     const { user } = useAuth();
     const toast = useToast();
     const queryClient = useQueryClient();
     const [name, setName] = useState("");
-    const channel: "web" | "ai" = user?.support_type === "ai" ? "ai" : "web";
-    const [shiftDate, setShiftDate] = useState(new Date().toISOString().slice(0, 10));
+    // ناظر `support_type` دارد و کانالش از آن می‌آید؛ ادمین ندارد و باید
+    // خودش انتخاب کند که برنامه‌ریزی برای «وب» است یا «هوش مصنوعی».
+    const isAdmin = user?.role === "admin";
+    const [pickedChannel, setPickedChannel] = useState<"web" | "ai">(
+        user?.support_type === "ai" ? "ai" : "web",
+    );
+    const channel = isAdmin ? pickedChannel : user?.support_type === "ai" ? "ai" : "web";
+    const [shiftDate, setShiftDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [startsAt, setStartsAt] = useState("09:00");
     const [endsAt, setEndsAt] = useState("17:00");
     const [selected, setSelected] = useState<number[]>([]);
-    const supportsQuery = useQuery({ queryKey: ["observer", "supports", user?.id, channel], queryFn: () => getJson<{ data: Support[] }>("/api/support/conversations/managed-supports", { support_type: channel }) });
-    const schedulesQuery = useQuery({ queryKey: ["observer", "schedules"], queryFn: () => getJson<{ data: Schedule[] }>("/api/observer/shift-schedules") });
+    const supportsQuery = useQuery({
+        queryKey: ["shift-scheduling", "team", channel],
+        queryFn: () => getJson<{ data: Support[] }>("/api/shift-schedules/team", { channel }),
+    });
+    const schedulesQuery = useQuery({
+        queryKey: ["shift-scheduling", "schedules"],
+        queryFn: () => getJson<{ data: Schedule[] }>("/api/shift-schedules"),
+    });
     const createMutation = useMutation({
-        mutationFn: () => postJson<Record<string, unknown>, { message: string }>("/api/observer/shift-schedules", { name, channel, shift_date: shiftDate, starts_at: startsAt, ends_at: endsAt, support_ids: selected }),
-        onSuccess: async (response: { message: string }) => { toast.success(response.message); setSelected([]); setName(""); await queryClient.invalidateQueries({ queryKey: ["observer", "schedules"] }); },
+        mutationFn: () => postJson<Record<string, unknown>, { message: string }>("/api/shift-schedules", { name, channel, shift_date: shiftDate, starts_at: startsAt, ends_at: endsAt, support_ids: selected }),
+        onSuccess: async (response: { message: string }) => { toast.success(response.message); setSelected([]); setName(""); await queryClient.invalidateQueries({ queryKey: ["shift-scheduling", "schedules"] }); },
     });
     const supports = supportsQuery.data?.data ?? [];
 
     const [rotationName, setRotationName] = useState("چرخش ماهانه");
-    const [rotationStart, setRotationStart] = useState(new Date().toISOString().slice(0, 10));
+    const [rotationStart, setRotationStart] = useState(() => new Date().toISOString().slice(0, 10));
     const [rotationWeeks, setRotationWeeks] = useState(4);
     const [rotationSlots, setRotationSlots] = useState<Slot[]>([
         { starts_at: "09:00", ends_at: "13:00" },
@@ -53,13 +72,13 @@ export default function ObserverSchedulesPage() {
         && rotationSlots.every((slot) => slot.ends_at > slot.starts_at);
 
     const previewMutation = useMutation({
-        mutationFn: () => postJson<Record<string, unknown>, RotationPayload>("/api/observer/shift-schedules/rotation/preview", rotationBody),
+        mutationFn: () => postJson<Record<string, unknown>, RotationPayload>("/api/shift-schedules/rotation/preview", rotationBody),
     });
     const rotationStoreMutation = useMutation({
-        mutationFn: () => postJson<Record<string, unknown>, { message: string }>("/api/observer/shift-schedules/rotation", rotationBody),
+        mutationFn: () => postJson<Record<string, unknown>, { message: string }>("/api/shift-schedules/rotation", rotationBody),
         onSuccess: async (response: { message: string }) => {
             toast.success(response.message);
-            await queryClient.invalidateQueries({ queryKey: ["observer", "schedules"] });
+            await queryClient.invalidateQueries({ queryKey: ["shift-scheduling", "schedules"] });
         },
     });
     const preview = previewMutation.data;
@@ -67,13 +86,30 @@ export default function ObserverSchedulesPage() {
 
     return (
         <div className="mx-auto w-full max-w-5xl space-y-6">
-            <Card className="p-6"><h1 className="text-2xl font-bold text-ink">تعیین شیفت تیم</h1><p className="mt-2 text-sm text-ink-2">بازه را به دقیقه‌های کامل و بدون اعشار بین اعضای انتخاب‌شده تقسیم و برای هر نفر ثبت کنید.</p></Card>
+            <Card className="p-6"><h1 className="text-2xl font-bold text-ink">تعیین شیفت</h1><p className="mt-2 text-sm text-ink-2">بازه را به دقیقه‌های کامل و بدون اعشار بین اعضای انتخاب‌شده تقسیم و برای هر نفر ثبت کنید. این بخش فقط برنامه‌ی کاری را اعلام می‌کند؛ گزارش شیفت جداگانه و خودکار از ساعت‌های واقعیِ کار ساخته می‌شود.</p></Card>
             <Card className="space-y-5 p-6">
                 {createMutation.isError ? <Alert tone="danger">تقسیم شیفت ناموفق بود؛ نوع، بازه و پشتیبان‌ها را بررسی کنید.</Alert> : null}
                 <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); createMutation.mutate(); }}>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2"><Label htmlFor="schedule-name">عنوان</Label><Input id="schedule-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="شیفت صبح" /></div>
-                    <div className="space-y-2"><Label>نوع پاسخگویی</Label><p className="flex h-11 items-center rounded-xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink">{channel === "web" ? "پشتیبان وب" : "پشتیبان هوش مصنوعی"}</p><p className="text-xs text-ink-2">همه اعضای همین نوع — از جمله خودِ ناظر — در تیم شما هستند.</p></div>
+                    <div className="space-y-2"><Label htmlFor="schedule-channel">نوع پاسخگویی</Label>{isAdmin ? (
+                        // ادمین خودش پشتیبان نیست و `support_type` ندارد، پس
+                        // کانال را انتخاب می‌کند.
+                        <select
+                            id="schedule-channel"
+                            value={channel}
+                            onChange={(event) => {
+                                setPickedChannel(event.target.value as "web" | "ai");
+                                setSelected([]);
+                            }}
+                            className="h-11 w-full rounded-2xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink outline-none transition-colors focus-visible:border-primary-line-2 focus-visible:shadow-[0_0_0_4px_var(--c-ring-accent)]"
+                        >
+                            <option value="web">پشتیبان وب</option>
+                            <option value="ai">پشتیبان هوش مصنوعی</option>
+                        </select>
+                    ) : (
+                        <p className="flex h-11 items-center rounded-xl border border-hairline bg-surface-2 px-3 text-sm font-semibold text-ink">{channel === "web" ? "پشتیبان وب" : "پشتیبان هوش مصنوعی"}</p>
+                    )}<p className="text-xs text-ink-2">همه اعضای همین نوع — از جمله خودِ ناظر — در تیم هستند.</p></div>
                     <div className="space-y-2"><Label htmlFor="schedule-date">تاریخ</Label><JalaliDateInput id="schedule-date" value={shiftDate} onChange={setShiftDate} /></div>
                     <div className="space-y-2"><Label>بازه کامل</Label><div className="flex items-center gap-2"><Input aria-label="شروع بازه" type="time" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /><span>تا</span><Input aria-label="پایان بازه" type="time" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></div></div>
                 </div>
@@ -154,7 +190,42 @@ export default function ObserverSchedulesPage() {
                 ) : null}
             </Card>
 
-            <section className="space-y-3"><h2 className="text-lg font-bold text-ink">شیفت‌های تعیین‌شده</h2>{(schedulesQuery.data?.data ?? []).map((schedule) => <Card key={schedule.id} className="space-y-3 p-5"><div className="flex items-center gap-2 font-semibold text-ink"><CalendarClock className="size-4" />{schedule.name} · {formatJalaliDate(schedule.shift_date)} · {clock(schedule.starts_at)} تا {clock(schedule.ends_at)}</div><div className="grid gap-2 sm:grid-cols-2">{schedule.assignments.map((assignment) => <p key={assignment.id} className="rounded-xl bg-surface-2 p-3 text-sm text-ink">{assignment.user.name}: {clock(assignment.starts_at)} تا {clock(assignment.ends_at)}</p>)}</div></Card>)}</section>
+            <section className="space-y-3">
+                <h2 className="text-lg font-bold text-ink">شیفت‌های تعیین‌شده</h2>
+                {schedulesQuery.isError ? <Alert tone="danger">فهرست شیفت‌ها دریافت نشد.</Alert> : null}
+                {(schedulesQuery.data?.data ?? []).length === 0 && !schedulesQuery.isError ? (
+                    <p className="rounded-2xl border border-hairline bg-surface-2 p-4 text-sm text-ink-2">
+                        هنوز شیفتی تعیین نشده است.
+                    </p>
+                ) : null}
+                {(schedulesQuery.data?.data ?? []).map((schedule) => (
+                    <Card key={schedule.id} className="space-y-3 p-5">
+                        <div className="flex flex-wrap items-center gap-2 font-semibold text-ink">
+                            <CalendarClock className="size-4" />
+                            {schedule.name} · {formatJalaliDate(schedule.shift_date)} ·{" "}
+                            {clock(schedule.starts_at)} تا {clock(schedule.ends_at)}
+                            <StatusPill tone="info">
+                                {schedule.channel === "web" ? "وب" : "هوش مصنوعی"}
+                            </StatusPill>
+                            {/* ادمین همه‌ی برنامه‌ها را می‌بیند، پس باید معلوم
+                                باشد هرکدام را چه کسی ثبت کرده است. */}
+                            {isAdmin && schedule.creator ? (
+                                <span className="text-xs font-normal text-ink-2">
+                                    ثبت‌کننده: {schedule.creator.name}
+                                </span>
+                            ) : null}
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            {schedule.assignments.map((assignment) => (
+                                <p key={assignment.id} className="rounded-xl bg-surface-2 p-3 text-sm text-ink">
+                                    {assignment.user.name}: {clock(assignment.starts_at)} تا{" "}
+                                    {clock(assignment.ends_at)}
+                                </p>
+                            ))}
+                        </div>
+                    </Card>
+                ))}
+            </section>
         </div>
     );
 }

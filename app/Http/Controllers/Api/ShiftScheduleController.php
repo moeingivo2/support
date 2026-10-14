@@ -15,16 +15,44 @@ use Illuminate\Validation\ValidationException;
 
 class ShiftScheduleController extends Controller
 {
+    /**
+     * برنامه‌های شیفت.
+     *
+     * ناظر فقط چیزی را می‌بیند که خودش ساخته (برنامه‌ی تیم خودش)، ولی
+     * سوپر ادمین همه را می‌بیند چون نظارت بر کل سازمان را دارد.
+     */
     public function index(Request $request): JsonResponse
     {
         $schedules = ShiftSchedule::query()
-            ->where('created_by', $request->user()->id)
-            ->with('assignments.user:id,name,support_type')
+            ->unless($request->user()->isAdmin(), fn ($query) => $query->where('created_by', $request->user()->id))
+            ->when($request->filled('channel'), fn ($query) => $query->where('channel', $request->input('channel')))
+            ->with(['creator:id,name', 'assignments.user:id,name,support_type'])
             ->orderByDesc('shift_date')
             ->limit(100)
             ->get();
 
         return response()->json(['data' => $schedules]);
+    }
+
+    /**
+     * اعضای قابل انتخاب برای تقسیم شیفت.
+     *
+     * ادمین ‎support_type‎ ندارد، پس برخلاف ناظر باید کانال را خودش
+     * انتخاب کند؛ بدون این پارامتر فهرست هر دو کانال برگردانده می‌شود.
+     */
+    public function team(Request $request): JsonResponse
+    {
+        $request->validate(['channel' => ['nullable', 'in:web,ai']]);
+
+        $channel = $request->input('channel');
+
+        $members = User::query()
+            ->whereIn('role', ['support', 'account_observer'])
+            ->when($channel !== null, fn ($query) => $query->where('support_type', $channel))
+            ->orderBy('name')
+            ->get(['id', 'name', 'role', 'support_type']);
+
+        return response()->json(['data' => $members]);
     }
 
     public function store(Request $request): JsonResponse

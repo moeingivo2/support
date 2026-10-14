@@ -68,13 +68,19 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/admins/{admin}', [AdminController::class, 'destroyAdmin']);
     });
 
-    Route::middleware('role:account_observer')->prefix('observer')->group(function (): void {
-        Route::post('/shift-schedules', [ShiftScheduleController::class, 'store']);
-        Route::post('/shift-schedules/rotation/preview', [ShiftScheduleController::class, 'rotationPreview']);
-        Route::post('/shift-schedules/rotation', [ShiftScheduleController::class, 'rotationStore']);
-        Route::get('/shift-schedules', [ShiftScheduleController::class, 'index']);
-        Route::get('/team-supervision', [SupportChatController::class, 'teamSupervision']);
+    // تعیین و برنامه‌ریزی شیفت. سوپر ادمین و ناظر اکانت: ناظر برنامه‌ی
+    // تیم خودش را می‌بیند، ادمین برنامه‌ی همه را.
+    Route::middleware('role:admin,account_observer')->prefix('shift-schedules')->group(function () {
+        Route::get('/', [ShiftScheduleController::class, 'index']);
+        Route::post('/', [ShiftScheduleController::class, 'store']);
+        Route::post('/rotation/preview', [ShiftScheduleController::class, 'rotationPreview']);
+        Route::post('/rotation', [ShiftScheduleController::class, 'rotationStore']);
+        Route::get('/team', [ShiftScheduleController::class, 'team']);
     });
+
+    // نظارت تیمی — فقط پشتیبان ناظر (سوپر ادمین طبق سیاست متن گفتگو را نمی‌بیند).
+    Route::get('/observer/team-supervision', [SupportChatController::class, 'teamSupervision'])
+        ->middleware('role:account_observer');
 
     Route::get('/shift-schedule/current', [ShiftScheduleController::class, 'current'])->middleware('role:support,account_observer');
     Route::get('/shift-schedule/notifications', [ShiftScheduleController::class, 'notification'])->middleware('role:support,account_observer');

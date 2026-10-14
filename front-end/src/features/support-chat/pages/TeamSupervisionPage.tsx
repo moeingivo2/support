@@ -78,7 +78,7 @@ export default function TeamSupervisionPage() {
                 <div className="mt-5 flex flex-wrap gap-3">
                     <Button
                         variant="ghost"
-                        onClick={() => navigate("/observer-schedules")}
+                        onClick={() => navigate("/shift-scheduling")}
                     >
                         <CalendarClock />
                         تعیین شیفت تیم

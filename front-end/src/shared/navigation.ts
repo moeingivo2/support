@@ -25,10 +25,11 @@ type NavItem = {
     icon: typeof LayoutDashboard;
 };
 
-// منوی پنل ادمین — فقط نظارت؛ بدون شیفت و ثبت گزارش.
+// منوی پنل ادمین — نظارت و برنامه‌ریزی؛ بدون ثبت گزارش دستی شیفت.
 // طبق سیاست حاکمیت، سوپر ادمین به متن گفتگوی دانشجویان دسترسی ندارد.
 const adminNavigation: NavItem[] = [
     { label: "داشبورد", path: "/", icon: LayoutDashboard },
+    { label: "تعیین شیفت", path: "/shift-scheduling", icon: UserRoundCog },
     { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
     {
         label: "گزارش فعالیت پشتیبان",
@@ -100,7 +101,7 @@ const accountObserverNavigation: NavItem[] = [
         path: "/team-supervision",
         icon: Eye,
     },
-    { label: "تعیین شیفت تیم", path: "/observer-schedules", icon: UserRoundCog },
+    { label: "تعیین شیفت تیم", path: "/shift-scheduling", icon: UserRoundCog },
     { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
 ];
 
