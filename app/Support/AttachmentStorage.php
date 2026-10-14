@@ -38,6 +38,14 @@ class AttachmentStorage
         // ‎application/octet-stream‎ + ‎Content-Disposition: attachment‎ +
         // ‎nosniff‎ می‌فرستد، پس مرورگر آن‌ها را رندر یا اجرا نمی‌کند.
         'html', 'htm', 'xhtml', 'svg', 'svgz',
+        // سورسِ php هم فقط دانلود می‌شود. چرا امن است: فایل‌ها در
+        // ‎storage/app/public‎ ذخیره می‌شوند که ریشه‌ی وب نیست (ریشه‌ی
+        // nginx پوشه‌ی build فرانت است)، و nginx هیچ
+        // ‎location ~ \.php$‎ ندارد — همه‌چیز با ‎index.php‎ به‌عنوان
+        // front controller اجرا می‌شود، پس هیچ فایلی روی دیسک اجرا
+        // نمی‌شود. تنها راهِ خواندنش ‎GET /api/attachments/...‎ با
+        // احراز هویت است.
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phps', 'pht',
         // صدا
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
         // ویدیو
@@ -82,6 +90,9 @@ class AttachmentStorage
         'text/x-ruby', 'text/x-swift', 'text/x-lua', 'text/x-perl', 'text/x-r',
         'text/x-sql', 'text/x-toml', 'text/x-ini', 'text/x-python',
         'text/html', 'application/xhtml+xml', 'image/svg+xml',
+        // سورسِ php: finfo آن را 'text/x-php' تشخیص می‌دهد. فقط در گروهِ
+        // متن می‌آید تا با پسوندِ تصویر قابل دور زدن نباشد.
+        'text/x-php', 'application/x-httpd-php', 'application/x-php',
         'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -197,6 +208,9 @@ class AttachmentStorage
         // مارک‌آپ: فقط اینجاست، نه در گروه تصویر — وگرنه یک اسکریپتِ
         // متنی که با نام ‎.png‎ آمده از راه ‎text/html‎ رد می‌شد.
         'text/html', 'application/xhtml+xml', 'image/svg+xml',
+        // سورسِ php: finfo آن را 'text/x-php' تشخیص می‌دهد. فقط در گروهِ
+        // متن می‌آید تا با پسوندِ تصویر قابل دور زدن نباشد.
+        'text/x-php', 'application/x-httpd-php', 'application/x-php',
         'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -229,6 +243,7 @@ class AttachmentStorage
             'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'java',
             'go', 'rs', 'rb', 'kt', 'swift', 'dart', 'lua', 'pl', 'r',
             'html', 'htm', 'xhtml', 'svg', 'svgz',
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phps', 'pht',
         ],
     ];
 

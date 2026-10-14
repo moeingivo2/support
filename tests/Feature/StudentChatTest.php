@@ -309,17 +309,27 @@ class StudentChatTest extends TestCase
         Storage::disk('public')->assertExists($message->attachment_path);
     }
 
+    /**
+     * پسوندهایی که هیچ‌وقت نباید پذیرفته شوند.
+     *
+     * ‎.php‎ دیگر اینجا نیست چون سورسِ کد مجاز است و فقط به‌صورت دانلودِ بی‌اثر
+     * سرو می‌شود (نگاه کن به آزمون‌های SecurityHardeningTest). اما پسوندهایی
+     * که واقعاً خطرناک‌اند — یا پسوندِ خالی که یعنی نامِ مبهم — باید رد شوند.
+     */
     public function test_dangerous_attachment_is_rejected(): void
     {
         Storage::fake('public');
         $student = $this->makeStudent();
         $conversation = Conversation::create(['student_id' => $student->id]);
 
-        $this->actingAs($student, 'sanctum')
-            ->post("/api/conversations/{$conversation->id}/messages", [
-                'attachment' => UploadedFile::fake()->createWithContent('shell.php', '<?php echo 1;'),
-            ])
-            ->assertStatus(422);
+        // ‎.phar‎ بایگانیِ قابل‌اجرای php است و ‎exe‎/‎bat‎ اجراشدنی‌اند.
+        foreach (['shell.phar', 'tool.exe', 'run.bat'] as $name) {
+            $this->actingAs($student, 'sanctum')
+                ->post("/api/conversations/{$conversation->id}/messages", [
+                    'attachment' => UploadedFile::fake()->createWithContent($name, 'MZ binary'),
+                ])
+                ->assertStatus(422);
+        }
 
         $this->assertDatabaseCount('messages', 0);
     }
@@ -605,5 +615,73 @@ class StudentChatTest extends TestCase
 
         $this->assertSame(0, $profile->remainingPercentage());
         $this->assertSame(0, $profile->remainingChats());
+    }
+
+    /**
+     * فهرست باید بر اساس «جدیدترین» مرتب شود، نه بر اساس NULL.
+     *
+     * PostgreSQL در ‎ORDER BY … DESC‎ مقدار NULL را اول می‌آورد
+     * (NULLS FIRST پیش‌فرضش است). گفتگویی که هنوز پیامی ندارد
+     * ‎last_message_at = NULL‎ دارد، پس بدون ‎COALESCE‎ همه‌ی گفتگوهای
+     * خالی بالای فهرست می‌افتند و ‎id‎ بزرگ‌تر (گفتگوی جدیدتر) پایین‌تر
+     * می‌ماند.
+     */
+    public function test_conversations_are_listed_newest_first_including_empty_ones(): void
+    {
+        $student = $this->makeStudent();
+
+        $ids = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $ids[] = $this->actingAs($student, 'sanctum')
+                ->postJson('/api/conversations')
+                ->assertStatus(201)
+                ->json('data.id');
+        }
+
+        // هیچ‌کدام پیامی ندارند؛ پس همه باید صرفاً بر اساس زمان ساخت مرتب شوند.
+        $this->assertNull(Conversation::whereIn('id', $ids)->whereNotNull('last_message_at')->first());
+
+        $listed = $this->actingAs($student, 'sanctum')
+            ->getJson('/api/conversations')
+            ->assertStatus(200)
+            ->json('data.*.id');
+
+        $this->assertSame(array_reverse($ids), $listed);
+    }
+
+    /**
+     * گفتگویی که تازه‌ترین پیام را دارد باید بالاتر از گفتگویی بیفتد که
+     * بعد از آن ساخته شده ولی هرگز پیامی نگرفته است.
+     */
+    public function test_a_conversation_with_a_newer_message_outranks_a_later_created_empty_one(): void
+    {
+        $student = $this->makeStudent();
+
+        $withMessage = $this->actingAs($student, 'sanctum')
+            ->postJson('/api/conversations')
+            ->assertStatus(201)
+            ->json('data.id');
+
+        $empty = $this->actingAs($student, 'sanctum')
+            ->postJson('/api/conversations')
+            ->assertStatus(201)
+            ->json('data.id');
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/conversations/{$withMessage}/messages", ['body' => 'سلام'])
+            ->assertStatus(201);
+
+        // زمان پیام صریح تعیین می‌شود: دقت ستون‌ها ثانیه است و بدون آن
+        // هر دو مقدار در ثانیه‌ی یکسان می‌افتند و آزمون به شانس وابسته می‌شود.
+        Conversation::whereKey($withMessage)->update([
+            'last_message_at' => now()->addMinute(),
+        ]);
+
+        $listed = $this->actingAs($student, 'sanctum')
+            ->getJson('/api/conversations')
+            ->assertStatus(200)
+            ->json('data.*.id');
+
+        $this->assertSame([$withMessage, $empty], $listed);
     }
 }

@@ -226,24 +226,88 @@ class SecurityHardeningTest extends TestCase
     }
 
     /**
-     * پسوند اجراشدنی روی دیسک باید رد شود، حتی اگر محتوایش متن ساده باشد.
+     * سورسِ php هم به‌عنوان فایل کد پذیرفته می‌شود، اما هرگز اجرا نمی‌شود.
      *
-     * ‎.html‎ با فایل‌سازی در آزمون بالا پذیرفته می‌شود چون فقط دانلود
-     * می‌شود؛ ‎.php‎ فرق دارد چون اگر روزی storage داخل web root قرار گیرد،
-     * php-fpm آن را اجرا می‌کند.
+     * این امن است چون فایل‌ها در ‎storage/app/public‎ ذخیره می‌شوند که ریشه‌ی
+     * وب نیست، و nginx هیچ ‎location ~ \.php$‎ ندارد — هر درخواستی با
+     * ‎index.php‎ به‌عنوان front controller عبور می‌کند، پس هیچ فایلی روی
+     * دیسک اجرا نمی‌شود. تنها راه خواندن، ‎GET /api/attachments/…‎ با احراز
+     * هویت است که همیشه octet-stream + ‎attachment‎ برمی‌گرداند.
      */
-    public function test_php_attachments_are_rejected(): void
+    public function test_php_attachments_are_accepted_but_never_served_as_executable_content(): void
     {
         $student = $this->makeStudent();
         $conversation = Conversation::create([
             'student_id' => $student->id,
-            'title' => 'تست وب‌شل',
+            'title' => 'تست سورس php',
         ]);
 
-        foreach (['shell.php', 'shell.phtml'] as $name) {
+        foreach (['index.php', 'view.phtml'] as $name) {
+            $response = $this->actingAs($student, 'sanctum')
+                ->postJson("/api/conversations/{$conversation->id}/messages", [
+                    'body' => 'ارسال سورس',
+                    'attachment' => File::fake()->createWithContent($name, '<?php echo "pwned"; ?>'),
+                ])
+                ->assertStatus(201);
+
+            $served = $this->actingAs($student, 'sanctum')
+                ->get((string) $response->json('data.url'))
+                ->assertStatus(200);
+
+            $served->assertHeader('Content-Type', 'application/octet-stream');
+            $served->assertHeader('X-Content-Type-Options', 'nosniff');
+            $served->assertHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+
+            $disposition = (string) $served->headers->get('Content-Disposition');
+            $this->assertStringStartsWith('attachment;', $disposition);
+            $this->assertStringNotContainsString('inline', $disposition);
+
+            // محتوا باید همان سورس باشد، نه خروجی اجراشده
+            $this->assertStringContainsString('<?php echo "pwned"; ?>', $served->getContent());
+        }
+    }
+
+    /**
+     * فایل ذخیره‌شده هرگز از مسیر استاتیک در دسترس نیست.
+     *
+     * این همان چیزی است که ‎.php‎ را بی‌خطر می‌کند: اگر نشانی برگشتی
+     * ‎/storage/…‎ بود، فایل بدون احراز هویت و بدون هدرهای ایمن سرو می‌شد.
+     */
+    public function test_stored_attachments_are_never_exposed_on_a_static_path(): void
+    {
+        $student = $this->makeStudent();
+        $conversation = Conversation::create([
+            'student_id' => $student->id,
+            'title' => 'تست مسیر',
+        ]);
+
+        $url = (string) $this->actingAs($student, 'sanctum')
+            ->postJson("/api/conversations/{$conversation->id}/messages", [
+                'body' => 'سورس',
+                'attachment' => File::fake()->createWithContent('index.php', '<?php echo "pwned"; ?>'),
+            ])
+            ->assertStatus(201)
+            ->json('data.url');
+
+        $this->assertStringStartsWith('/api/attachments/', $url);
+        $this->assertStringNotContainsString('/storage/', $url);
+    }
+
+    /**
+     * محتوای php نباید با پسوند تصویر رد شود.
+     */
+    public function test_php_content_cannot_slip_through_under_an_image_extension(): void
+    {
+        $student = $this->makeStudent();
+        $conversation = Conversation::create([
+            'student_id' => $student->id,
+            'title' => 'تست دور زدن پسوند',
+        ]);
+
+        foreach (['photo.png', 'photo.jpg'] as $name) {
             $this->actingAs($student, 'sanctum')
                 ->postJson("/api/conversations/{$conversation->id}/messages", [
-                    'body' => 'تلاش برای بارگذاری وب‌شل',
+                    'body' => 'عکس جعلی',
                     'attachment' => File::fake()->createWithContent($name, '<?php echo "pwned"; ?>'),
                 ])
                 ->assertStatus(422);
@@ -280,11 +344,17 @@ class SecurityHardeningTest extends TestCase
     }
 
     /**
-     * روی ویندوز NTFS فاصله/نقطه‌ی انتهایی نام فایل را حذف می‌کند، پس
-     * «payload.php␠» با پسوند php روی دیسک ذخیره می‌شد و توسط Apache
-     * اجرا می‌شد. این بای‌پس باید بسته باشد.
+     * فاصله/نقطه‌ی انتهاییِ نام فایل باید نرمال شود، نه اینکه از فیلتر رد شود.
+     *
+     * روی ویندوز NTFS فاصله و نقطه‌ی انتهایی حذف می‌شوند، پس «shell.php␠»
+     * روی دیسک با پسوند ‎php‎ ذخیره می‌شد. آن‌وقت فیلترِ مبتنی بر رشته‌ی
+     * خام می‌توانست پسوندِ خطرناک را از چشم پنهان کند.
+     *
+     * چون سورس php حالا مجاز است، آزمون روی «رد شدن» تمرکز نمی‌کند بلکه روی
+     * خودِ نرمال‌سازی: پسوند ذخیره‌شده باید دقیقاً همان ‎php‎ باشد — نه با
+     * فاصله، نه با حرف بزرگ — و فایل باید بی‌اثر سرو شود.
      */
-    public function test_extension_with_trailing_whitespace_cannot_smuggle_php(): void
+    public function test_extension_with_trailing_whitespace_is_normalised_to_the_real_extension(): void
     {
         $student = $this->makeStudent();
         $conversation = Conversation::create([
@@ -292,16 +362,52 @@ class SecurityHardeningTest extends TestCase
             'title' => 'تست بای‌پس',
         ]);
 
-        foreach (['shell.php ', 'shell.pHp ', 'shell.php.', 'shell.phtml '] as $name) {
-            $this->actingAs($student, 'sanctum')
+        foreach (['shell.php ' => 'php', 'shell.pHp ' => 'php', 'shell.phtml ' => 'phtml'] as $name => $expected) {
+            $response = $this->actingAs($student, 'sanctum')
                 ->postJson("/api/conversations/{$conversation->id}/messages", [
-                    'body' => 'تلاش برای بارگذاری وب‌شل',
+                    'body' => 'ارسال سورس',
                     'attachment' => File::fake()->createWithContent(
                         $name,
                         '<?php echo "pwned"; ?>',
                     ),
-                ])->assertStatus(422);
+                ])
+                ->assertStatus(201);
+
+            $url = (string) $response->json('data.url');
+
+            // پسوندِ نرمال‌شده روی دیسک: حروف کوچک، بدون فاصله
+            $this->assertStringEndsWith('.'.$expected, $url);
+            $this->assertSame(
+                $expected,
+                pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION),
+            );
+
+            $served = $this->actingAs($student, 'sanctum')->get($url)->assertStatus(200);
+            $served->assertHeader('Content-Type', 'application/octet-stream');
+            $served->assertHeader('X-Content-Type-Options', 'nosniff');
         }
+    }
+
+    /**
+     * نقطه‌ی انتهایی پسوندِ خالی می‌سازد و باید رد شود.
+     *
+     * ‎shell.php.‎ در عمل ‎shell.php‎ است، ولی Symfony پسوند را خالی
+     * برمی‌گرداند؛ «بسته» جواب‌دادن (fail closed) امن‌تر از حدس‌زدن است.
+     */
+    public function test_a_trailing_dot_yields_an_empty_extension_and_is_rejected(): void
+    {
+        $student = $this->makeStudent();
+        $conversation = Conversation::create([
+            'student_id' => $student->id,
+            'title' => 'تست پسوند خالی',
+        ]);
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/conversations/{$conversation->id}/messages", [
+                'body' => 'نامِ مشکوک',
+                'attachment' => File::fake()->createWithContent('shell.php.', '<?php echo "pwned"; ?>'),
+            ])
+            ->assertStatus(422);
     }
 
     public function test_content_type_must_match_the_extension(): void
