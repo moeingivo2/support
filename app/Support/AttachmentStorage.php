@@ -34,6 +34,10 @@ class AttachmentStorage
         'sh', 'bash', 'zsh', 'ps1',
         'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'java',
         'go', 'rs', 'rb', 'kt', 'swift', 'dart', 'lua', 'pl', 'r',
+        // مارک‌آپ. این‌ها فقط دانلودِ بی‌اثرند: AttachmentController همیشه
+        // ‎application/octet-stream‎ + ‎Content-Disposition: attachment‎ +
+        // ‎nosniff‎ می‌فرستد، پس مرورگر آن‌ها را رندر یا اجرا نمی‌کند.
+        'html', 'htm', 'xhtml', 'svg', 'svgz',
         // صدا
         'webm', 'ogg', 'oga', 'mp3', 'm4a', 'wav', 'aac',
         // ویدیو
@@ -77,6 +81,7 @@ class AttachmentStorage
         'text/x-c', 'text/x-c++', 'text/x-java', 'text/x-go', 'text/x-rust',
         'text/x-ruby', 'text/x-swift', 'text/x-lua', 'text/x-perl', 'text/x-r',
         'text/x-sql', 'text/x-toml', 'text/x-ini', 'text/x-python',
+        'text/html', 'application/xhtml+xml', 'image/svg+xml',
         'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -174,10 +179,9 @@ class AttachmentStorage
     /**
      * نوع‌های مجاز برای پسوندهای متنی، کد و اسناد اداری.
      *
-     * ‎text/html‎، ‎image/svg+xml‎ و انواع php اینجا نیستند: این‌ها با نام
-     * ‎.txt‎ یا ‎.py‎ هم از مسیر AttachmentController به‌صورت دانلودی سرو
-     * می‌شوند و وسوسه‌ی دور زدن پسوند را باز می‌کنند، در حالی که پسوند
-     * اصلی‌شان که در فهرست مجاز نیست.
+     * ‎text/html‎ و انواع php اینجا نیستند: پسوند php روی دیسک قابل
+     * اجراست و هرگز پذیرفته نمی‌شود. مارک‌آپ (html/svg) اما بی‌خطر است چون
+     * فقط به‌صورت دانلود سرو می‌شود، پس در فهرستِ گروهِ متن هست.
      *
      * @var array<int, string>
      */
@@ -190,6 +194,9 @@ class AttachmentStorage
         'text/x-c', 'text/x-c++', 'text/x-java', 'text/x-go', 'text/x-rust',
         'text/x-ruby', 'text/x-swift', 'text/x-lua', 'text/x-perl', 'text/x-r',
         'text/x-sql', 'text/x-toml', 'text/x-ini', 'text/x-python',
+        // مارک‌آپ: فقط اینجاست، نه در گروه تصویر — وگرنه یک اسکریپتِ
+        // متنی که با نام ‎.png‎ آمده از راه ‎text/html‎ رد می‌شد.
+        'text/html', 'application/xhtml+xml', 'image/svg+xml',
         'application/vnd.ms-excel', 'application/msword', 'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -221,6 +228,7 @@ class AttachmentStorage
             'sh', 'bash', 'zsh', 'ps1',
             'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'java',
             'go', 'rs', 'rb', 'kt', 'swift', 'dart', 'lua', 'pl', 'r',
+            'html', 'htm', 'xhtml', 'svg', 'svgz',
         ],
     ];
 
@@ -338,6 +346,20 @@ class AttachmentStorage
         }
 
         return null;
+    }
+
+    /**
+     * آیا این پسوند یک تصویرِ برشی (raster) است؟
+     *
+     * ‎.svg‎ عمداً «تصویر» حساب نمی‌شود: مرورگر می‌تواند SVG را در ‎<img>‎
+     * رندر کند، پس بهتر است مثل بقیه‌ی فایل‌ها دانلود شود نه پیش‌نمایش.
+     *
+     * مبنا پسوند است، نه Content-Type مرورگر: هدرِ کلاینت قابل‌جعل است
+     * و با دادن ‎image/svg+xml‎ می‌شد یک SVG را جای تصویر جا زد.
+     */
+    public function isRasterImageExtension(string $extension): bool
+    {
+        return $this->extensionGroup(strtolower(trim($extension))) === 'image';
     }
 
     public function delete(?string $path): void

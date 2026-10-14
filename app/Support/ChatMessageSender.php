@@ -112,12 +112,17 @@ class ChatMessageSender
 
         $file = $request->file('attachment');
         $mime = (string) $file->getClientMimeType();
+        $extension = $file->getClientOriginalExtension();
 
-        if (str_starts_with($mime, 'image/')) {
+        // تصویر بودن از پسوند تشخیص داده می‌شود، نه از Content-Type مرورگر:
+        // کلاینت می‌تواند دلخواه ‎image/svg+xml‎ بفرستد و یک فایل مارک‌آپ را
+        // جای پیش‌نمایش تصویر جا بزند. ‎AttachmentStorage‎ همین پسوند را
+        // هنگام ذخیره اعتبارسنجی کرده است.
+        if ($this->attachments->isRasterImageExtension($extension)) {
             return MessageType::Image;
         }
 
-        if (str_starts_with($mime, 'audio/') || $this->isVoiceExtension($file->getClientOriginalExtension())) {
+        if (str_starts_with($mime, 'audio/') || $this->isVoiceExtension($extension)) {
             return MessageType::Voice;
         }
 
