@@ -90,6 +90,39 @@ class User extends Authenticatable
         return in_array($this->role, ['support', 'observer', 'account_observer', 'trainee'], true);
     }
 
+    /**
+     * کانالی که این کاربر فقط به آن محدود است، یا `null` اگر محدود نیست.
+     *
+     * ناظرِ اکانت خودش یک پشتیبان با `support_type` مشخص است و تیمِ همان
+     * کانال را می‌بیند؛ پس نباید بتواند کانالِ دیگر (مثلاً هوش مصنوعی برای
+     * ناظرِ وب) را از راه پارامترِ `channel` یا فیلتر دستی رد کند.
+     *
+     * سوپر ادمین و ناظرِ فقط‌خواندنی محدود نیستند و `null` می‌گیرند.
+     *
+     * @return string|null `web` یا `ai`، و `null` برای نقش‌های بدون محدودیت
+     */
+    public function restrictedChannel(): ?string
+    {
+        return $this->isAccountObserver() ? $this->support_type : null;
+    }
+
+    /**
+     * کانالِ مؤثر برای فیلتر کردن داده‌ها.
+     *
+     * برای نقش‌های محدود، هر مقدارِ درخواستی نادیده گرفته می‌شود و کانال
+     * خودشان اعمال می‌شود؛ برای بقیه، مقدارِ خواسته‌شده اگر معتبر باشد.
+     */
+    public function effectiveChannel(?string $requested = null): ?string
+    {
+        $restricted = $this->restrictedChannel();
+
+        if ($restricted !== null) {
+            return $restricted;
+        }
+
+        return in_array($requested, ['web', 'ai'], true) ? $requested : null;
+    }
+
     public function shifts()
     {
         return $this->hasMany(Shift::class);

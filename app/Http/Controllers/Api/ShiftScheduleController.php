@@ -23,9 +23,16 @@ class ShiftScheduleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $schedules = ShiftSchedule::query()
-            ->unless($request->user()->isAdmin(), fn ($query) => $query->where('created_by', $request->user()->id))
-            ->when($request->filled('channel'), fn ($query) => $query->where('channel', $request->input('channel')))
+            ->unless($user->isAdmin(), fn ($query) => $query->where('created_by', $user->id))
+            // ناظرِ اکانت فقط کانال خودش را می‌بیند؛ کانالِ خواسته‌شده در
+            // آدرس نادیده گرفته می‌شود تا نتواند به کانالِ دیگری سر بزند.
+            ->when(
+                $channel = $user->effectiveChannel($request->input('channel')),
+                fn ($query) => $query->where('channel', $channel),
+            )
             ->with(['creator:id,name', 'assignments.user:id,name,support_type'])
             ->orderByDesc('shift_date')
             ->limit(100)
@@ -39,12 +46,14 @@ class ShiftScheduleController extends Controller
      *
      * ادمین ‎support_type‎ ندارد، پس برخلاف ناظر باید کانال را خودش
      * انتخاب کند؛ بدون این پارامتر فهرست هر دو کانال برگردانده می‌شود.
+     * ناظرِ اکانت همیشه به کانال خودش قفل است و پارامترِ خواسته‌شده را
+     * نمی‌تواند تغییر دهد.
      */
     public function team(Request $request): JsonResponse
     {
         $request->validate(['channel' => ['nullable', 'in:web,ai']]);
 
-        $channel = $request->input('channel');
+        $channel = $request->user()->effectiveChannel($request->input('channel'));
 
         $members = User::query()
             ->whereIn('role', ['support', 'account_observer'])
@@ -66,6 +75,8 @@ class ShiftScheduleController extends Controller
             'support_ids' => ['required', 'array', 'min:1', 'max:100'],
             'support_ids.*' => ['required', 'integer', 'distinct', 'exists:users,id'],
         ]);
+
+        $this->authorizeChannel($request, $data['channel']);
 
         $supports = User::query()->whereIn('id', $data['support_ids'])
             ->whereIn('role', ['support', 'account_observer'])
@@ -203,6 +214,8 @@ class ShiftScheduleController extends Controller
             'slots.*.starts_at' => ['required', 'date_format:H:i'],
             'slots.*.ends_at' => ['required', 'date_format:H:i'],
         ]);
+
+        $this->authorizeChannel($request, $data['channel']);
 
         $slots = collect($data['slots'])->sortBy('starts_at')->values();
         $previousEnd = null;
@@ -374,6 +387,26 @@ class ShiftScheduleController extends Controller
         [$hours, $minutes] = array_map('intval', explode(':', $time));
 
         return $hours * 60 + $minutes;
+    }
+
+    /**
+     * ناظرِ اکانت فقط برای کانالِ خودش می‌تواند برنامه بنویسد.
+     *
+     * اگر کاربری که به یک کانال قفل است کانالِ دیگری را در بدنه بفرستد،
+     * رد می‌شود — نه اینکه بی‌سروصدا به کانال خودش تغییر کند، چون آن‌وقت
+     * کاربر فکر می‌کند برای همان کانالی که خواسته برنامه ثبت شده است.
+     */
+    private function authorizeChannel(Request $request, string $requestedChannel): void
+    {
+        $restricted = $request->user()?->restrictedChannel();
+
+        if ($restricted === null || $restricted === $requestedChannel) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'channel' => 'تعیین شیفت برای این کانال برای شما مجاز نیست.',
+        ]);
     }
 
     private function fromMinute(int $minute): string

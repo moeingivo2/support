@@ -22,7 +22,6 @@ import { cn } from "@/shared/lib/utils";
 type ReportsFilters = {
     page: number;
     user_id?: string;
-    channel?: string;
     from?: string;
     to?: string;
 };
@@ -45,8 +44,7 @@ export default function AllReportsPage() {
             getJson<LaravelPagination<ShiftReport>>("/api/shift-reports", {
                 page: filters.page,
                 user_id: filters.user_id || undefined,
-                channel: filters.channel || undefined,
-                from: filters.from || undefined,
+                        from: filters.from || undefined,
                 to: filters.to || undefined,
             }),
         placeholderData: keepPreviousData,
@@ -117,22 +115,6 @@ export default function AllReportsPage() {
                             </select>
                         </div>
                     ) : null}
-
-                    <div className="space-y-2">
-                        <Label htmlFor="filter-channel">نوع پشتیبانی</Label>
-                        <select
-                            id="filter-channel"
-                            className="h-11 w-full rounded-2xl border border-hairline bg-surface-2 px-4 text-sm text-ink outline-none transition focus-visible:border-primary-line-2 focus-visible:ring-2 focus-visible:ring-primary-ring"
-                            value={filters.channel ?? ""}
-                            onChange={(event) =>
-                                updateFilter("channel", event.target.value)
-                            }
-                        >
-                            <option value="">همه</option>
-                            <option value="web">وب</option>
-                            <option value="ai">هوش مصنوعی</option>
-                        </select>
-                    </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="filter-from">از تاریخ</Label>
@@ -346,6 +328,6 @@ function MetricPill({
 
 function hasActiveFilters(filters: ReportsFilters): boolean {
     return Boolean(
-        filters.user_id || filters.channel || filters.from || filters.to,
+        filters.user_id || filters.from || filters.to,
     );
 }

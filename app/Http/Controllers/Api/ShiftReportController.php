@@ -40,6 +40,8 @@ class ShiftReportController extends Controller
     {
         $report = ShiftReport::with(['shift', 'user'])->findOrFail($id);
 
+        $this->authorizeChannel($request, $report);
+
         $dissatisfactions = ShiftReportGenerator::unsatisfiedQuery($report->shift)
             ->with('student:id,name')
             ->orderBy('submitted_at')
@@ -58,8 +60,11 @@ class ShiftReportController extends Controller
     }
 
     /**
-     * فیلترها: پشتیبان (user_id)، نوع پشتیبانی (channel از شیفت)، روز خاص
-     * یا بازه‌ی تاریخ.
+     * فیلترها: پشتیبان (user_id)، روز خاص یا بازه‌ی تاریخ.
+     *
+     * فیلترِ «نوع پشتیبانی» از رابط کاربری حذف شده چون برای ناظر اکانت
+     * گمراه‌کننده بود: کانالش از روی خودش تعیین می‌شود و انتخاب دستیِ
+     * کانالِ دیگر فقط باعث می‌شد فکر کند اختیار دارد.
      */
     private function applyFilters($query, Request $request): void
     {
@@ -67,9 +72,13 @@ class ShiftReportController extends Controller
             $query->where('user_id', $request->input('user_id'));
         }
 
-        if ($request->filled('channel')) {
-            $query->whereHas('shift', function ($shiftQuery) use ($request) {
-                $shiftQuery->where('channel', $request->input('channel'));
+        // ناظرِ اکانت فقط گزارشِ کانال خودش را می‌بیند؛ اگر کانالِ دیگری
+        // را هم در آدرس یا کوئری‌استرینگ بفرستد نادیده گرفته می‌شود.
+        $channel = $request->user()?->effectiveChannel($request->input('channel'));
+
+        if ($channel !== null) {
+            $query->whereHas('shift', function ($shiftQuery) use ($channel) {
+                $shiftQuery->where('channel', $channel);
             });
         }
 
@@ -84,5 +93,26 @@ class ShiftReportController extends Controller
         if ($request->filled('to')) {
             $query->whereDate('created_at', '<=', $request->input('to'));
         }
+    }
+
+    /**
+     * ناظرِ اکانت به گزارشِ کانالِ خودش محدود است.
+     *
+     * بدون این بررسی، حذف فیلتر از فرم کافی نبود: کاربر می‌توانست شناسه‌ی
+     * یک گزارشِ هوش مصنوعی را مستقیم در آدرس بگذارد و آن را بخواند.
+     */
+    private function authorizeChannel(Request $request, ShiftReport $report): void
+    {
+        $restricted = $request->user()?->restrictedChannel();
+
+        if ($restricted === null) {
+            return;
+        }
+
+        abort_unless(
+            $report->shift?->channel === $restricted,
+            403,
+            'دسترسی به گزارش شیفتِ این کانال مجاز نیست.',
+        );
     }
 }
