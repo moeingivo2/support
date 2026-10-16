@@ -3,9 +3,10 @@ import { getJson } from "@/shared/api/http";
 export type DashboardResponse = {
     data: {
         weeklySatisfaction: number;
+        openComplaints: number;
         answeredStudents: number;
-        mentorIssues: number;
         availableServices: number;
+        unseenComplaints: number;
     };
 };
 

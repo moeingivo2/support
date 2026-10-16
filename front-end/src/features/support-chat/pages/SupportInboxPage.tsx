@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Bell,
-    ChevronRight,
+    ChevronLeft,
     Eye,
     GraduationCap,
     Lock,
@@ -174,7 +174,15 @@ language,
                 signal,
             });
         },
-        onSuccess: () => {
+        onSuccess: (_response, variables) => {
+            /*
+                حالت کد برای یک پیام است؛ اگر باز بماند پاسخ بعدی هم کد
+                می‌شود. فقط پس از ارسال موفق خاموش می‌شود.
+            */
+            if (variables.codeMode) {
+                setCodeMode(false);
+            }
+
             if (activeId !== null) {
                 void queryClient.invalidateQueries({
                     queryKey: supportChatKeys.conversation(activeId),
@@ -253,7 +261,7 @@ language,
                     onClick={backToStudents}
                     className="flex w-full items-center gap-1.5 rounded-2xl border border-hairline bg-surface-2 px-3 py-3 text-sm font-semibold text-ink transition-[background-color,border-color,box-shadow,opacity,color] duration-150 ease-out hover:border-hairline-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 "
                 >
-                    <ChevronRight className="size-4" aria-hidden="true" />
+                    <ChevronLeft className="size-4" aria-hidden="true" />
                     بازگشت به همه‌ی دانشجویان
                 </button>
 
@@ -318,7 +326,7 @@ language,
                             aria-label="بازگشت به فهرست گفتگوها"
                             className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink-2 transition-colors duration-150 ease-out  hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2  xl:hidden"
                         >
-                            <ChevronRight className="size-4" aria-hidden="true" />
+                            <ChevronLeft className="size-4" aria-hidden="true" />
                             فهرست
                         </button>
                     ) : null}

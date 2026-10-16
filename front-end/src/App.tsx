@@ -33,7 +33,8 @@ import LoginSplash from "@/features/auth/components/LoginSplash";
 import { AppErrorBoundary } from "@/shared/ui/app-error-boundary";
 import ShiftSchedulingPage from "@/features/admin/pages/ShiftSchedulingPage";
 import TeamSupervisionPage from "@/features/support-chat/pages/TeamSupervisionPage";
-import MentorFeedbackPage from "@/features/student-complaints/pages/MentorFeedbackPage";
+import StudentComplaintFormPage from "@/features/student-complaints/pages/StudentComplaintFormPage";
+import StudentSessionSourcesPage from "@/features/session-sources/pages/StudentSessionSourcesPage";
 
 const supportOnlyPaths = new Set(["/support-shifts"]);
 const accountObserverOnlyPaths = new Set([
@@ -46,19 +47,23 @@ const accountObserverOnlyPaths = new Set([
  * گزارش شیفت از ساعت‌های واقعیِ کار ساخته می‌شود.
  */
 const shiftSchedulingPaths = new Set(["/shift-scheduling"]);
-const supportPanelPaths = new Set(["/mentor-feedback"]);
 /**
  * محتوای پنل (سورس جلسات، فایل‌های مورد نیاز، سوالات متداول) به بخش «وب» و
  * «هوش مصنوعی» تقسیم شده و سرور آن را به `support_type` گره می‌زند. ناظر
  * فقط‌خواندنی نوع پشتیبانی ندارد، پس این سه صفحه برایش نیست.
  */
 const contentChannelPaths = new Set(["/sessions", "/files", "/faq"]);
+/**
+ * پنل نارضایتی فقط در دسترس سوپر ادمین است؛ سرور هم `/api/complaints` را
+ * برای بقیه‌ی نقش‌ها ۴۰۳ می‌کند تا صرفاً با پنهان‌کردن منو محدود نشود.
+ */
 const adminOnlyPaths = new Set([
     "/register-support",
     "/activity-report",
     "/manage-admins",
     "/manage-trainees",
     "/support-ranking",
+    "/student-complaints",
 ]);
 /**
  * پنل گزارش‌های خودکار شیفت — فقط سوپر ادمین و ناظرها؛ پشتیبان‌ها گزارش را
@@ -99,7 +104,6 @@ const routeComponents: Record<string, React.ComponentType> = {
     "/support-ranking": SupportRankingRoute,
     "/shift-scheduling": ShiftSchedulingPage,
     "/team-supervision": TeamSupervisionPage,
-    "/mentor-feedback": MentorFeedbackPage,
 };
 
 function PanelRoutes() {
@@ -125,15 +129,13 @@ function PanelRoutes() {
             !["admin", "account_observer"].includes(user?.role ?? "")
         )
             return <Navigate to={homePath} replace />;
-        if (supportPanelPaths.has(path) && !["support", "observer", "account_observer", "admin"].includes(user?.role ?? ""))
-            return <Navigate to={homePath} replace />;
         if (contentChannelPaths.has(path) && (user?.role === "observer" || isTrainee))
             return <Navigate to={homePath} replace />;
         if (adminOnlyPaths.has(path) && !isAdmin)
             return <Navigate to={homePath} replace />;
         if (
             upgradeRequestPaths.has(path) &&
-            !["support", "account_observer", "admin"].includes(user?.role ?? "")
+            !isAdmin
         )
             return <Navigate to={homePath} replace />;
         if (
@@ -170,7 +172,8 @@ function StudentRoutes() {
                 <Routes>
                     <Route path="/chat" element={<ChatRoute />} />
                     <Route path="/account" element={<AccountRoute />} />
-                    <Route path="/mentor-feedback" element={<MentorFeedbackPage />} />
+                    <Route path="/complaints/new" element={<StudentComplaintFormPage />} />
+                    <Route path="/sources" element={<StudentSessionSourcesPage />} />
                     <Route path="*" element={<Navigate to="/chat" replace />} />
                 </Routes>
             </Suspense>

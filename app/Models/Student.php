@@ -11,8 +11,14 @@ class Student extends Model
 
     protected $fillable = ['name', 'student_code', 'phone'];
 
+    /**
+     * نارضایتی‌های ثبت‌شده توسط این دانشجو.
+     *
+     * رکورد دانشجو فقط آینه‌ای از حساب کاربری است، پس از همان `users.id`
+     * می‌رود نه از کلید خودِ جدول `students`.
+     */
     public function complaints()
     {
-        return $this->hasMany(Complaint::class);
+        return $this->hasMany(Complaint::class, 'user_id');
     }
 }

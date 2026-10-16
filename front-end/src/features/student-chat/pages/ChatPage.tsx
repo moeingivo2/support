@@ -123,7 +123,17 @@ export default function ChatPage() {
                 signal,
             });
         },
-        onSuccess: (response) => {
+        onSuccess: (response, variables) => {
+            /*
+                حالت کد فقط برای همان یک پیام است؛ اگر باز بماند، پیام
+                بعدی هم بی‌اخواسته به‌جای متن، کد ارسال می‌شود. فقط
+                وقتی ارسال موفق بوده خاموشش می‌کنیم تا در صورت خطا
+                کاربر بتواند دوباره تلاش کند.
+            */
+            if (variables.codeMode) {
+                setCodeMode(false);
+            }
+
             if (activeId !== null) {
                 void queryClient.invalidateQueries({
                     queryKey: ["student", "conversations", activeId],
@@ -310,9 +320,16 @@ export default function ChatPage() {
                         {/* پیمایش درون‌برنامه‌ای؛ window.location کل
                             برنامه را دوباره بارگذاری می‌کرد. */}
                         <Button variant="ghost" asChild className="mx-auto">
-                            <Link to="/mentor-feedback">
+                            {/*
+                                `conversation_id` باعث می‌شود نارضایتیِ نوع
+                                «پشتیبانی» به همین گفتگو وصل شود تا معلوم
+                                باشد شکایت بابت کدام پشتیبان بوده.
+                            */}
+                            <Link
+                                to={`/complaints/new?conversation_id=${activeId ?? ""}`}
+                            >
                                 <MessageSquareWarning />
-                                ثبت نارضایتی از منتور
+                                ثبت نارضایتی
                             </Link>
                         </Button>
                     </div>

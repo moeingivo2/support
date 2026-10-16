@@ -1,8 +1,11 @@
-import { getJson, postJson, putJson } from "@/shared/api/http";
+import { deleteJson, getJson, postJson, putJson } from "@/shared/api/http";
 import type {
     Complaint,
-    ComplaintPriority,
+    ComplaintFilters,
     ComplaintStatus,
+    ComplaintStatusResponse,
+    ComplaintSummary,
+    ComplaintType,
     CreateComplaintPayload,
     CreateComplaintResponse,
     LaravelPagination,
@@ -10,15 +13,32 @@ import type {
 
 export const complaintKeys = {
     all: ["complaints"] as const,
-    list: (page: number) => [...complaintKeys.all, "list", page] as const,
-    mine: (page: number) => [...complaintKeys.all, "mine", page] as const,
+    list: (filters: ComplaintFilters) =>
+        [...complaintKeys.all, "list", filters] as const,
+    summary: ["complaints", "summary"] as const,
 };
 
-export const PRIORITY_OPTIONS = [
-    { value: "high", label: "زیاد" },
-    { value: "normal", label: "متوسط" },
-    { value: "low", label: "کم" },
-] as const;
+export const TYPE_OPTIONS: ReadonlyArray<{
+    value: ComplaintType;
+    label: string;
+    hint: string;
+}> = [
+    {
+        value: "support",
+        label: "پشتیبانی",
+        hint: "از رفتار یا پاسخ پشتیبان ناراضی هستید",
+    },
+    {
+        value: "mentor",
+        label: "منتور",
+        hint: "نام منتور را بنویسید و توضیح دهید",
+    },
+    {
+        value: "course",
+        label: "دوره",
+        hint: "نام دوره را بنویسید و توضیح دهید",
+    },
+];
 
 export const STATUS_OPTIONS = [
     { value: "open", label: "در انتظار بررسی" },
@@ -26,30 +46,73 @@ export const STATUS_OPTIONS = [
     { value: "resolved", label: "رسیدگی‌شده" },
 ] as const;
 
-export const PRIORITY_LABELS: Record<ComplaintPriority | string, string> = {
-    high: "زیاد",
-    normal: "متوسط",
-    low: "کم",
+export const TYPE_LABELS: Record<string, string> = {
+    support: "پشتیبانی",
+    mentor: "منتور",
+    course: "دوره",
 };
 
-export const STATUS_LABELS: Record<ComplaintStatus | string, string> = {
+export const STATUS_LABELS: Record<string, string> = {
     open: "در انتظار بررسی",
     in_progress: "در حال پیگیری",
     resolved: "رسیدگی‌شده",
 };
 
-export function getComplaints(
-    page: number,
-): Promise<LaravelPagination<Complaint>> {
-    return getJson<LaravelPagination<Complaint>>("/api/complaints", { page });
+/**
+ * حذف پارامترهای خالی تا فیلترِ بی‌ربط به کوئری‌استرینگ اضافه نشود.
+ */
+export function buildComplaintQuery(
+    filters: ComplaintFilters,
+): Record<string, string | number> {
+    const query: Record<string, string | number> = {};
+
+    if (filters.type) {
+        query.type = filters.type;
+    }
+
+    if (filters.status) {
+        query.status = filters.status;
+    }
+
+    if (filters.from) {
+        query.from = filters.from;
+    }
+
+    if (filters.to) {
+        query.to = filters.to;
+    }
+
+    if (filters.page) {
+        query.page = filters.page;
+    }
+
+    if (filters.per_page) {
+        query.per_page = filters.per_page;
+    }
+
+    return query;
 }
 
-export function getMyComplaints(
-    page: number,
+export function getComplaints(
+    filters: ComplaintFilters,
 ): Promise<LaravelPagination<Complaint>> {
-    return getJson<LaravelPagination<Complaint>>("/api/complaints/my", {
-        page,
-    });
+    return getJson<LaravelPagination<Complaint>>(
+        "/api/complaints",
+        buildComplaintQuery(filters),
+    );
+}
+
+/** شمارش نشان قرمز: خوانده‌نشده‌ها و بازها. */
+export function getComplaintSummary(): Promise<ComplaintSummary> {
+    return getJson<ComplaintSummary>("/api/complaints/summary");
+}
+
+/** علامت‌زدن همه‌ی نارضایتی‌های خوانده‌نشده به‌عنوان «دیده‌شده». */
+export function markComplaintsSeen(): Promise<{ message: string }> {
+    return postJson<Record<string, never>, { message: string }>(
+        "/api/complaints/mark-seen",
+        {},
+    );
 }
 
 export function createComplaint(
@@ -64,11 +127,16 @@ export function createComplaint(
 export function updateComplaintStatus(
     id: number,
     status: ComplaintStatus,
-): Promise<{ message: string; complaint: Complaint }> {
-    return putJson<
-        { status: ComplaintStatus },
-        { message: string; complaint: Complaint }
-    >(`/api/complaints/${id}`, { status });
+): Promise<ComplaintStatusResponse> {
+    return putJson<{ status: ComplaintStatus }, ComplaintStatusResponse>(
+        `/api/complaints/${id}`,
+        { status },
+    );
 }
 
-export type { ComplaintStatus } from "../types/complaint";
+/** حذف نارضایتی بی‌ربط — فقط ناظر اکانت و سوپر ادمین. */
+export function deleteComplaint(id: number): Promise<{ message: string }> {
+    return deleteJson<{ message: string }>(`/api/complaints/${id}`);
+}
+
+export type { ComplaintStatus, ComplaintType } from "../types/complaint";

@@ -106,6 +106,11 @@ final readonly class ShiftReportGenerator
      * آن‌ها با بازه‌ی زمانیِ ارسال تطبیق داده می‌شوند تا عددشان از دست
      * نرود.
      *
+     * امتیازهایی که ناظر به‌عنوان «بی‌ربط» کنار گذاشته شده‌اند
+     * ({@see MessageRating::isDismissed()}) از این شمارش بیرون می‌مانند، پس
+     * عددِ گزارش شیفت و ستون «دانشجویان ناراضی» در اکسل فعالیت هم با
+     * کنار گذاشتن هماهنگ می‌شود.
+     *
      * @return Builder<MessageRating>
      */
     public static function unsatisfiedQuery(Shift $shift): Builder
@@ -114,6 +119,33 @@ final readonly class ShiftReportGenerator
         $to = $shift->end_time ?? now();
 
         return MessageRating::query()
+            ->active()
+            ->where('support_agent_id', $shift->user_id)
+            ->where('rating_value', '<=', self::UNSATISFIED_MAX_RATING)
+            ->where(function ($query) use ($shift, $from, $to): void {
+                $query->where('shift_id', $shift->id)
+                    ->orWhere(function ($legacy) use ($from, $to): void {
+                        $legacy->whereNull('shift_id')
+                            ->whereBetween('submitted_at', [$from, $to]);
+                    });
+            });
+    }
+
+    /**
+     * همان شرط‌های {@see unsatisfiedQuery()} ولی فقط برای ردیف‌هایی که
+     * بی‌ربط اعلام شده‌اند.
+     *
+     * برای اینکه ناظر بتواند کنار گذاشتنِ اشتباه را برگرداند.
+     *
+     * @return Builder<MessageRating>
+     */
+    public static function dismissedUnsatisfiedQuery(Shift $shift): Builder
+    {
+        $from = $shift->start_time;
+        $to = $shift->end_time ?? now();
+
+        return MessageRating::query()
+            ->dismissed()
             ->where('support_agent_id', $shift->user_id)
             ->where('rating_value', '<=', self::UNSATISFIED_MAX_RATING)
             ->where(function ($query) use ($shift, $from, $to): void {

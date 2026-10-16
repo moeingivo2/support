@@ -42,20 +42,33 @@ class ShiftReportController extends Controller
 
         $this->authorizeChannel($request, $report);
 
+        $toArray = fn (MessageRating $rating): array => [
+            'id' => $rating->id,
+            'student_name' => $rating->student?->name ?? '—',
+            'rating_value' => $rating->rating_value,
+            'description' => $rating->description,
+            'submitted_at' => $rating->submitted_at?->toIso8601String(),
+            'dismissed_at' => $rating->dismissed_at?->toIso8601String(),
+            'dismissed_by' => $rating->dismisser?->name,
+        ];
+
         $dissatisfactions = ShiftReportGenerator::unsatisfiedQuery($report->shift)
-            ->with('student:id,name')
+            ->with(['student:id,name', 'dismisser:id,name'])
             ->orderBy('submitted_at')
             ->get()
-            ->map(fn (MessageRating $rating): array => [
-                'student_name' => $rating->student?->name ?? '—',
-                'rating_value' => $rating->rating_value,
-                'description' => $rating->description,
-                'submitted_at' => $rating->submitted_at?->toIso8601String(),
-            ]);
+            ->map($toArray);
+
+        // جدا نگه‌داشته شده تا ناظر بتواند کنار گذاشتنِ اشتباه را برگرداند.
+        $dismissedDissatisfactions = ShiftReportGenerator::dismissedUnsatisfiedQuery($report->shift)
+            ->with(['student:id,name', 'dismisser:id,name'])
+            ->orderBy('dismissed_at', 'desc')
+            ->get()
+            ->map($toArray);
 
         return response()->json([
             'report' => $report,
             'dissatisfactions' => $dissatisfactions,
+            'dismissed_dissatisfactions' => $dismissedDissatisfactions,
         ]);
     }
 

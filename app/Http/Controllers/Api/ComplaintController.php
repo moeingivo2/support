@@ -5,194 +5,158 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreComplaintRequest;
 use App\Models\Complaint;
-use App\Models\Mentor;
-use App\Models\Student;
+use App\Models\Conversation;
+use App\Support\ComplaintStatus;
+use App\Support\ComplaintType;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * نارضایتی‌ها — یکپارچه و ثبت‌شده توسط دانشجو.
+ *
+ * قبلاً دو سیستم جدا بود: `complaints` که کارکنان برای دانشجو ثبت
+ * می‌کردند و `mentor_feedback` که خود دانشجو می‌نوشت. حالا دانشجو خودش
+ * یکی از سه نوع را انتخاب می‌کند و همه در همین جدول می‌نشینند.
+ */
 class ComplaintController extends Controller
 {
-    // ثبت نارضایتی جدید
-    public function store(StoreComplaintRequest $request)
+    /**
+     * ثبت نارضایتی توسط دانشجو.
+     */
+    public function store(StoreComplaintRequest $request): JsonResponse
     {
-        // پیدا کردن یا ساختن دانشجو — با student_code اگر داشت، وگرنه با نام
-        if ($request->student_code) {
-            $student = Student::firstOrCreate(
-                ['student_code' => $request->student_code],
-                [
-                    'name' => $request->student_name,
-                    'phone' => $request->student_phone,
-                ]
-            );
-        } else {
-            $student = Student::firstOrCreate(
-                ['name' => $request->student_name],
-                ['phone' => $request->student_phone]
-            );
-        }
-
-        // پیدا کردن یا ساختن منتور
-        $mentor = Mentor::firstOrCreate(
-            ['name' => $request->mentor_name],
-            ['phone' => $request->mentor_phone]
-        );
+        $payload = $request->payload();
 
         $complaint = Complaint::create([
-            'student_id' => $student->id,
-            'mentor_id' => $mentor->id,
-            'support_id' => $request->user()->id,
-            'shift_id' => $request->shift_id,
-            'description' => $request->description,
-            'priority' => $request->priority,
-            'status' => 'open',
+            'user_id' => $request->user()->id,
+            ...$payload,
+            'status' => ComplaintStatus::Open->value,
         ]);
 
-        $complaint->load(['student', 'mentor', 'support']);
+        // برای نوع «پشتیبانی» می‌خواهیم بدانیم شکایت بابت کدام پشتیبان بوده
+        // تا در فعالیت همان پشتیبان دیده شود. اگر دانشجو از صفحه‌ی گفتگو
+        // ثبت کرده باشد، پشتیبانِ همان گفتگو ملاک است.
+        if ($complaint->type === ComplaintType::Support && $complaint->conversation_id !== null) {
+            $complaint->forceFill([
+                'support_id' => Conversation::query()
+                    ->whereKey($complaint->conversation_id)
+                    ->value('support_id'),
+            ])->save();
+        }
 
         return response()->json([
-            'message' => 'نارضایتی با موفقیت ثبت شد.',
-            'complaint' => $complaint,
+            'message' => 'نارضایتی شما ثبت شد. کارشناسان پیگیری می‌کنند.',
+            'data' => $complaint->fresh(),
         ], 201);
     }
 
-    // لیست نارضایتی‌ها — ادمین همه را می‌بیند، ساپورت فقط موارد ثبت‌شده خودش را
-    public function index(Request $request)
+    /**
+     * فهرست نارضایتی‌ها برای پنل، با فیلترِ نوع و بازه‌ی زمانی و وضعیت.
+     */
+    public function index(Request $request): JsonResponse
     {
-        $query = Complaint::with(['student', 'mentor', 'support']);
-
-        // ساپورت فقط نارضایتی‌هایی که خودش ثبت کرده؛ ناظر اکانت فقط تیم خودش را می‌بیند
-        if (! $request->user()->isAdmin()) {
-            $query->when(
-                $request->user()->isAccountObserver(),
-                fn ($scoped) => $scoped->whereHas(
-                    'support',
-                    fn ($support) => $support
-                        ->where('role', 'support')
-                        ->where('support_type', $request->user()->support_type),
-                ),
-                fn ($scoped) => $scoped->where('support_id', $request->user()->id),
-            );
-        }
-
-        // فیلتر بر اساس وضعیت
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // فیلتر بر اساس اولویت
-        if ($request->has('priority')) {
-            $query->where('priority', $request->priority);
-        }
-
-        // فیلترهای مدیریتی: منتور یا پشتیبان ثبت‌کننده
-        if ($request->user()->isAdmin() && $request->filled('mentor_id')) {
-            $query->where('mentor_id', $request->input('mentor_id'));
-        }
-
-        if ($request->user()->isAdmin() && $request->filled('support_id')) {
-            $query->where('support_id', $request->input('support_id'));
-        }
-
-        $complaints = $query->orderBy('created_at', 'desc')->paginate(min($request->input('per_page', 20), 100));
-
-        return response()->json($complaints);
-    }
-
-    // نارضایتی‌های ثبت‌شده توسط خود پشتیبان
-    public function myComplaints(Request $request)
-    {
-        $complaints = Complaint::with(['student', 'mentor'])
-            ->where('support_id', $request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(min($request->input('per_page', 20), 100));
-
-        return response()->json($complaints);
-    }
-
-    // آخرین نارضایتی‌ها (برای کارت داشبورد)
-    public function latest(Request $request)
-    {
-        $request->validate([
-            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:support,mentor,course'],
+            'status' => ['nullable', 'in:open,in_progress,resolved'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $complaints = Complaint::with(['student', 'mentor', 'support'])
-            ->orderBy('created_at', 'desc')
-            ->limit((int) $request->input('limit', 5))
-            ->get();
+        $complaints = Complaint::query()
+            ->with(['user:id,name,phone', 'support:id,name'])
+            ->when($validated['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($validated['from'] ?? null, fn ($query, $from) => $query->whereDate('created_at', '>=', $from))
+            ->when($validated['to'] ?? null, fn ($query, $to) => $query->whereDate('created_at', '<=', $to))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(min((int) ($validated['per_page'] ?? 20), 100));
 
         return response()->json($complaints);
     }
 
     /**
-     * شکایت‌ها فقط باید در اختیار پشتیبانِ صاحب آن یا ادمین باشد.
-     * بدون این محدودیت، هر پشتیبانی می‌توانست شکایت دیگران را بخواند یا ببندد.
+     * شمارش برای نشان قرمز.
+     *
+     * فقط نارضایتی‌های «خوانده‌نشده» را می‌شمارد تا با باز کردن صفحه کم
+     * شوند؛ شمارش بر اساس وضعیت هم باید فیلتر شود چون این شمارنده در
+     * همان صفحه‌ی فهرست می‌نشیند.
      */
-    private function findAccessible(Request $request, int $id): Complaint
+    public function summary(Request $request): JsonResponse
     {
-        $complaint = Complaint::with(['student', 'mentor', 'support', 'shift'])
-            ->findOrFail($id);
+        $base = Complaint::query()->whereNull('seen_at');
 
-        abort_unless(
-            $request->user()->isAdmin()
-            || $complaint->support_id === $request->user()->id
-            || ($request->user()->isAccountObserver()
-                && $complaint->support?->role === 'support'
-                && $complaint->support?->support_type === $request->user()->support_type),
-            403,
-            'این نارضایتی به شما تعلق ندارد.',
-        );
+        $type = $request->input('type');
 
-        return $complaint;
-    }
-
-    // آپدیت وضعیت نارضایتی
-    public function update(Request $request, $id)
-    {
-        $complaint = $this->findAccessible($request, (int) $id);
-
-        $request->validate([
-            'status' => 'required|in:open,in_progress,resolved',
-        ]);
-
-        $complaint->update([
-            'status' => $request->status,
-        ]);
+        if (in_array($type, ['support', 'mentor', 'course'], true)) {
+            $base->where('type', $type);
+        }
 
         return response()->json([
-            'message' => 'وضعیت نارضایتی با موفقیت به‌روزرسانی شد.',
-            'complaint' => $complaint,
+            'unseen' => $base->count(),
+            'open' => Complaint::query()->where('status', '!=', ComplaintStatus::Resolved->value)->count(),
         ]);
     }
 
-    // نمایش جزئیات یک نارضایتی
-    public function show(Request $request, $id)
+    /**
+     * باز کردن نارضایتی‌های فهرست، یعنی «خوانده شد».
+     *
+     * نشان قرمز با همین صفر می‌شود، پس این کار در همان لحظه‌ای انجام می‌شود
+     * که کاربر واقعاً لیست را می‌بیند.
+     */
+    public function markSeen(Request $request): JsonResponse
     {
-        return response()->json($this->findAccessible($request, (int) $id));
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:support,mentor,course'],
+        ]);
+
+        Complaint::query()
+            ->whereNull('seen_at')
+            ->when($validated['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->update(['seen_at' => now()]);
+
+        return response()->json(['message' => 'نارضایتی‌ها خوانده‌شده علامت خوردند.']);
     }
 
-    // لیست دانشجویان دارای نارضایتی (برای Sidebar)
-    public function studentsWithComplaints(Request $request)
+    public function show(Request $request, int $id): JsonResponse
     {
-        $students = Student::whereHas('complaints')
-            ->withCount('complaints')
-            ->withMax('complaints', 'created_at')
-            ->when(
-                ! $request->user()->isAdmin(),
-                // پشتیبان فقط شکایت‌های خودش و ناظر اکانت فقط تیم خودش را می‌بینند
-                fn ($query) => $query->whereHas(
-                    'complaints',
-                    fn ($complaints) => $request->user()->isAccountObserver()
-                        ? $complaints->whereHas(
-                            'support',
-                            fn ($support) => $support
-                                ->where('role', 'support')
-                                ->where('support_type', $request->user()->support_type),
-                        )
-                        : $complaints->where('support_id', $request->user()->id),
-                ),
-            )
-            ->paginate(min((int) $request->input('per_page', 25), 100));
+        $complaint = Complaint::findOrFail($id);
 
-        return response()->json($students);
+        $complaint->forceFill(['seen_at' => $complaint->seen_at ?? now()])->save();
+
+        return response()->json(['data' => $complaint->load(['user:id,name,phone', 'support:id,name'])]);
+    }
+
+    /**
+     * تغییر وضعیت رسیدگی.
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $complaint = Complaint::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:open,in_progress,resolved'],
+        ], [], ['status' => 'وضعیت']);
+
+        $complaint->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'message' => 'وضعیت نارضایتی به‌روز شد.',
+            'data' => $complaint->fresh(),
+        ]);
+    }
+
+    /**
+     * حذف نارضایتی بی‌ربط (اسپم) توسط ناظر یا سوپر ادمین.
+     *
+     * حذف کامل است، نه «resolved»، چون درخواست این بوده که از فعالیتِ
+     * پشتیبان هم پاک شود — چیزی که با تغییر وضعیت ممکن نبود.
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        Complaint::findOrFail($id)->delete();
+
+        return response()->json(['message' => 'نارضایتی حذف شد.']);
     }
 }

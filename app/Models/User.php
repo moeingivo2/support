@@ -162,7 +162,14 @@ class User extends Authenticatable
         return $this->hasOne(Shift::class)->where('status', 'active');
     }
 
+    /** نارضایتی‌هایی که این کاربر به‌عنوان دانشجو ثبت کرده است. */
     public function complaints()
+    {
+        return $this->hasMany(Complaint::class, 'user_id');
+    }
+
+    /** نارضایتی‌های نوع «پشتیبانی» که بابت این پشتیبان ثبت شده‌اند. */
+    public function supportComplaints()
     {
         return $this->hasMany(Complaint::class, 'support_id');
     }

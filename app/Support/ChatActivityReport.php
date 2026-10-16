@@ -74,9 +74,10 @@ final readonly class ChatActivityReport
             studentsCount: $conversations->pluck('student_id')->unique()->count(),
             unsatisfiedStudentsCount: Complaint::query()
                 ->where('support_id', $support->id)
+                ->where('type', ComplaintType::Support)
                 ->whereBetween('created_at', [$from, $to])
                 ->distinct()
-                ->count('student_id'),
+                ->count('user_id'),
             studentMessagesCount: $messages->filter(
                 fn (Message $message): bool => ($studentIdsByConversation[$message->conversation_id] ?? null) === $message->sender_id,
             )->count(),

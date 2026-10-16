@@ -1,14 +1,20 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { LogOut, Menu, X, ChevronLeft } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { getNavigation } from "@/shared/navigation";
+import type { NavItem } from "@/shared/navigation";
+import { toPersianDigits } from "@/features/student-chat/utils/persian";
+import { getNavigation, withBadges } from "@/shared/navigation";
 import { useAuth } from "@/shared/services/auth-context";
+import { useComplaintSummary } from "@/features/student-complaints/hooks/useComplaints";
 import { Logo } from "@/shared/api/logo";
 import { BackButton } from "@/shared/ui/back-button";
 import { Button } from "@/shared/ui/button";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { cn } from "@/shared/lib/utils";
+
+/** نقش‌هایی که نشانِ نارضایتی در منویشان دیده می‌شود. */
+const BADGE_ROLES = ["admin"];
 
 export default function AppShell({ children }: { children: ReactNode }) {
     const location = useLocation();
@@ -16,7 +22,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
     const { user, logout, observerUser, returnToObserverAccount } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const activePath = location.pathname;
-    const navigation = getNavigation(user);
+
+    // پنل نارضایتی فقط برای سوپر ادمین است، پس فقط او کوئریِ شمارش را
+    // می‌زند و بقیه اصلاً درخواستی نمی‌فرستند.
+    const canSeeComplaints = BADGE_ROLES.includes(user?.role ?? "");
+    const complaintSummary = useComplaintSummary({ enabled: canSeeComplaints });
+
+    const navigation = withBadges(
+        getNavigation(user),
+        complaintSummary.data?.unseen ?? 0,
+    );
     const homePath = user?.role === "observer" ? "/inbox" : "/";
     // روی صفحه‌ی اصلی چیزی برای برگشت نیست، پس دکمه مخفی می‌شود.
     const canGoBack = activePath !== homePath;
@@ -59,7 +74,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     <header className="sticky top-0 z-20 flex h-18 items-center gap-3 border-b border-hairline bg-glass px-4 backdrop-blur-xl md:h-20 md:px-7">
                         {observerUser ? (
                             <Button type="button" variant="ghost" onClick={() => { returnToObserverAccount(); navigate("/team-supervision", { replace: true }); }} className="absolute right-4 top-1/2 z-10 -translate-y-1/2 md:right-7">
-                                <ChevronRight />بازگشت به اکانت ناظر
+                                <ChevronLeft />بازگشت به اکانت ناظر
                             </Button>
                         ) : null}
                         <Dialog.Root
@@ -212,7 +227,7 @@ function NavigationLink({
     onNavigate,
 }: {
     activePath: string;
-    item: { label: string; path: string; icon: typeof LayoutDashboard };
+    item: NavItem;
     onNavigate?: () => void;
 }) {
     const active = activePath === item.path;
@@ -230,7 +245,17 @@ function NavigationLink({
             aria-current={active ? "page" : undefined}
         >
             <item.icon />
-            {item.label}
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {item.badge ? (
+                // نشان قرمز تلگرام: عدد خوانده‌نشده‌ها. `min-w` و گردی کامل
+                // باعث می‌شود برای اعداد دو و سه رقمی هم درست دیده شود.
+                <span
+                    className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-danger px-1.5 text-[11px] font-bold text-white"
+                    title={`${item.badge.toLocaleString("fa-IR")} نارضایتی خوانده‌نشده`}
+                >
+                    {item.badge > 99 ? "۹۹+" : toPersianDigits(item.badge)}
+                </span>
+            ) : null}
         </Link>
     );
 }

@@ -11,8 +11,8 @@ class Mentor extends Model
 
     protected $fillable = ['name', 'phone'];
 
-    public function complaints()
-    {
-        return $this->hasMany(Complaint::class);
-    }
+    /**
+     * منتورها رکورد حساب ندارند و نارضایتیِ منتور با نام آزاد ثبت می‌شود،
+     * پس رابطه‌ای وجود ندارد. این متد عمداً حذف شد.
+     */
 }

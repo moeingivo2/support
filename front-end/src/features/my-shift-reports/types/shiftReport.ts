@@ -37,15 +37,22 @@ export interface ShiftReport {
 }
 
 export interface DissatisfactionReason {
+    /** برای کنار گذاشتن/بازگرداندن لازم است. */
+    id: number;
     student_name: string;
     rating_value: number;
     description: string | null;
     submitted_at: string;
+    /** پر است وقتی نارضایتی بی‌ربط اعلام شده. */
+    dismissed_at: string | null;
+    dismissed_by: string | null;
 }
 
 export interface ShiftReportDetails {
     report: ShiftReport;
     dissatisfactions: DissatisfactionReason[];
+    /** نارضایتی‌هایی که کنار گذاشته شده‌اند، برای بازگرداندن. */
+    dismissed_dissatisfactions: DissatisfactionReason[];
 }
 
 export interface LaravelPaginationLink {

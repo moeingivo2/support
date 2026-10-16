@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Menu, MessagesSquare, UserRound, Wallet, X } from "lucide-react";
+import { LogOut, Menu, MessagesSquare, UserRound, Wallet, X, BookOpen } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/shared/api/logo";
@@ -54,15 +54,21 @@ export default function StudentShell({ children }: { children: ReactNode }) {
             <header className="sticky top-0 z-30 shrink-0 border-b border-hairline bg-glass backdrop-blur-xl">
                 <div className="mx-auto flex h-16 w-full max-w-[1500px] justify-between items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
                     <div className="flex items-center gap-1.5">
-                        {profile ? (
-                            <span
-                                title={`${toPersianDigits(profile.remaining_chats)} گفتگوی باقی‌مانده`}
-                                className="hidden items-center gap-1.5 rounded-full cursor-pointer border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink md:flex"
-                            >
-                                <Wallet className="size-3.5" aria-hidden="true" />
-                                {toPersianDigits(profile.remaining_chats)}
-                            </span>
-                        ) : null}
+                        {/*
+                            دسترسی سریع به سورس جلسات.
+                            قبلاً این‌جا «کیف پول» (تعداد گفتگوی
+                            باقی‌مانده) بود؛ درخواست کاربر حذف آن و
+                            جایگزینی با دسترسی به سورس‌ها بود، و شمار
+                            گفتگوی باقی‌مانده همچنان در صفحه‌ی حساب و
+                            منوی موبایل دیده می‌شود.
+                        */}
+                        <Link
+                            to="/sources"
+                            className="hidden items-center gap-1.5 rounded-full border border-primary-line bg-primary-soft px-3 py-2 text-xs font-bold text-accent-ink transition-colors hover:bg-primary-soft-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2 md:flex"
+                        >
+                            <BookOpen className="size-3.5" aria-hidden="true" />
+                            سورس‌ها
+                        </Link>
 
                         <Dialog.Root
                             open={isMenuOpen}
@@ -126,6 +132,20 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                         >
                                             گفتگوی جدید
                                         </Button>
+
+                                        <Link
+                                            to="/sources"
+                                            onClick={() =>
+                                                setIsMenuOpen(false)
+                                            }
+                                            className="mb-3 flex min-h-11 w-full items-center gap-2 rounded-2xl border border-primary-line bg-primary-soft px-3 py-2.5 text-sm font-bold text-accent-ink transition-colors hover:bg-primary-soft-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                                        >
+                                            <BookOpen
+                                                className="size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            سورس جلسات
+                                        </Link>
 
                                         {conversations.length === 0 ? (
                                             <p className="rounded-2xl border border-hairline bg-surface-2 px-3 py-6 text-center text-xs text-ink-2">

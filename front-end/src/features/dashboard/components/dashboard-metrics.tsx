@@ -1,11 +1,13 @@
 import {
     AlertCircle,
     ClipboardList,
-    FileWarning,
     Info,
+    MessageSquareWarning,
     RotateCcw,
     Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/shared/services/auth-context";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -19,11 +21,6 @@ const metricCards = [
         icon: Users,
     },
     {
-        label: "مشکلات باز منتورها",
-        field: "mentorIssues",
-        icon: FileWarning,
-    },
-    {
         label: "تعداد سرویس‌های موجود",
         field: "availableServices",
         icon: ClipboardList,
@@ -33,6 +30,54 @@ const metricCards = [
     field: keyof DashboardMetrics;
     icon: typeof ClipboardList;
 }>;
+
+/**
+ * کارت نشان قرمزِ نارضایتی — مثل تلگرام.
+ *
+ * هم بازِ این هفته را نشان می‌دهد و هم خوانده‌نشده‌ها را با یک بج قرمز.
+ * کل کارت به صفحه‌ی نارضایتی‌ها لینک است تا یک کلیک کافی باشد.
+ */
+function ComplaintBadgeCard({
+    metrics,
+}: {
+    metrics: DashboardMetrics;
+}) {
+    const navigate = useNavigate();
+    const unseen = metrics.unseenComplaints;
+
+    return (
+        <button
+            type="button"
+            onClick={() => navigate("/student-complaints")}
+            className="rounded-4xl border border-primary-line bg-primary-soft p-5 text-right shadow-[var(--c-shadow-soft)] transition hover:border-active-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-active-blue"
+        >
+            <div className="flex items-start justify-between gap-3">
+                <span className="text-3xl font-black text-ink">
+                    {metrics.openComplaints.toLocaleString("fa-IR")}
+                </span>
+                {unseen > 0 ? (
+                    <span className="grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-danger px-2 text-xs font-bold text-white">
+                        {unseen > 99
+                            ? "۹۹+"
+                            : unseen.toLocaleString("fa-IR")}
+                    </span>
+                ) : null}
+            </div>
+            <p className="mt-4 text-sm leading-5 text-ink-2">
+                نارضایتی‌های باز این هفته
+            </p>
+            <p className="mt-1 text-xs text-ink-2">
+                {unseen > 0
+                    ? `${unseen.toLocaleString("fa-IR")} مورد خوانده‌نشده`
+                    : "همه نارضایتی‌ها دیده شده‌اند"}
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-ink">
+                <MessageSquareWarning className="size-4" />
+                مشاهده نارضایتی‌ها
+            </span>
+        </button>
+    );
+}
 
 export function DashboardMetricsSection({
     error,
@@ -45,6 +90,12 @@ export function DashboardMetricsSection({
     onRetry: () => void;
     status: "loading" | "error" | "empty" | "success";
 }) {
+    const { user } = useAuth();
+
+    // کارت نارضایتی فقط برای سوپر ادمین است؛ سرور هم آمارش را برای
+    // بقیه صفر می‌فرستد.
+    const canSeeComplaints = user?.role === "admin";
+
     return (
         <section className="space-y-4" aria-labelledby="dashboard-activity">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -81,6 +132,9 @@ export function DashboardMetricsSection({
                             </p>
                         </Card>
                     ))}
+                    {canSeeComplaints ? (
+                        <ComplaintBadgeCard metrics={metrics} />
+                    ) : null}
                 </div>
             )}
         </section>

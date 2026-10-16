@@ -12,9 +12,10 @@ export function mapDashboardMetrics(
     const { data } = response;
     const metrics: Array<keyof DashboardMetrics> = [
         "weeklySatisfaction",
+        "openComplaints",
         "answeredStudents",
-        "mentorIssues",
         "availableServices",
+        "unseenComplaints",
     ];
 
     for (const metric of metrics) {

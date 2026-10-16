@@ -1,39 +1,32 @@
-export type ComplaintPriority = "high" | "normal" | "low";
+/**
+ * نارضایتی یکپارچه — دانشجو خودش ثبت می‌کند و نوع را انتخاب می‌کند.
+ */
+export type ComplaintType = "support" | "mentor" | "course";
 
 export type ComplaintStatus = "open" | "in_progress" | "resolved";
 
-export interface ComplaintStudent {
-    id: number;
-    name: string;
-    student_code: string | null;
-    phone: string | null;
-}
-
-export interface ComplaintMentor {
+export interface ComplaintAuthor {
     id: number;
     name: string;
     phone: string | null;
-}
-
-export interface ComplaintSupport {
-    id: number;
-    name: string;
 }
 
 export interface Complaint {
     id: number;
-    student_id: number;
-    mentor_id: number;
-    support_id: number;
-    shift_id: number | null;
+    user_id: number;
+    type: ComplaintType | (string & {});
+    mentor_first_name: string | null;
+    mentor_last_name: string | null;
+    course_name: string | null;
     description: string;
-    priority: ComplaintPriority | (string & {});
     status: ComplaintStatus | (string & {});
+    conversation_id: number | null;
+    support_id: number | null;
+    seen_at: string | null;
     created_at: string;
     updated_at: string;
-    student: ComplaintStudent;
-    mentor: ComplaintMentor;
-    support?: ComplaintSupport;
+    user: ComplaintAuthor;
+    support?: ComplaintAuthor | null;
 }
 
 export interface LaravelPaginationLink {
@@ -58,18 +51,42 @@ export interface LaravelPagination<TData> {
     total: number;
 }
 
+/**
+ * بدنه‌ی ثبت نارضایتی.
+ *
+ * فیلدهای نام منتور و نام دوره فقط برای نوع مربوطه لازم‌اند؛ باقی
+ * نارضایتی‌ها باید خالی بفرستند و بک‌اند هم آن‌ها را پاک می‌کند.
+ */
 export type CreateComplaintPayload = {
-    student_name: string;
-    student_code?: string | null;
-    student_phone?: string | null;
-    mentor_name: string;
-    mentor_phone?: string | null;
+    type: ComplaintType;
     description: string;
-    priority: ComplaintPriority;
-    shift_id?: number | null;
+    mentor_first_name?: string;
+    mentor_last_name?: string;
+    course_name?: string;
+    conversation_id?: number | null;
 };
 
 export type CreateComplaintResponse = {
     message: string;
-    complaint: Complaint;
+    data: Complaint;
+};
+
+export type ComplaintStatusResponse = {
+    message: string;
+    data: Complaint;
+};
+
+/** فیلترهای فهرست پنل — همه اختیاری‌اند و با هم جمع می‌شوند. */
+export interface ComplaintFilters {
+    type?: ComplaintType | "";
+    status?: ComplaintStatus | "";
+    from?: string;
+    to?: string;
+    page?: number;
+    per_page?: number;
+}
+
+export type ComplaintSummary = {
+    unseen: number;
+    open: number;
 };

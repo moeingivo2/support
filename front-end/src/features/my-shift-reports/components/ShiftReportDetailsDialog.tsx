@@ -1,13 +1,30 @@
+import { useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MessageSquareWarning, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    CalendarDays,
+    Clock,
+    MessageSquareWarning,
+    RotateCcw,
+    Trash2,
+    X,
+} from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { StatusPill } from "@/shared/ui/status-pill";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { useAuth } from "@/shared/services/auth-context";
+import { useToast } from "@/shared/ui/toast";
 import { getJson } from "@/shared/api/http";
+import { cn } from "@/shared/lib/utils";
 import { formatShiftDateTime } from "../utils/formatShiftDateTime";
 import { formatShiftDuration } from "../utils/formatShiftDuration";
 import { formatShiftStatus } from "../utils/formatShiftStatus";
+import {
+    dismissDissatisfaction,
+    restoreDissatisfaction,
+} from "../services/dissatisfactionService";
 import type {
+    DissatisfactionReason,
     ShiftReport,
     ShiftReportDetails,
 } from "../types/shiftReport";
@@ -17,10 +34,18 @@ type ShiftReportDetailsDialogProps = {
     onClose: () => void;
 };
 
+/** کنار گذاشتن نارضایتی فقط با ناظر اکانت و سوپر ادمین ممکن است. */
+const DISMISS_ROLES = ["admin", "account_observer"];
+
 export function ShiftReportDetailsDialog({
     report,
     onClose,
 }: ShiftReportDetailsDialogProps) {
+    const { user } = useAuth();
+    const toast = useToast();
+    const queryClient = useQueryClient();
+    const canDismiss = DISMISS_ROLES.includes(user?.role ?? "");
+
     const detailsQuery = useQuery({
         queryKey: ["shift-report-details", report?.id],
         queryFn: ({ queryKey }) =>
@@ -28,11 +53,41 @@ export function ShiftReportDetailsDialog({
         enabled: report !== null,
     });
 
+    /**
+     * بعد از کنار گذاشتن یا برگرداندن، هم جزئیات این گزارش و هم فهرست
+     * گزارش‌ها باید نو شوند تا عدد «دانشجویان ناراضی» در هر دو جا
+     * هماهنگ شود (و در نتیجه اکسلِ فعالیت هم).
+     */
+    const refreshReports = async () => {
+        await queryClient.invalidateQueries({ queryKey: ["shift-report-details"] });
+        await queryClient.invalidateQueries({ queryKey: ["shift-reports"] });
+        await queryClient.invalidateQueries({ queryKey: ["all-reports"] });
+    };
+
+    const dismissMutation = useMutation({
+        mutationFn: dismissDissatisfaction,
+        onSuccess: async (data) => {
+            await refreshReports();
+            toast.success(data.message);
+        },
+        onError: (error: Error) => toast.error(error.message),
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: restoreDissatisfaction,
+        onSuccess: async (data) => {
+            await refreshReports();
+            toast.success(data.message);
+        },
+        onError: (error: Error) => toast.error(error.message),
+    });
+
     if (!report) {
         return null;
     }
 
     const dissatisfactions = detailsQuery.data?.dissatisfactions ?? [];
+    const dismissed = detailsQuery.data?.dismissed_dissatisfactions ?? [];
 
     return (
         <DialogPrimitive.Root open onOpenChange={(open) => !open && onClose()}>
@@ -133,7 +188,7 @@ export function ShiftReportDetailsDialog({
                         <div className="flex items-center gap-2">
                             <MessageSquareWarning className="size-4 text-err-text" />
                             <p className="text-xs font-bold text-ink">
-                                دلایل نارضایتی (امتیازهای کمتر از ۴)
+                                دلایل نارضایتی (امتیاز ۲ و کمتر)
                             </p>
                         </div>
                         {detailsQuery.isPending ? (
@@ -146,39 +201,57 @@ export function ShiftReportDetailsDialog({
                             </p>
                         ) : (
                             <div className="space-y-3">
-                                {dissatisfactions.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="rounded-2xl border border-hairline bg-surface-2 p-3"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className="text-sm font-semibold text-ink">
-                                                {item.student_name}
-                                            </p>
-                                            <span className="text-xs text-err-text">
-                                                {item.rating_value.toLocaleString(
-                                                    "fa-IR",
-                                                )}{" "}
-                                                از ۵
-                                            </span>
-                                        </div>
-                                        {item.description ? (
-                                            <p className="mt-2 text-sm leading-6 text-ink">
-                                                {item.description}
-                                            </p>
-                                        ) : (
-                                            <p className="mt-2 text-xs italic text-ink-3">
-                                                توضیحی ثبت نشده است.
-                                            </p>
-                                        )}
-                                        <p className="mt-2 text-xs text-ink-2">
-                                            {formatShiftDateTime(item.submitted_at)}
-                                        </p>
-                                    </div>
+                                {dissatisfactions.map((item) => (
+                                    <DissatisfactionCard
+                                        key={item.id}
+                                        item={item}
+                                        canDismiss={canDismiss}
+                                        pending={
+                                            dismissMutation.isPending ||
+                                            restoreMutation.isPending
+                                        }
+                                        onDismiss={() =>
+                                            dismissMutation.mutate(item.id)
+                                        }
+                                        onRestore={() =>
+                                            restoreMutation.mutate(item.id)
+                                        }
+                                    />
                                 ))}
                             </div>
                         )}
                     </div>
+
+                    {canDismiss && dismissed.length > 0 ? (
+                        <div className="space-y-3 rounded-3xl border border-hairline bg-surface-2 p-4">
+                            <p className="text-xs font-bold text-ink-2">
+                                کنار گذاشته‌شده‌ها ({dismissed.length.toLocaleString("fa-IR")})
+                            </p>
+                            <p className="text-xs leading-5 text-ink-3">
+                                این‌ها در شمارش «دانشجویان ناراضی» و اکسل فعالیت
+                                نیستند.
+                            </p>
+                            <div className="space-y-3">
+                                {dismissed.map((item) => (
+                                    <DissatisfactionCard
+                                        key={item.id}
+                                        item={item}
+                                        canDismiss={canDismiss}
+                                        pending={
+                                            dismissMutation.isPending ||
+                                            restoreMutation.isPending
+                                        }
+                                        onDismiss={() =>
+                                            dismissMutation.mutate(item.id)
+                                        }
+                                        onRestore={() =>
+                                            restoreMutation.mutate(item.id)
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
 
                     <div className="space-y-2 rounded-3xl border border-hairline bg-surface-2 p-4">
                         <p className="text-xs text-ink-2">یادداشت‌های اضافی</p>
@@ -218,6 +291,107 @@ export function ShiftReportDetailsDialog({
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
+    );
+}
+
+/**
+ * یک دلیل نارضایتی در گزارش شیفت.
+ *
+ * برای ناظر اکانت و سوپر ادمین دکمه‌ی «بی‌ربط» هست: با زدنش این امتیاز از
+ * شمارش «دانشجویان ناراضی» در گزارش شیفت و از ستون متناظر در اکسل فعالیت
+ * بیرون می‌رود. رکورد حذف نمی‌شود و با «بازگرداندن» برمی‌گردد.
+ */
+function DissatisfactionCard({
+    canDismiss,
+    item,
+    onDismiss,
+    onRestore,
+    pending,
+}: {
+    canDismiss: boolean;
+    item: DissatisfactionReason;
+    onDismiss: () => void;
+    onRestore: () => void;
+    pending: boolean;
+}) {
+    const [confirming, setConfirming] = useState(false);
+    const isDismissed = item.dismissed_at !== null;
+
+    return (
+        <>
+            <div
+                className={cn(
+                    "rounded-2xl border border-hairline bg-surface-2 p-3",
+                    isDismissed && "opacity-70",
+                )}
+            >
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-ink">
+                        {item.student_name}
+                    </p>
+                    <span className="text-xs text-err-text">
+                        {item.rating_value.toLocaleString("fa-IR")} از ۵
+                    </span>
+                </div>
+                {item.description ? (
+                    <p className="mt-2 text-sm leading-6 text-ink">
+                        {item.description}
+                    </p>
+                ) : (
+                    <p className="mt-2 text-xs italic text-ink-3">
+                        توضیحی ثبت نشده است.
+                    </p>
+                )}
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-ink-2">
+                        {formatShiftDateTime(item.submitted_at)}
+                    </p>
+
+                    {canDismiss ? (
+                        isDismissed ? (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={pending}
+                                onClick={onRestore}
+                            >
+                                <RotateCcw className="size-4" />
+                                بازگرداندن
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="danger"
+                                disabled={pending}
+                                onClick={() => setConfirming(true)}
+                            >
+                                <Trash2 className="size-4" />
+                                بی‌ربط
+                            </Button>
+                        )
+                    ) : null}
+                </div>
+
+                {isDismissed && item.dismissed_by ? (
+                    <p className="mt-2 text-xs text-ink-3">
+                        کنار گذاشته‌شده توسط {item.dismissed_by}
+                    </p>
+                ) : null}
+            </div>
+
+            <ConfirmDialog
+                open={confirming}
+                title="کنار گذاشتن نارضایتی"
+                description="این امتیاز از شمارش «دانشجویان ناراضی» در گزارش شیفت و اکسل فعالیت حذف می‌شود. بعداً می‌توانید برگردانید."
+                confirmLabel="کنار بگذار"
+                isPending={pending}
+                onConfirm={() => {
+                    setConfirming(false);
+                    onDismiss();
+                }}
+                onClose={() => setConfirming(false)}
+            />
+        </>
     );
 }
 

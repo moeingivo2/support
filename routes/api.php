@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\Api\MentorFeedbackController;
+use App\Http\Controllers\Api\MessageRatingController;
 use App\Http\Controllers\Api\PasswordResetRequestController;
 use App\Http\Controllers\Api\ResourceController;
 use App\Http\Controllers\Api\ShiftController;
@@ -84,9 +84,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     Route::get('/shift-schedule/current', [ShiftScheduleController::class, 'current'])->middleware('role:support,account_observer');
     Route::get('/shift-schedule/notifications', [ShiftScheduleController::class, 'notification'])->middleware('role:support,account_observer');
-    Route::get('/mentor-feedback', [MentorFeedbackController::class, 'index'])->middleware('role:support,observer,account_observer,admin');
-    Route::post('/mentor-feedback', [MentorFeedbackController::class, 'store'])->middleware('role:student');
-    Route::put('/mentor-feedback/{feedback}', [MentorFeedbackController::class, 'update'])->middleware('role:support,observer,account_observer,admin');
 
     // رتبه‌بندی پشتیبان‌ها — فقط سوپر ادمین
     Route::middleware('role:admin')->prefix('admin/support-ranking')->group(function () {
@@ -106,20 +103,23 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // پشتیبان‌های فعال — فقط برای ادمین (نظارت)
     Route::get('/shifts/active', [ShiftController::class, 'active'])->middleware('role:admin');
 
-    // شکایات — فقط پشتیبان و ادمین. دسترسی دانشجو یا ناظر به شکایات
-    // دیگران افشای اطلاعات شخصی بود.
+    // نارضایتی‌ها — دانشجو خودش ثبت می‌کند و فقط سوپر ادمین می‌بیند.
+    //
+    // پنلِ نارضایتی از ابتدا چند نقش را می‌دید؛ درخواست کاربر این بود که
+    // فقط سوپر ادمین به آن دسترسی داشته باشد، پس هم مسیرها و هم
+    // منوی پنل محدود شدند.
     Route::prefix('complaints')->group(function () {
-        Route::middleware('role:support,account_observer')->group(function () {
+        Route::middleware('role:student')->group(function () {
             Route::post('/', [ComplaintController::class, 'store']);
-            Route::get('/my', [ComplaintController::class, 'myComplaints']);
         });
 
-        Route::middleware('role:admin,support,account_observer')->group(function () {
+        Route::middleware('role:admin')->group(function () {
             Route::get('/', [ComplaintController::class, 'index']);
-            Route::get('/latest', [ComplaintController::class, 'latest']);
-            Route::get('/students', [ComplaintController::class, 'studentsWithComplaints']);
+            Route::get('/summary', [ComplaintController::class, 'summary']);
+            Route::post('/mark-seen', [ComplaintController::class, 'markSeen']);
             Route::get('/{id}', [ComplaintController::class, 'show']);
             Route::put('/{id}', [ComplaintController::class, 'update']);
+            Route::delete('/{id}', [ComplaintController::class, 'destroy']);
         });
     });
 
@@ -148,15 +148,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}', [VideoController::class, 'destroy']);
     });
 
-    // درخواست‌های ارتقا — دانشجو چند دوره را درخواست می‌دهد و پشتیبان
+    // درخواست‌های ارتقا — دانشجو چند دوره را درخواست می‌دهد و سوپر ادمین
     // صحت‌سنجی و تأیید/رد می‌کند. تأیید فقط سهمیه چت را افزایش می‌دهد.
+    //
+    // پیش‌تر پشتیبان و ناظر اکانت تأیید/رد می‌کردند و سوپر ادمین ۴۰۳
+    // می‌گرفت؛ حالا برعکس شده و تصمیم فقط با سوپر ادمین است.
     Route::prefix('upgrade-requests')->group(function () {
-        Route::middleware('role:support,account_observer,admin')->group(function () {
+        Route::middleware('role:admin')->group(function () {
             Route::get('/', [StudentUpgradeRequestController::class, 'index']);
             Route::get('/{upgrade}', [StudentUpgradeRequestController::class, 'show']);
-        });
-
-        Route::middleware('role:support,account_observer')->group(function () {
             Route::post('/{upgrade}/approve', [StudentUpgradeRequestController::class, 'approve']);
             Route::post('/{upgrade}/reject', [StudentUpgradeRequestController::class, 'reject']);
         });
@@ -167,6 +167,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('role:admin,observer,account_observer')->prefix('shift-reports')->group(function () {
         Route::get('/', [ShiftReportController::class, 'index']);
         Route::get('/{id}', [ShiftReportController::class, 'show']);
+    });
+
+    // کنار گذاشتنِ نارضایتیِ بی‌ربط — فقط ناظر اکانت و سوپر ادمین.
+    //
+    // ناظرِ فقط‌خواندنی دستش باز نیست؛ او گزارش را می‌بیند ولی عددِ
+    // «دانشجویان ناراضی» را نمی‌تواند دستکاری کند.
+    Route::middleware('role:admin,account_observer')->prefix('message-ratings')->group(function () {
+        Route::post('/{rating}/dismiss', [MessageRatingController::class, 'dismiss']);
+        Route::post('/{rating}/restore', [MessageRatingController::class, 'restore']);
     });
 
     // حساب دانشجو — دوره، جلسات، منتور و سهمیه چت

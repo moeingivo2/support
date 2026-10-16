@@ -19,10 +19,15 @@ import {
 } from "lucide-react";
 import type { PanelUser } from "@/shared/lib/auth-storage";
 
-type NavItem = {
+export type NavItem = {
     label: string;
     path: string;
     icon: typeof LayoutDashboard;
+    /**
+     * نشان قرمز کنار آیتم — مثل تلگرام. برای «نارضایتی» تعداد
+     * خوانده‌نشده‌ها را می‌گیرد.
+     */
+    badge?: number;
 };
 
 // منوی پنل ادمین — نظارت و برنامه‌ریزی؛ بدون ثبت گزارش دستی شیفت.
@@ -39,12 +44,8 @@ const adminNavigation: NavItem[] = [
     { label: "رتبه‌بندی پشتیبان‌ها", path: "/support-ranking", icon: Trophy },
     { label: "درخواست ارتقا", path: "/upgrade-requests", icon: GraduationCap },
     { label: "مدیریت سوپر ادمین‌ها", path: "/manage-admins", icon: UserCog },
-    {
-        label: "نارضایتی دانشجویان",
-        path: "/student-complaints",
-        icon: MessageSquareWarning,
-    },
-    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
+    // پنل نارضایتی فقط در دسترس سوپر ادمین است.
+    { label: "نارضایتی‌ها", path: "/student-complaints", icon: MessageSquareWarning },
     { label: "ثبت پشتیبان جدید", path: "/register-support", icon: UserPlus },
     { label: "کارآموزها", path: "/manage-trainees", icon: Users },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
@@ -58,14 +59,7 @@ const adminNavigation: NavItem[] = [
 const supportNavigation: NavItem[] = [
     { label: "داشبورد", path: "/", icon: LayoutDashboard },
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
-    { label: "درخواست ارتقا", path: "/upgrade-requests", icon: GraduationCap },
-    { label: "شیفت من", path: "/support-shifts", icon: CalendarClock },
-    {
-        label: "نارضایتی دانشجویان",
-        path: "/student-complaints",
-        icon: MessageSquareWarning,
-    },
-    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
+{ label: "شیفت من", path: "/support-shifts", icon: CalendarClock },
     { label: "سورس جلسات", path: "/sessions", icon: BookOpen },
     { label: "فایل‌های مورد نیاز", path: "/files", icon: FolderOpen },
     { label: "سوالات متداول", path: "/faq", icon: FileWarning },
@@ -84,8 +78,6 @@ const supportNavigation: NavItem[] = [
 const observerNavigation: NavItem[] = [
     { label: "گفتگوی دانشجویان", path: "/inbox", icon: MessagesSquare },
     { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
-    { label: "نارضایتی دانشجویان", path: "/student-complaints", icon: MessageSquareWarning },
-    { label: "نارضایتی از منتور", path: "/mentor-feedback", icon: MessageSquareWarning },
 ];
 
 // کارآموز فقط‌خواندنی است و مانند ناظر به متن گفتگوها دسترسی دارد،
@@ -95,7 +87,7 @@ const traineeNavigation: NavItem[] = [
 ];
 
 const accountObserverNavigation: NavItem[] = [
-    ...supportNavigation.filter((item) => item.path !== "/mentor-feedback"),
+    ...supportNavigation,
     {
         label: "نظارت بر روی تیم",
         path: "/team-supervision",
@@ -105,12 +97,36 @@ const accountObserverNavigation: NavItem[] = [
     { label: "گزارش شیفت پشتیبان‌ها", path: "/all-reports", icon: BarChart3 },
 ];
 
+/** آیتم‌هایی که نشان قرمزِ خوانده‌نشده می‌گیرند. */
+const BADGE_PATHS = new Set(["/student-complaints"]);
+
 export function getNavigation(user: PanelUser | null): NavItem[] {
     if (user?.role === "admin") return adminNavigation;
     if (user?.role === "observer") return observerNavigation;
     if (user?.role === "trainee") return traineeNavigation;
     if (user?.role === "account_observer") return accountObserverNavigation;
     return supportNavigation;
+}
+
+/**
+ * نشان قرمزِ منو.
+ *
+ * فقط آیتم‌هایی که در `BADGE_PATHS` هستند عدد می‌گیرند و اگر
+ * خوانده‌نشده‌ای نباشد اصلاً رندر نمی‌شوند.
+ */
+export function withBadges(
+    items: NavItem[],
+    unseenComplaints: number,
+): NavItem[] {
+    if (unseenComplaints <= 0) {
+        return items;
+    }
+
+    return items.map((item) =>
+        BADGE_PATHS.has(item.path)
+            ? { ...item, badge: unseenComplaints }
+            : item,
+    );
 }
 
 // برای سازگاری با استفاده‌های قبلی
