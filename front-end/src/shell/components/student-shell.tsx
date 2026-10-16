@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { cn } from "@/shared/lib/utils";
 import { useAuth } from "@/shared/services/auth-context";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
+import { StudentNotificationsBell } from "@/features/student-complaints/components/StudentNotificationsBell";
 import { chatKeys, getConversations } from "@/features/student-chat/services/chat-service";
 import {
     getStudentProfile,
@@ -287,6 +288,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                         </Link>
 
                         <span className="hidden h-6 w-px bg-hairline md:block" aria-hidden="true" />
+                        <StudentNotificationsBell />
                         <ThemeToggle className="size-10 rounded-xl border-hairline bg-surface" />
                         <Button
                             variant="ghost"

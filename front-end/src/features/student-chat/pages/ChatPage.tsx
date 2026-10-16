@@ -326,10 +326,10 @@ export default function ChatPage() {
                                 باشد شکایت بابت کدام پشتیبان بوده.
                             */}
                             <Link
-                                to={`/complaints/new?conversation_id=${activeId ?? ""}`}
+                                to={`/complaints?conversation_id=${activeId ?? ""}`}
                             >
                                 <MessageSquareWarning />
-                                ثبت نارضایتی
+                                نارضایتی
                             </Link>
                         </Button>
                     </div>

@@ -40,6 +40,7 @@ function complaintSubject(complaint: Complaint): string {
         const name = [complaint.mentor_first_name, complaint.mentor_last_name]
             .filter(Boolean)
             .join(" ");
+
         return name ? `منتور: ${name}` : "منتور";
     }
 
@@ -261,7 +262,12 @@ export default function StudentComplaintsPage() {
                         >
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div className="min-w-0 space-y-2">
-                                    <div className="flex flex-wrap items-center gap-2">
+<div className="flex flex-wrap items-center gap-2">
+                                        {/*
+                                            نوعِ نارضایتی عمداً فقط‌خواندنی
+                                            است: دانشجو انتخابش کرده و
+                                            باید همان نظرِ او بماند.
+                                        */}
                                         <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink">
                                             {TYPE_LABELS[complaint.type] ??
                                                 complaint.type}

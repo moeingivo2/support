@@ -47,8 +47,8 @@ export function ChatSidebar({
                 <MessageSquarePlus />
                 {isCreating ? "در حال ساخت..." : "گفتگوی جدید"}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => navigate(`/complaints/new${activeId === null ? "" : `?conversation_id=${activeId}`}`)} className="w-full justify-start">
-                <MessageSquareWarning />ثبت نارضایتی
+            <Button type="button" variant="ghost" onClick={() => navigate(`/complaints${activeId === null ? "" : `?conversation_id=${activeId}`}`)} className="w-full justify-start">
+                <MessageSquareWarning />نارضایتی
             </Button>
 
             <div className="flex items-center justify-between px-1">

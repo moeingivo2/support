@@ -14,11 +14,16 @@ enum ComplaintStatus: string
     case InProgress = 'in_progress';
     case Resolved = 'resolved';
 
+    /**
+     * برچسب‌های اینجا با `STATUS_LABELS` فرنت یکی است؛ اگر یکی عوض شود و
+     * دیگری نه، دانشجو یک وضعیت را با دو اسم مختلف می‌بیند — یکی در اعلان و
+     * یکی در فهرست.
+     */
     public function label(): string
     {
         return match ($this) {
-            self::Open => 'باز',
-            self::InProgress => 'در حال بررسی',
+            self::Open => 'در انتظار بررسی',
+            self::InProgress => 'در حال پیگیری',
             self::Resolved => 'رسیدگی‌شده',
         };
     }
@@ -26,7 +31,8 @@ enum ComplaintStatus: string
     /**
      * آیا هنوز در شمارشِ «باز»ِ نشان قرمز می‌آید؟
      *
-     * فقط باز و در حال بررسی؛ رسیدگی‌شده دیگر کاری برای پنل ندارد.
+     * فقط «در انتظار بررسی» و «در حال پیگیری»؛ رسیدگی‌شده دیگر کاری برای
+     * پنل ندارد.
      */
     public function isOutstanding(): bool
     {

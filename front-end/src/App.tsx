@@ -33,7 +33,7 @@ import LoginSplash from "@/features/auth/components/LoginSplash";
 import { AppErrorBoundary } from "@/shared/ui/app-error-boundary";
 import ShiftSchedulingPage from "@/features/admin/pages/ShiftSchedulingPage";
 import TeamSupervisionPage from "@/features/support-chat/pages/TeamSupervisionPage";
-import StudentComplaintFormPage from "@/features/student-complaints/pages/StudentComplaintFormPage";
+import MyComplaintsPage from "@/features/student-complaints/pages/MyComplaintsPage";
 import StudentSessionSourcesPage from "@/features/session-sources/pages/StudentSessionSourcesPage";
 
 const supportOnlyPaths = new Set(["/support-shifts"]);
@@ -172,7 +172,7 @@ function StudentRoutes() {
                 <Routes>
                     <Route path="/chat" element={<ChatRoute />} />
                     <Route path="/account" element={<AccountRoute />} />
-                    <Route path="/complaints/new" element={<StudentComplaintFormPage />} />
+                    <Route path="/complaints" element={<MyComplaintsPage />} />
                     <Route path="/sources" element={<StudentSessionSourcesPage />} />
                     <Route path="*" element={<Navigate to="/chat" replace />} />
                 </Routes>

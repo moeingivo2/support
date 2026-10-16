@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\ShiftReportController;
 use App\Http\Controllers\Api\ShiftScheduleController;
 use App\Http\Controllers\Api\StudentAuthController;
+use App\Http\Controllers\Api\StudentComplaintController;
 use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\StudentUpgradeRequestController;
 use App\Http\Controllers\Api\SupportChatController;
@@ -184,6 +185,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/upgrade', [StudentProfileController::class, 'upgrade']);
         Route::get('/session-sources', [ResourceController::class, 'studentSessionSources']);
         Route::get('/faqs', [FaqController::class, 'studentIndex']);
+
+        // نارضایتی‌های خود دانشجو و اعلانِ تغییر وضعیتشان
+        Route::get('/complaints', [StudentComplaintController::class, 'index']);
+        Route::get('/complaint-notifications', [StudentComplaintController::class, 'notifications']);
+        Route::post('/complaint-notifications/read', [StudentComplaintController::class, 'readNotifications']);
     });
 
     // گفتگوی دانشجو با پشتیبان
