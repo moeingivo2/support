@@ -4,21 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
-use App\Models\ComplaintNotification;
-use App\Support\ComplaintStatusNotifier;
+use App\Support\ComplaintType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * بخش دانشجو: نارضایتی‌های خودش و اعلان‌های مربوط به آن‌ها.
+ * بخش دانشجو: نارضایتی‌های خودش.
  *
  * دانشجو فقط چیزی را می‌بیند که خودش ثبت کرده؛ `user_id` از روی نشست
  * گرفته می‌شود و هیچ‌وقت از ورودی خوانده نمی‌شود.
+ *
+ * اعلانِ جداگانه‌ای وجود ندارد؛ پنل دانشجو همین فهرست را دوباره می‌خواند
+ * و خودش تغییرِ وضعیت را تشخیص می‌دهد.
  */
 class StudentComplaintController extends Controller
 {
-    private const NOTIFICATION_LIMIT = 50;
-
     /**
      * نارضایتی‌های خود دانشجو، با همان اطلاعاتی که پنل سوپر ادمین می‌بیند.
      */
@@ -34,7 +34,7 @@ class StudentComplaintController extends Controller
                 'id' => $complaint->id,
                 'type' => $complaint->type->value,
                 'status' => $complaint->status->value,
-                'subject' => ComplaintStatusNotifier::subject($complaint),
+                'subject' => self::subject($complaint),
                 'description' => $complaint->description,
                 'created_at' => $complaint->created_at?->toIso8601String(),
                 'updated_at' => $complaint->updated_at?->toIso8601String(),
@@ -44,41 +44,32 @@ class StudentComplaintController extends Controller
     }
 
     /**
-     * اعلان‌های دانشجو، تازه‌ترین اول، به‌همراه شمارش خوانده‌نشده‌ها.
+     * برچسبِ کوتاهِ موضوع نارضایتی.
+     *
+     * پیشوند فقط وقتی اضافه می‌شود که خودِ نام با آن شروع نشود، وگرنه نامی
+     * که دانشجو نوشته (مثل «دوره پایتون») دو بار پیشوند می‌گیرد.
      */
-    public function notifications(Request $request): JsonResponse
+    public static function subject(Complaint $complaint): string
     {
-        $base = ComplaintNotification::query()->where('user_id', $request->user()->id);
+        if ($complaint->type === ComplaintType::Mentor) {
+            return self::prefixed('منتور', $complaint->mentorFullName());
+        }
 
-        return response()->json([
-            'unread' => (clone $base)->whereNull('read_at')->count(),
-            'data' => (clone $base)
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->limit(self::NOTIFICATION_LIMIT)
-                ->get()
-                ->map(fn (ComplaintNotification $notification): array => [
-                    'id' => $notification->id,
-                    'complaint_id' => $notification->complaint_id,
-                    'title' => $notification->title,
-                    'body' => $notification->body,
-                    'status' => $notification->status->value,
-                    'read_at' => $notification->read_at?->toIso8601String(),
-                    'created_at' => $notification->created_at?->toIso8601String(),
-                ]),
-        ]);
+        if ($complaint->type === ComplaintType::Course) {
+            return self::prefixed('دوره', $complaint->course_name);
+        }
+
+        return 'پشتیبانی';
     }
 
-    /**
-     * علامت‌زدن اعلان‌ها به‌عنوان خوانده‌شده.
-     */
-    public function readNotifications(Request $request): JsonResponse
+    private static function prefixed(string $prefix, ?string $name): string
     {
-        ComplaintNotification::query()
-            ->where('user_id', $request->user()->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $name = trim((string) $name);
 
-        return response()->json(['message' => 'اعلان‌ها خوانده‌شده علامت خوردند.']);
+        if ($name === '') {
+            return $prefix;
+        }
+
+        return str_starts_with($name, $prefix) ? $name : $prefix.' '.$name;
     }
 }

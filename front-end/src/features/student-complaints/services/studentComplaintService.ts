@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getJson, postJson } from "@/shared/api/http";
+import { useQuery } from "@tanstack/react-query";
+import { getJson } from "@/shared/api/http";
 import type {
     ComplaintStatus,
     ComplaintType,
@@ -16,25 +16,9 @@ export type MyComplaint = {
     updated_at: string;
 };
 
-export type ComplaintNotification = {
-    id: number;
-    complaint_id: number;
-    title: string;
-    body: string;
-    status: ComplaintStatus | (string & {});
-    read_at: string | null;
-    created_at: string;
-};
-
-export type NotificationsResponse = {
-    unread: number;
-    data: ComplaintNotification[];
-};
-
 export const studentComplaintKeys = {
     all: ["student-complaints"] as const,
     mine: ["student-complaints", "mine"] as const,
-    notifications: ["student-complaints", "notifications"] as const,
 };
 
 /**
@@ -47,7 +31,13 @@ export const COMPLAINT_STATUS_LABELS: Record<string, string> = {
     resolved: "رسیدگی‌شده",
 };
 
-/** نارضایتی‌های خود دانشجو. */
+/**
+ * نارضایتی‌های خود دانشجو.
+ *
+ * پنل دانشجو این را چند وقت یک‌بار دوباره می‌خواند تا تغییر وضعیتی که در
+ * پنل سوپر ادمین داده شده را خودش تشخیص دهد؛ لازم نیست رابطِ کاربریِ
+ * جداگانه‌ای برای اعلان نگه داریم.
+ */
 export function useMyComplaints() {
     return useQuery({
         queryKey: studentComplaintKeys.mine,
@@ -55,40 +45,6 @@ export function useMyComplaints() {
             getJson<{ data: MyComplaint[] }>("/api/student/complaints").then(
                 (response) => response.data,
             ),
-    });
-}
-
-/**
- * اعلان‌های دانشجو.
- *
- * داده‌کم و سبک است، پس بازه‌ی تازه‌سازی کوتاه گذاشته شده تا تغییر وضعیت
- * در پنل سوپر ادمین زودتر به دانشجو برسد.
- */
-export function useComplaintNotifications() {
-    return useQuery({
-        queryKey: studentComplaintKeys.notifications,
-        queryFn: () =>
-            getJson<NotificationsResponse>(
-                "/api/student/complaint-notifications",
-            ),
         refetchInterval: 60_000,
-    });
-}
-
-/** علامت‌زدن اعلان‌ها به‌عنوان خوانده‌شده. */
-export function useMarkNotificationsRead() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: () =>
-            postJson<Record<string, never>, { message: string }>(
-                "/api/student/complaint-notifications/read",
-                {},
-            ),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: studentComplaintKeys.notifications,
-            });
-        },
     });
 }

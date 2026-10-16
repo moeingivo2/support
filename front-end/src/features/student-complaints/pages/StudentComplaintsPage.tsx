@@ -34,25 +34,83 @@ import { StatusPill } from "@/shared/ui/status-pill";
 import { getPages, PageButton } from "@/shared/ui/pagination";
 import { cn } from "@/shared/lib/utils";
 
-/** نمایش «منتور: رضا محمدی» یا «دوره: …» و برای پشتیبانی فقط برچسب. */
-function complaintSubject(complaint: Complaint): string {
-    if (complaint.type === "mentor") {
-        const name = [complaint.mentor_first_name, complaint.mentor_last_name]
-            .filter(Boolean)
-            .join(" ");
+/**
+ * مشخصاتِ مخصوص هر نوع نارضایتی، همان‌طور که دانشجو آن را ثبت کرده.
+ *
+ * برای «منتور» نام و نام خانوادگی جدا نشان داده می‌شوند تا سوپر ادمین دقیقاً
+ * همان چیزی را ببیند که دانشجو نوشته — یک رشته‌ی به‌هم‌چسبیده نبود.
+ */
+type SubjectLine = {
+    /** برچسبِ اصلی کنار نوع. */
+    label: string;
+    /** فیلدهای «نام: … / نام خانوادگی: …» */
+    fields: Array<{ label: string; value: string }>;
+};
 
-        return name ? `منتور: ${name}` : "منتور";
+function complaintSubject(complaint: Complaint): SubjectLine {
+    if (complaint.type === "mentor") {
+        return {
+            label: "منتور",
+            fields: [
+                { label: "نام", value: complaint.mentor_first_name ?? "" },
+                {
+                    label: "نام خانوادگی",
+                    value: complaint.mentor_last_name ?? "",
+                },
+            ],
+        };
     }
 
     if (complaint.type === "course") {
-        return complaint.course_name
-            ? `دوره: ${complaint.course_name}`
-            : "دوره";
+        return {
+            label: "دوره",
+            fields: [
+                { label: "نام دوره", value: complaint.course_name ?? "" },
+            ],
+        };
     }
 
-    return complaint.support?.name
-        ? `پشتیبانی: ${complaint.support.name}`
-        : "پشتیبانی";
+    return {
+        label: "پشتیبانی",
+        fields: complaint.support?.name
+            ? [{ label: "پشتیبان", value: complaint.support.name }]
+            : [],
+    };
+}
+
+/**
+ * نمایش مشخصاتِ مخصوص نوع نارضایتی.
+ *
+ * برای منتور دو فیلد جدا نمایش داده می‌شود («نام» و «نام خانوادگی») تا
+ * سوپر ادمین دقیقاً همان چیزی را ببیند که دانشجو در فرم ثبت کرده است.
+ */
+function SubjectFields({ subject }: { subject: SubjectLine }) {
+    const filled = subject.fields.filter((field) => field.value !== "");
+
+    if (filled.length === 0) {
+        return (
+            <span className="text-sm font-semibold text-ink">
+                {subject.label}
+            </span>
+        );
+    }
+
+    return (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-sm font-semibold text-ink">
+                {subject.label}:
+            </span>
+            {filled.map((field) => (
+                <span
+                    key={field.label}
+                    className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2 py-1 text-sm text-ink"
+                >
+                    <span className="text-xs text-ink-2">{field.label}:</span>
+                    <span className="font-semibold">{field.value}</span>
+                </span>
+            ))}
+        </span>
+    );
 }
 
 /**
@@ -261,8 +319,8 @@ export default function StudentComplaintsPage() {
                             )}
                         >
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                                <div className="min-w-0 space-y-2">
-<div className="flex flex-wrap items-center gap-2">
+<div className="min-w-0 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         {/*
                                             نوعِ نارضایتی عمداً فقط‌خواندنی
                                             است: دانشجو انتخابش کرده و
@@ -272,9 +330,11 @@ export default function StudentComplaintsPage() {
                                             {TYPE_LABELS[complaint.type] ??
                                                 complaint.type}
                                         </span>
-                                        <span className="text-sm font-semibold text-ink">
-                                            {complaintSubject(complaint)}
-                                        </span>
+                                        <SubjectFields
+                                            subject={complaintSubject(
+                                                complaint,
+                                            )}
+                                        />
                                         <StatusPill
                                             tone={
                                                 complaint.status ===

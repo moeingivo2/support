@@ -7,7 +7,6 @@ use App\Http\Requests\StoreComplaintRequest;
 use App\Models\Complaint;
 use App\Models\Conversation;
 use App\Support\ComplaintStatus;
-use App\Support\ComplaintStatusNotifier;
 use App\Support\ComplaintType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -130,14 +129,10 @@ class ComplaintController extends Controller
     }
 
     /**
-     * تغییر وضعیت رسیدگی، و در صورت نیاز اصلاحِ نوعِ نارضایتی.
-     *
-     * با هر تغییرِ وضعیت به دانشجو اعلان داده می‌شود؛ این همان چیزی است که
-     * دانشجو باید بداند نارضایتی‌اش در چه مرحله‌ای است.
+     * تغییر وضعیت رسیدگی.
      *
      * نوع عمداً قابل تغییر نیست: نوع را دانشجو انتخاب کرده و باید همان
-     * بماند، وگرنه فیلترِ نوع در پنل به چیزی غیر از نظرِ دانشجو اشاره
-     * می‌کند.
+     * بماند، وگرنه فیلترِ نوع هم‌خوانِ نظرِ او نمی‌ماند.
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -147,23 +142,13 @@ class ComplaintController extends Controller
             'status' => ['sometimes', 'in:open,in_progress,resolved'],
         ], [], ['status' => 'وضعیت']);
 
-        $statusChanged = false;
-
-        if (isset($validated['status']) && $validated['status'] !== $complaint->status->value) {
+        if (isset($validated['status'])) {
             $complaint->status = $validated['status'];
-            $statusChanged = true;
-        }
-
-        $complaint->save();
-
-        if ($statusChanged) {
-            ComplaintStatusNotifier::notifyStatusChanged($complaint);
+            $complaint->save();
         }
 
         return response()->json([
-            'message' => $statusChanged
-                ? 'وضعیت نارضایتی به‌روز شد و به دانشجو اطلاع داده شد.'
-                : 'نارضایتی به‌روز شد.',
+            'message' => 'وضعیت نارضایتی به‌روز شد.',
             'data' => $complaint->fresh(),
         ]);
     }

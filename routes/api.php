@@ -186,10 +186,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/session-sources', [ResourceController::class, 'studentSessionSources']);
         Route::get('/faqs', [FaqController::class, 'studentIndex']);
 
-        // نارضایتی‌های خود دانشجو و اعلانِ تغییر وضعیتشان
+        // نارضایتی‌های خود دانشجو
         Route::get('/complaints', [StudentComplaintController::class, 'index']);
-        Route::get('/complaint-notifications', [StudentComplaintController::class, 'notifications']);
-        Route::post('/complaint-notifications/read', [StudentComplaintController::class, 'readNotifications']);
     });
 
     // گفتگوی دانشجو با پشتیبان

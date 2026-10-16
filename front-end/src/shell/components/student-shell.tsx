@@ -1,6 +1,15 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Menu, MessagesSquare, UserRound, Wallet, X, BookOpen } from "lucide-react";
+import {
+    BookOpen,
+    LogOut,
+    Menu,
+    MessageSquareWarning,
+    MessagesSquare,
+    UserRound,
+    Wallet,
+    X,
+} from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/shared/api/logo";
@@ -9,7 +18,7 @@ import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { cn } from "@/shared/lib/utils";
 import { useAuth } from "@/shared/services/auth-context";
 import { toPersianDigits } from "@/features/student-chat/utils/persian";
-import { StudentNotificationsBell } from "@/features/student-complaints/components/StudentNotificationsBell";
+import { ComplaintStatusToast } from "@/features/student-complaints/components/ComplaintStatusToast";
 import { chatKeys, getConversations } from "@/features/student-chat/services/chat-service";
 import {
     getStudentProfile,
@@ -52,6 +61,14 @@ export default function StudentShell({ children }: { children: ReactNode }) {
             // شده؛ وگرنه صفحه‌ی چت به اندازه‌ی همه‌ی پیام‌ها قد می‌کشید.
             className="app-canvas relative flex h-dvh flex-col overflow-hidden"
         >
+            {/*
+                نگهبانِ تغییر وضعیت نارضایتی؛ خودش دوره‌ای چک می‌کند و فقط
+                یک توست بالای صفحه نشان می‌دهد. اینجا (بیرون از هدر)
+                گذاشته شده تا در هر صفحه‌ی پنل دانشجو فعال باشد، نه فقط در
+                صفحه‌ی نارضایتی.
+            */}
+            <ComplaintStatusToast />
+
             <header className="sticky top-0 z-30 shrink-0 border-b border-hairline bg-glass backdrop-blur-xl">
                 <div className="mx-auto flex h-16 w-full max-w-[1500px] justify-between items-center gap-2 px-3 md:h-18 md:gap-3 md:px-7">
                     <div className="flex items-center gap-1.5">
@@ -133,6 +150,26 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                                         >
                                             گفتگوی جدید
                                         </Button>
+
+                                        {/*
+                                            نارضایتی — بین گفتگو و سورس‌ها.
+                                            فقط منوی موبایل؛ در دسکتاپ
+                                            دسترسی‌اش از نوار کناریِ گفتگو و
+                                            همین مسیر است و نباید تکرار شود.
+                                        */}
+                                        <Link
+                                            to="/complaints"
+                                            onClick={() =>
+                                                setIsMenuOpen(false)
+                                            }
+                                            className="mb-3 flex min-h-11 w-full items-center gap-2 rounded-2xl border border-hairline bg-surface-2 px-3 py-2.5 text-sm font-medium text-ink transition-colors duration-150 ease-out hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-ring-2"
+                                        >
+                                            <MessageSquareWarning
+                                                className="size-4 shrink-0 text-ink-2"
+                                                aria-hidden="true"
+                                            />
+                                            نارضایتی
+                                        </Link>
 
                                         <Link
                                             to="/sources"
@@ -288,7 +325,6 @@ export default function StudentShell({ children }: { children: ReactNode }) {
                         </Link>
 
                         <span className="hidden h-6 w-px bg-hairline md:block" aria-hidden="true" />
-                        <StudentNotificationsBell />
                         <ThemeToggle className="size-10 rounded-xl border-hairline bg-surface" />
                         <Button
                             variant="ghost"
