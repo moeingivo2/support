@@ -22,6 +22,9 @@ const TYPE_ICONS: Record<ComplaintType, typeof Headset> = {
     course: Sparkles,
 };
 
+/** نوعی که فرم با آن باز می‌شود. */
+const DEFAULT_TYPE: ComplaintType = "support";
+
 type Props = {
     /** اگر دانشجو از داخل یک گفتگو آمده، برای ردیابی پشتیبان. */
     conversationId?: number | null;
@@ -36,7 +39,7 @@ type Props = {
  * بی‌ربط در فرم جمع نشوند.
  */
 export function ComplaintForm({ conversationId, onDone }: Props) {
-    const [type, setType] = useState<ComplaintType>("support");
+    const [type, setType] = useState<ComplaintType>(DEFAULT_TYPE);
     const [submitted, setSubmitted] = useState(false);
 
     const createComplaint = useCreateComplaint();
@@ -45,11 +48,12 @@ export function ComplaintForm({ conversationId, onDone }: Props) {
         register,
         handleSubmit,
         reset,
+        setValue,
         formState: { errors },
     } = useForm<ComplaintFormValues>({
         resolver: zodResolver(complaintSchema),
         defaultValues: {
-            type: "support",
+            type: DEFAULT_TYPE,
             description: "",
             mentor_first_name: "",
             mentor_last_name: "",
@@ -58,32 +62,55 @@ export function ComplaintForm({ conversationId, onDone }: Props) {
         mode: "onBlur",
     });
 
+    /**
+     * انتخاب نوع با دکمه‌های سفارشی انجام می‌شود، نه با یک `select` واقعی.
+     *
+     * به همین دلیل باید مقدار را صریح به فرم بدهیم: اگر فقط `value` را روی
+     * یک input مخفی می‌گذاشتیم، React آن را مستقیم در DOM می‌نوشت و رویداد
+     * `change` شلیک نمی‌شد، پس react-hook-form همیشه مقدار اولیه
+     * (`support`) را نگه می‌داشت و همه‌ی نارضایتی‌ها با همان نوع ثبت
+     * می‌شدند و فیلترها بی‌اثر می‌شدند.
+     */
+    function chooseType(next: ComplaintType) {
+        setType(next);
+        setValue("type", next, { shouldValidate: true });
+    }
+
     function onSubmit(values: ComplaintFormValues) {
         createComplaint.mutate(
             {
-                type: values.type,
+                // `type` از state خوانده می‌شود، نه از `values`، تا منبعِ
+                // حقیقت یکی باشد.
+                type,
                 description: values.description.trim(),
                 // فقط فیلدهای نوعِ انتخاب‌شده فرستاده می‌شوند.
                 mentor_first_name:
-                    values.type === "mentor"
-                        ? values.mentor_first_name
-                        : undefined,
+                    type === "mentor" ? values.mentor_first_name : undefined,
                 mentor_last_name:
-                    values.type === "mentor"
-                        ? values.mentor_last_name
-                        : undefined,
-                course_name:
-                    values.type === "course" ? values.course_name : undefined,
+                    type === "mentor" ? values.mentor_last_name : undefined,
+                course_name: type === "course" ? values.course_name : undefined,
                 conversation_id: conversationId ?? undefined,
             },
             {
                 onSuccess: () => {
                     setSubmitted(true);
-                    reset();
+                    resetForm();
                 },
                 onError: () => setSubmitted(false),
             },
         );
+    }
+
+    /**
+     * پاک‌کردن فرم برای ثبت بعدی.
+     *
+     * `reset()` فقط مقادیر react-hook-form را برمی‌گرداند؛ stateِ نوع را هم
+     * باید برگرداند، وگرنه «ثبت نارضایتی دیگر» با نوعِ قبلی باز می‌شد و
+     * اعتبارسنجیِ فیلدهای اجباری با نوعِ فرستاده‌شده نمی‌خواند.
+     */
+    function resetForm() {
+        reset();
+        setType(DEFAULT_TYPE);
     }
 
     if (submitted) {
@@ -135,7 +162,7 @@ export function ComplaintForm({ conversationId, onDone }: Props) {
                                 <button
                                     key={option.value}
                                     type="button"
-                                    onClick={() => setType(option.value)}
+                                    onClick={() => chooseType(option.value)}
                                     aria-pressed={selected}
                                     className={cn(
                                         "flex flex-col items-start gap-2 rounded-xl border p-4 text-right transition",
@@ -249,8 +276,9 @@ export function ComplaintForm({ conversationId, onDone }: Props) {
                     )}
                 </div>
 
-                {/* `type` در استیت بالاست، پس فرم باید همان را بفرستد. */}
-                <input type="hidden" value={type} {...register("type")} />
+                {/* `type` با `setValue` به فرم داده می‌شود (در
+                    `chooseType`) و payload از state ساخته می‌شود، پس
+                    input مخفی لازم نیست و فقط منبعِ حقیقتِ دوم می‌شد. */}
 
                 <Button
                     type="submit"
