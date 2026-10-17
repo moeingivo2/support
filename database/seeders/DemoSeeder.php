@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\ActorRole;
 use App\Support\ConversationStatus;
 use App\Support\CourseType;
+use App\Support\IranianPhone;
 use App\Support\MessageType;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -84,10 +85,19 @@ class DemoSeeder extends Seeder
         );
     }
 
+    /**
+     * شماره‌ها باید به همان قالبی نوشته شوند که ثبت‌نام ذخیره می‌کند
+     * (98xxxxxxxxx)، وگرنه ورود دانشجو کاربر را پیدا نمی‌کند.
+     */
+    private static function phone(string $raw): string
+    {
+        return IranianPhone::normalize($raw) ?? $raw;
+    }
+
     private function support(): User
     {
         return User::updateOrCreate(
-            ['phone' => '09121110009'],
+            ['phone' => self::phone('09121110009')],
             [
                 'name' => 'پشتیبان دمو',
                 'password' => Hash::make('12345678'),
@@ -100,7 +110,7 @@ class DemoSeeder extends Seeder
     private function accountObserver(): ?User
     {
         return User::updateOrCreate(
-            ['phone' => '09121110010'],
+            ['phone' => self::phone('09121110010')],
             [
                 'name' => 'ناظر اکانت دمو',
                 'password' => Hash::make('12345678'),
@@ -113,7 +123,7 @@ class DemoSeeder extends Seeder
     private function student(string $phone, string $name, string $track): User
     {
         $student = User::updateOrCreate(
-            ['phone' => $phone],
+            ['phone' => self::phone($phone)],
             [
                 'name' => $name,
                 'password' => Hash::make('12345678'),
