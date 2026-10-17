@@ -14,6 +14,35 @@ use RuntimeException;
  */
 class ConversationCloser
 {
+    /** مقدار `closure_actor` برای بستنِ خودکار. */
+    public const AUTO_CLOSE_ACTOR = 'system';
+
+    /**
+     * پس از چند ساعت بی‌جوابی، گفتگو خودکار بسته می‌شود.
+     *
+     * اینجا نگه‌داری می‌شود چون هم شرطِ بستن و هم متنِ پیامِ سامانه به آن
+     * نیاز دارند و اگر در دو جا نوشته شوند ممکن است از هم جدا بیفتند.
+     */
+    public const AUTO_CLOSE_IDLE_HOURS = 12;
+
+    /**
+     * بستنِ خودکار وقتی دانشجو جواب نداده است.
+     *
+     * اینجا `confirmed` نمی‌خواهد، چون کاربری تأیید نکرده؛ شرطِ
+     * زمان‌بندی‌شده خودش دلیل کافی است و دستِ کاربر نبودن یعنی تأیید
+     * نکردن نیست.
+     *
+     * `closed_by` خالی می‌ماند چون هیچ انسانی گفتگو را نبسته.
+     */
+    public function closeAutomatically(Conversation $conversation): Conversation
+    {
+        return $this->finalize(
+            conversation: $conversation,
+            closureActor: self::AUTO_CLOSE_ACTOR,
+            rating: null,
+        );
+    }
+
     /**
      * بستن گفتگو توسط دانشجو — امتیاز الزامی است.
      *
@@ -120,18 +149,25 @@ class ConversationCloser
             $fresh->update([
                 'status' => ConversationStatus::Closed->value,
                 'closure_actor' => $closureActor,
-                'closed_by' => $actor?->id ?? $conversation->student_id,
+                'closed_by' => $actor?->id ?? ($closureActor === self::AUTO_CLOSE_ACTOR
+                    ? null
+                    : $conversation->student_id),
                 'closed_at' => now(),
             ]);
 
             // پیام سامانه برای دعوت به امتیازدهی (فقط وقتی دانشجو هنوز امتیاز نداده)
-            if ($closureActor === 'support' && ! $fresh->rating()->exists()) {
+            if ($closureActor !== 'student' && ! $fresh->rating()->exists()) {
                 $fresh->messages()->create([
                     'sender_id' => null,
                     'actor_id' => null,
                     'actor_role' => ActorRole::System->value,
                     'type' => MessageType::Text->value,
-                    'body' => 'این گفتگو توسط پشتیبان بسته شد. اگر از پاسخ‌گویی راضی بودید، می‌توانید امتیاز بدهید.',
+                    'body' => $closureActor === self::AUTO_CLOSE_ACTOR
+                        ? sprintf(
+                            'این گفتگو به‌طور خودکار بسته شد، چون بیش از %s ساعت از پاسخ شما نگذشته بود. اگر از پاسخ‌گویی راضی بودید، می‌توانید امتیاز بدهید.',
+                            self::AUTO_CLOSE_IDLE_HOURS,
+                        )
+                        : 'این گفتگو توسط پشتیبان بسته شد. اگر از پاسخ‌گویی راضی بودید، می‌توانید امتیاز بدهید.',
                 ]);
             }
 

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\ActorRole;
 use App\Support\ConversationStatus;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -89,9 +91,55 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
+    /**
+     * آخرین پیام گفتگو.
+     *
+     * برای تصمیمِ «آیا دانشجو جواب داده؟» لازم است؛ چون `last_message_at`
+     * فقط یک زمان است و نمی‌گوید گوینده‌اش چه کسی بوده.
+     */
+    public function lastMessage(): HasOne
+    {
+        return $this->hasOne(Message::class)->latestOfMany('id');
+    }
+
     public function rating(): HasOne
     {
         return $this->hasOne(MessageRating::class);
+    }
+
+    /**
+     * گفتگوهای بازی که از این لحظه به بعد هیچ پیامی نگرفته‌اند.
+     *
+     * ملاک، زمان آخرین پیام است و اگر گفتگو هنوز پیامی ندارد، زمان ساختِ
+     * خودش — دقیقاً همان چیزی که در فهرست‌ها «آخرین فعالیت» نشان داده
+     * می‌شود.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeIdleSince(Builder $query, CarbonInterface $threshold): Builder
+    {
+        return $query
+            ->where(function (Builder $inner) use ($threshold): void {
+                $inner->where('last_message_at', '<=', $threshold)
+                    ->orWhere(function (Builder $empty) use ($threshold): void {
+                        $empty->whereNull('last_message_at')
+                            ->where('created_at', '<=', $threshold);
+                    });
+            });
+    }
+
+    /**
+     * آیا دانشجو آخرین حرف را زده است؟
+     *
+     * اگر گفتگو هنوز هیچ پیامی نداشته باشد، `false` است ولی این به معنی
+     * «دانشجو جواب نداده» نیست؛ گفتگوی خالی را نباید خودکار بست.
+     */
+    public function awaitingStudentReply(): bool
+    {
+        $last = $this->lastMessage;
+
+        return $last !== null && $last->actor_role !== ActorRole::Student;
     }
 
     public function isOpen(): bool

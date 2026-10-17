@@ -47,6 +47,38 @@ services:
     depends_on:
       - api
 
+  # زمان‌بندِ لاراول.
+  #
+  # بدون این سرویس هیچ‌کدام از کارهای `routes/console.php` اجرا نمی‌شوند —
+  # یعنی گفتگوهایی که دانشجو جوابشان را نداده هرگز خودکار بسته نمی‌شوند.
+  # `schedule:work` در حالت production برای همین است؛ `schedule:run` یک‌بار
+  # اجرا می‌شود و بیرون می‌افتد، پس اینجا به درد نمی‌خورد.
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: support-scheduler
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-support}
+      DB_USERNAME: ${DB_USERNAME:-support}
+      DB_PASSWORD: ${DB_PASSWORD:-support_secret}
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+    command: "php artisan schedule:work"
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
   db:
     image: postgres:17-alpine
     container_name: support-db
